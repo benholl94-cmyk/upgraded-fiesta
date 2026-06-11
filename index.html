@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Autonome, statisch deploybare iPhone-Entwicklerplattform ohne Build-Schritt, Account-Zwang oder Vorinstallation.">
+  <title>iPhone Dev Platform</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="topbar" aria-label="Hauptnavigation">
+      <a class="brand" href="#top" aria-label="iPhone Dev Platform Start">iPhone Dev Platform</a>
+      <div class="navlinks">
+        <a href="#autopilot">Autopilot</a>
+        <a href="#inject">Direct-Inject</a>
+        <a href="#qa">QA</a>
+        <a href="docs/iphone-local-dev-setup.md">Guide</a>
+      </div>
+    </nav>
+    <section id="top" class="hero-grid">
+      <div>
+        <p class="eyebrow">Null Build · Null Backend · Offline-fähig</p>
+        <h1>Vollautonome iPhone-Entwicklerplattform zum direkten Deployen.</h1>
+        <p class="lead">Diese Plattform läuft als statische Website, erzeugt sichere Copy/Paste-Setups für a-Shell, iSH und Remote-Hosts und findet unklare oder problematische Stellen im Setup-Guide sichtbar in der Oberfläche.</p>
+        <div class="actions">
+          <a class="button primary" href="#autopilot">Autopilot starten</a>
+          <a class="button secondary" href="#deploy">Deploy-Anleitung</a>
+        </div>
+      </div>
+      <aside class="status-card" aria-label="Plattformstatus">
+        <h2>Deploy-Status</h2>
+        <ul class="status-list">
+          <li><span class="dot ok"></span> Keine Abhängigkeiten</li>
+          <li><span class="dot ok"></span> Kein Build-Schritt</li>
+          <li><span class="dot ok"></span> Kein Server-Code</li>
+          <li><span class="dot ok"></span> Direct-Inject-Skripte lokal generiert</li>
+        </ul>
+      </aside>
+    </section>
+  </header>
+
+  <main>
+    <section id="autopilot" class="panel">
+      <div class="section-heading">
+        <p class="eyebrow">Autopilot</p>
+        <h2>Wähle dein Zielprofil</h2>
+        <p>Die Plattform generiert daraus eine minimal sichere Setup-Reihenfolge, ohne versteckte Vorbedingungen.</p>
+      </div>
+      <div class="profiles" role="list" aria-label="Setup-Profile">
+        <button class="profile active" type="button" data-profile="minimal" role="listitem">
+          <strong>Minimal lokal</strong>
+          <span>Working Copy, Editor, a-Shell</span>
+        </button>
+        <button class="profile" type="button" data-profile="linux" role="listitem">
+          <strong>Linux-nah</strong>
+          <span>iSH, apk, Git, SSH</span>
+        </button>
+        <button class="profile" type="button" data-profile="hybrid" role="listitem">
+          <strong>Hybrid Remote</strong>
+          <span>iPhone als Client, Builds remote</span>
+        </button>
+      </div>
+      <div class="output-grid">
+        <article class="card">
+          <h3>Setup-Plan</h3>
+          <ol id="planOutput" class="steps"></ol>
+        </article>
+        <article class="card">
+          <h3>Autonomie-Check</h3>
+          <div class="checks" id="autonomyChecks"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="inject" class="panel dark">
+      <div class="section-heading">
+        <p class="eyebrow">Direct-Inject</p>
+        <h2>Ein Block zum Kopieren und Einfügen</h2>
+        <p>Der generierte Block verändert nur lokale Dateien im gewählten Terminal und ist bewusst lesbar gehalten. Es wird nichts ungefragt aus dem Internet ausgeführt.</p>
+      </div>
+      <div class="toolbar">
+        <label for="projectName">Projektname</label>
+        <input id="projectName" value="iphone-dev-check" autocomplete="off" spellcheck="false">
+        <button class="button primary" id="copyScript" type="button">Skript kopieren</button>
+      </div>
+      <pre class="code"><code id="scriptOutput"></code></pre>
+      <p id="copyStatus" class="copy-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="qa" class="panel">
+      <div class="section-heading">
+        <p class="eyebrow">Fehler sichtbar machen</p>
+        <h2>Scanner für unklare und problematische Stellen</h2>
+        <p>Der Scanner prüft den Guide auf typische Artefakte wie „Foto“, Platzhalter, riskante Direktdownloads, unklare Aussagen und kaputte Nummerierungen.</p>
+      </div>
+      <div class="qa-grid">
+        <article class="card">
+          <h3>Prüfergebnis</h3>
+          <ul id="qaResults" class="qa-results"></ul>
+        </article>
+        <article class="card">
+          <h3>Regeln</h3>
+          <ul class="rules">
+            <li>Keine Foto-/OCR-Artefakte im Text.</li>
+            <li>Keine blinden Remote-Ausführungen wie <code>curl | sh</code>.</li>
+            <li>Keine TODO-/FIXME-Reste.</li>
+            <li>Durchgehende Top-Level-Nummerierung.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="deploy" class="panel split">
+      <div>
+        <p class="eyebrow">Deploy</p>
+        <h2>Sofort deploybar</h2>
+        <p>Alle Dateien sind statisch. Du kannst den Ordner direkt bei GitHub Pages, Netlify, Vercel, Cloudflare Pages, einem S3-Bucket oder einem beliebigen Webserver veröffentlichen.</p>
+      </div>
+      <pre class="code light"><code>python3 -m http.server 8000
+# Browser öffnen:
+# http://localhost:8000</code></pre>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Statisch, auditierbar und ohne Vorinstallation nutzbar. Für lokale iPhone-Details siehe <a href="docs/iphone-local-dev-setup.md">vollständigen Guide</a>.</p>
+  </footer>
+  <script src="app.js" defer></script>
+</body>
+</html>
