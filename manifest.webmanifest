@@ -1,0 +1,10 @@
+{
+  "name": "iPhone Dev Platform",
+  "short_name": "iPhoneDev",
+  "description": "Autonome, statisch deploybare iPhone-Entwicklerplattform ohne Build-Schritt.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": []
+}
