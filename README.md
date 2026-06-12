@@ -3,8 +3,8 @@
 Dieses Repository enthält ein vollständiges, deutschsprachiges Setup für eine möglichst lokale Entwicklerumgebung auf dem iPhone.
 
 - Hauptanleitung: [`docs/iphone-local-dev-setup.md`](docs/iphone-local-dev-setup.md)
-- Schwerpunkt: lokale Shell, Git-Workflow, Editor, Python/JavaScript, SSH, Backups und Wartung
-- Stand der geprüften App-/Tool-Informationen: 2026-06-11
+- Schwerpunkt: lokale Shell, Git-Workflow, Editor, Python/JavaScript, Localhost, Internet-Grundlagen, SSH, Backups und Wartung
+- Stand der geprüften App-/Tool-Informationen: 2026-06-12
 
 ## Kurzempfehlung
 
@@ -16,4 +16,4 @@ Für die meisten iPhone-Workflows ist die stabilste Kombination:
 4. **iSH** als Alpine-Linux-ähnliche Umgebung, wenn du `apk`, Linux-Pakete oder eine klassische Shell brauchst.
 5. **Blink Shell** oder ein anderer SSH/Mosh-Client optional für Remote-Builds, falls lokale iOS-Grenzen erreicht werden.
 
-Die Details inklusive Installationsbefehlen, Verzeichnisstruktur, Git-Konfiguration, Testbefehlen und Fehlerbehebung stehen in der vollständigen Anleitung.
+Die Details inklusive Installationsbefehlen, Verzeichnisstruktur, Git-Konfiguration, Localhost-Variablen, Internet-Grundlagen, Testbefehlen und Fehlerbehebung stehen in der vollständigen Anleitung.

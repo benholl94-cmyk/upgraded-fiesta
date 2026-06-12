@@ -1,6 +1,6 @@
 # Vollständiges Setup: lokale Entwicklerumgebung auf dem iPhone
 
-Stand: 2026-06-11
+Stand: 2026-06-12
 
 Diese Anleitung richtet eine praxistaugliche Entwicklerumgebung direkt auf dem iPhone ein. Sie priorisiert lokale Arbeit, benennt aber klar, wo iOS Grenzen setzt und wann ein Remote-Host sinnvoller ist.
 
@@ -262,25 +262,185 @@ Empfohlener Start:
 
 ## 10. Lokale Web-Entwicklung
 
+### 10.1 Sinnvolle Localhost-Variablen
+
+Lege für lokale Webprojekte wiederverwendbare Umgebungsvariablen an. So musst du Ports, Hostnamen und Proxy-Ausnahmen nicht in jedem Projekt neu tippen.
+
+Für a-Shell oder iSH:
+
+```sh
+cat >> ~/.profile <<'PROFILE'
+# Lokale Entwicklung
+export DEV_HOST=127.0.0.1
+export DEV_BIND=127.0.0.1
+export DEV_PORT=8000
+export DEV_ALT_PORT=3000
+export DEV_URL="http://${DEV_HOST}:${DEV_PORT}"
+export LOCALHOST_URL="$DEV_URL"
+
+# Proxy-Ausnahmen: lokale Ziele sollen nie über Firmen-/VPN-Proxys laufen.
+export NO_PROXY="localhost,127.0.0.1,::1,*.local"
+export no_proxy="$NO_PROXY"
+
+# Häufig genutzte Tool-Defaults
+export PYTHONUNBUFFERED=1
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+export npm_config_audit=false
+export npm_config_fund=false
+PROFILE
+. ~/.profile
+```
+
+Wenn du ein Projekt aus dem lokalen Netzwerk erreichen musst, ändere bewusst nur die Bind-Adresse:
+
+```sh
+export DEV_BIND=0.0.0.0
+python3 -m http.server "$DEV_PORT" --bind "$DEV_BIND"
+```
+
+Nutze `127.0.0.1` für private Tests auf demselben iPhone. Nutze `0.0.0.0` nur, wenn andere Geräte im gleichen Netzwerk zugreifen sollen und du dem Netzwerk vertraust.
+
+Typische Variablen:
+
+| Variable | Beispiel | Zweck |
+| --- | --- | --- |
+| `DEV_HOST` | `127.0.0.1` | Hostname oder IP, die du im Browser öffnest. |
+| `DEV_BIND` | `127.0.0.1` oder `0.0.0.0` | Adresse, auf der ein Server lauscht. |
+| `DEV_PORT` | `8000` | Standardport für kleine lokale Server. |
+| `DEV_ALT_PORT` | `3000` | Alternativport für Node-/Frontend-Projekte. |
+| `DEV_URL` | `http://127.0.0.1:8000` | Kopierbare Basis-URL. |
+| `NO_PROXY`/`no_proxy` | `localhost,127.0.0.1,::1,*.local` | Verhindert Proxy-Nutzung für lokale Adressen. |
+| `HTTP_PROXY`/`HTTPS_PROXY` | `http://proxy.example:8080` | Nur setzen, wenn dein Netzwerk zwingend einen Proxy verlangt. |
+| `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE` | `/path/ca.pem` | Eigene CA-Zertifikate für Python/Requests. |
+| `CURL_CA_BUNDLE`/`GIT_SSL_CAINFO` | `/path/ca.pem` | Eigene CA-Zertifikate für curl/Git. |
+
+### 10.2 Lokalen Server starten
+
 Für statische Seiten oder kleine Python-Server:
 
 ```sh
 cd /pfad/zu/deinem/projekt
-python3 -m http.server 8000
+python3 -m http.server "$DEV_PORT" --bind "$DEV_BIND"
 ```
 
 Öffne anschließend im iPhone-Browser:
 
 ```text
 http://localhost:8000
+http://127.0.0.1:8000
 ```
 
 Hinweise:
 
 - iOS kann lokale Server stoppen, wenn die App im Hintergrund ist.
 - Für Frameworks mit Watch-Modus, Hot Reload oder langen Builds ist ein Remote-Server oft stabiler.
+- Wenn `localhost` nicht funktioniert, teste `http://127.0.0.1:8000` und prüfe, ob der Server wirklich noch läuft.
+- Wenn ein Port belegt ist, erhöhe `DEV_PORT`, z. B. auf `8001`, `8080` oder `3000`.
 
-## 11. Remote-Ergänzung für große Projekte
+### 10.3 Netzwerkdiagnose für Localhost
+
+```sh
+printf '%s\n' "$DEV_URL"
+curl -I "$DEV_URL"
+python3 -m http.server "$DEV_PORT" --bind "$DEV_BIND"
+```
+
+Fehlersuche:
+
+- `Connection refused`: Der Server läuft nicht oder lauscht auf einem anderen Port.
+- `Timeout`: Netzwerk, VPN, Firewall oder iOS-Hintergrundverhalten blockiert den Zugriff.
+- `404`: Der Server läuft, aber der Pfad oder Arbeitsordner ist falsch.
+- `SSL certificate problem`: Du nutzt HTTPS mit einem selbstsignierten Zertifikat; verwende lokal zunächst HTTP oder installiere bewusst eine passende lokale CA.
+
+## 11. Internet-Grundlagen und Online-Arbeit
+
+Das Internet ist kein einzelner Dienst, sondern ein Verbund aus Netzen, Protokollen, Servern, Clients und Vertrauenssystemen. Für mobile Entwicklung reichen meist diese Bausteine:
+
+- **IP-Adresse**: numerische Adresse eines Geräts oder Servers, z. B. `127.0.0.1` lokal oder eine öffentliche Server-IP.
+- **DNS**: übersetzt Namen wie `example.com` in IP-Adressen.
+- **HTTP/HTTPS**: Protokoll für Webseiten und APIs; HTTPS verschlüsselt und prüft Zertifikate.
+- **URL**: vollständige Adresse wie `https://example.com/docs?lang=de`.
+- **Port**: Dienstnummer wie `80` für HTTP, `443` für HTTPS, `22` für SSH oder `8000` für lokale Entwicklung.
+- **TLS-Zertifikat**: beweist, dass du mit dem richtigen HTTPS-Server sprichst.
+- **Cookies, Tokens und Sessions**: merken Anmeldung oder API-Zugriff; behandle sie wie Passwörter.
+- **API**: maschinenlesbare Schnittstelle, oft JSON über HTTP.
+- **CDN und Cache**: beschleunigen Inhalte, können aber veraltete Antworten liefern.
+
+### 11.1 Verbindung prüfen
+
+```sh
+curl -I https://example.com
+python3 - <<'PY'
+import socket
+print(socket.gethostbyname('example.com'))
+PY
+```
+
+Wenn `curl` scheitert:
+
+1. Prüfe WLAN/Mobilfunk und VPN.
+2. Öffne dieselbe URL im Browser.
+3. Teste DNS mit einem einfachen Host wie `example.com`.
+4. Prüfe Datum/Uhrzeit; falsche Uhrzeiten brechen HTTPS-Zertifikatsprüfungen.
+5. Deaktiviere testweise Proxy-Variablen, wenn lokale oder öffentliche Ziele falsch geroutet werden.
+
+### 11.2 Sicher herunterladen
+
+```sh
+curl -L -o datei.zip https://example.com/datei.zip
+python3 -m zipfile -t datei.zip
+```
+
+Gute Praxis:
+
+- Lade Tools möglichst von offiziellen Projektseiten, App Stores oder bekannten Paketquellen.
+- Prüfe Checksums oder Signaturen, wenn ein Projekt sie anbietet.
+- Führe unbekannte Shell-Skripte nicht blind mit `curl ... | sh` aus; erst speichern, lesen, dann ausführen.
+- Trenne private Tokens, SSH-Keys und `.env`-Dateien strikt von öffentlichen Repositories.
+
+### 11.3 APIs nutzen
+
+Ein minimaler API-Test mit `curl`:
+
+```sh
+curl -s https://api.github.com/repos/git/git | python3 -m json.tool | head
+```
+
+Mit Token, ohne ihn in die Shell-History zu schreiben:
+
+```sh
+read -r API_TOKEN
+curl -H "Authorization: Bearer $API_TOKEN" https://api.example.com/me
+unset API_TOKEN
+```
+
+API-Regeln:
+
+- Lies Statuscodes: `200` Erfolg, `201` erstellt, `301/302` Weiterleitung, `400` fehlerhafte Anfrage, `401` nicht angemeldet, `403` keine Rechte oder Rate-Limit, `404` nicht gefunden, `429` zu viele Anfragen, `500` Serverfehler.
+- Verwende `GET` zum Lesen, `POST` zum Erstellen, `PUT/PATCH` zum Ändern und `DELETE` zum Löschen.
+- Speichere Secrets in Passwortmanager, Keychain oder App-spezifischen Secret-Stores, nicht in Git.
+- Baue Retries mit Wartezeit ein, aber respektiere Rate-Limits.
+
+### 11.4 Web-Recherche und Quellenbewertung
+
+Beim Arbeiten im Browser:
+
+- Bevorzuge Primärquellen: offizielle Dokumentation, Spezifikationen, Release Notes, Maintainer-Repositories.
+- Prüfe Datum, Version und Plattform; iOS-, App- und Paketmanager-Verhalten ändert sich.
+- Vergleiche mindestens zwei Quellen, wenn eine Anleitung tief in Sicherheit, Geld, Medizin, Recht oder Infrastruktur eingreift.
+- Kopiere Fehlermeldungen exakt, aber entferne Tokens, private URLs und personenbezogene Daten.
+- Notiere funktionierende Befehle in `README.md`, `docs/` oder einem Projekt-Wiki.
+
+### 11.5 Privatsphäre und Sicherheit im Internet
+
+- Verwende unterschiedliche Passwörter und aktiviere 2FA/MFA.
+- Bevorzuge Passkeys oder Hardware-Keys, wenn der Dienst sie unterstützt.
+- Gib Apps nur notwendige Berechtigungen.
+- Prüfe vor OAuth-Logins, welche Rechte eine App anfordert.
+- Nutze VPN nur, wenn du dem Anbieter vertraust; ein VPN ersetzt kein HTTPS.
+- Öffne keine unbekannten Profile, Zertifikate oder Konfigurationsdateien auf iOS, wenn du die Quelle nicht sicher kennst.
+
+## 12. Remote-Ergänzung für große Projekte
 
 Wenn lokale Grenzen erreicht sind, nutze das iPhone als Client und baue auf einem Remote-System:
 
@@ -298,7 +458,7 @@ git pull
 npm test
 ```
 
-## 12. Sicherheit
+## 13. Sicherheit
 
 - Aktiviere Face ID/Code und Geräteverschlüsselung.
 - Verwende pro Dienst separate Tokens mit minimalen Rechten.
@@ -307,7 +467,7 @@ npm test
 - Entferne alte Tokens und Keys regelmäßig.
 - Prüfe vor jedem Push den Diff.
 
-## 13. Backup-Strategie
+## 14. Backup-Strategie
 
 Mindestens eine dieser Strategien sollte aktiv sein:
 
@@ -318,7 +478,7 @@ Mindestens eine dieser Strategien sollte aktiv sein:
 
 Für aktive Projekte gilt: Nicht committete Änderungen sind nicht zuverlässig gesichert.
 
-## 14. Wartung
+## 15. Wartung
 
 Wöchentlich:
 
@@ -341,7 +501,7 @@ Monatlich:
 - Tokens und SSH-Keys prüfen.
 - Backups testweise öffnen.
 
-## 15. Fehlerbehebung
+## 16. Fehlerbehebung
 
 ### Git-Push schlägt fehl
 
@@ -372,7 +532,7 @@ Wenn die Repository-Konfiguration veraltet ist, verwende die von iSH empfohlene 
 - Prüfe Port und URL, z. B. `http://localhost:8000`.
 - Starte den Server neu.
 
-## 16. Minimal-Checkliste
+## 17. Minimal-Checkliste
 
 - [ ] iOS aktualisiert.
 - [ ] Working Copy installiert und Git-Konto verbunden.
@@ -381,10 +541,12 @@ Wenn die Repository-Konfiguration veraltet ist, verwende die von iSH empfohlene 
 - [ ] Optional iSH installiert und `apk update` geprüft.
 - [ ] SSH-Key oder Token eingerichtet.
 - [ ] Test-Repository geklont.
+- [ ] Localhost-Variablen gesetzt und `http://127.0.0.1:8000` getestet.
+- [ ] Internet-/API-Grundlagen mit `curl -I https://example.com` geprüft.
 - [ ] Teständerung committet und gepusht.
 - [ ] Backup-Strategie festgelegt.
 
-## 17. Empfohlene Startkonfiguration
+## 18. Empfohlene Startkonfiguration
 
 Wenn du sofort loslegen willst:
 
