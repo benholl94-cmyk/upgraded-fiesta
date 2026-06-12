@@ -1,69 +1,76 @@
 # Vollständiges Setup: lokale Entwicklerumgebung auf dem iPhone
 
-Stand: 2026-06-12
-
-Diese Anleitung richtet eine praxistaugliche Entwicklerumgebung direkt auf dem iPhone ein. Sie priorisiert lokale Arbeit, benennt aber klar, wo iOS Grenzen setzt und wann ein Remote-Host sinnvoller ist.
+Stand der Repository-Prüfung: 2026-06-12. Live-Zeitstempel, Tool-Versionen und lokale Diagnosedaten werden nicht statisch dokumentiert, sondern durch `scripts/iphone_local_dev_bootstrap.sh` und `scripts/validate_repository.sh` zur Laufzeit aus dem jeweiligen System gelesen.
 
 ## 1. Zielbild
 
-Nach dem Setup kannst du auf dem iPhone:
+Nach dem Setup kann ein iPhone als mobile Entwicklungsstation eingesetzt werden für:
 
-- Git-Repositories klonen, bearbeiten, committen, branchen und pushen.
-- Python-, JavaScript-, Shell- und Markdown-Dateien lokal bearbeiten.
-- Kleine Skripte lokal ausführen.
-- SSH-Schlüssel verwalten und dich mit Servern verbinden.
-- Projektdateien zwischen Editor, Terminal und Git-Client austauschen.
-- Backups und Wiederherstellung sauber planen.
+- Git-Repositories klonen, prüfen, bearbeiten, committen, branchen und pushen.
+- Markdown-, Shell-, Python- und JavaScript-Dateien lokal bearbeiten.
+- Kleine Skripte lokal ausführen und reproduzierbar testen.
+- SSH-Zugänge sicher nutzen und Remote-Builds starten.
+- Lokale Webserver auf `127.0.0.1` starten.
+- Dateien zwischen Git-Client, Editor, Terminal und Dateien-App kontrolliert austauschen.
+- Backups und Wiederherstellung mit klarer Ordnerstruktur planen.
 
 ## 2. Realistische Grenzen von iOS
 
-Ein iPhone ersetzt keinen vollwertigen Linux- oder macOS-Rechner für alle Projekte:
+Ein iPhone ist für mobile Änderungen, Dokumentation, kleine Skripte und Remote-Steuerung sehr gut geeignet. Es ersetzt für große Projekte keinen vollwertigen Linux- oder macOS-Rechner.
 
-- Hintergrundprozesse werden durch iOS begrenzt; lange Builds oder lokale Server können beendet werden.
-- Container, Docker, Kernel-Module und viele native Toolchains laufen nicht lokal wie auf Linux.
-- App-Sandboxing trennt Dateisysteme; App-übergreifendes Arbeiten erfolgt über Dateien-App, Dokumentanbieter oder explizite Freigaben.
-- Große Node-, Rust-, Java-, Swift- oder C/C++-Builds sind meist besser auf einem Remote-Server, Mac mini, Codespace oder CI-System aufgehoben.
+- iOS begrenzt Hintergrundprozesse; lange Builds und Watch-Prozesse können beendet werden.
+- Docker, Kernel-Module, Systemdienste und viele native Toolchains laufen nicht wie auf Linux.
+- App-Sandboxing trennt Dateisysteme; Austausch erfolgt über Dateien-App, Dokumentanbieter, WebDAV, Git oder explizite Freigaben.
+- Große Node-, Rust-, Java-, Swift- oder C/C++-Builds gehören auf einen Mac, Linux-Server, Codespace, CI-Runner oder Homelab-Host.
 
-Deshalb nutzt dieses Setup eine lokale Basis und ergänzt optional Remote-Zugriff.
+## 3. Geprüfte App-Rollen
 
-## 3. Empfohlene App-Rollen
-
-| Rolle | Empfehlung | Zweck | Quelle |
+| Rolle | Empfehlung | Produktionsnutzen | Offizielle Quelle |
 | --- | --- | --- | --- |
-| Git | Working Copy | Repositories, Branches, Commits, Push/Pull, Konfliktlösung | https://workingcopyapp.com/ |
+| Git | Working Copy | Repositories, Branches, Commits, Push/Pull, Konfliktlösung, Dateien-App-Integration | https://apps.apple.com/us/app/working-copy-git-client/id896694807 |
 | Lokales Terminal | a-Shell | Lokale Unix-Befehle, Python, JavaScript, C/C++, `curl`, `vim`, Dateiwerkzeuge | https://apps.apple.com/us/app/a-shell/id1473805438 |
-| Linux-ähnliche Shell | iSH | Alpine-Linux-Umgebung mit `apk`-Paketen | https://github.com/ish-app |
-| Code-Editor | Textastic | Starker iPhone/iPad-Code-Editor, externe Working-Copy-Ordner, SFTP/SSH | https://www.textasticapp.com/ |
-| All-in-one-Editor | Code App | Monaco-basierter Editor, lokale Dateien, Terminal, Git, `pip`/`npm` | https://apps.apple.com/us/app/code-app/id1512938504 |
-| Remote-Terminal optional | Blink Shell | SSH/Mosh für stabile Remote-Sessions | https://blink.sh/ |
+| Linux-ähnliche Shell | iSH | Alpine-Linux-Umgebung mit `apk`-Paketen | https://github.com/ish-app/ish |
+| Code-Editor | Textastic | Code-Editor für iPhone/iPad, externe Working-Copy-Ordner, SFTP/SSH | https://apps.apple.com/us/app/textastic-code-editor/id1049254261 |
+| All-in-one-Editor | Code App | Monaco-basierter Editor, lokale Dateien, Terminal, Git, `pip` und `npm` | https://apps.apple.com/us/app/code-app/id1512938504 |
+| Remote-Terminal | Blink Shell | SSH/Mosh für stabile Remote-Sessions | https://blink.sh/ |
 
-Du musst nicht alle Apps installieren. Für ein schlankes Setup reichen Working Copy, a-Shell und ein Editor.
+Minimal stabil: Working Copy, a-Shell und Textastic. Code App kann Textastic und Terminal teilweise bündeln. iSH ist sinnvoll, wenn Linux-Paketverwaltung gebraucht wird.
 
-## 4. Basisinstallation auf dem iPhone
+## 4. Repository-Skripte
 
-### 4.1 iOS vorbereiten
+### 4.1 Qualität prüfen
 
-1. Aktualisiere iOS über **Einstellungen → Allgemein → Softwareupdate**.
-2. Aktiviere iCloud Drive, wenn du Dokumente zwischen Apps sichern möchtest.
-3. Installiere eine Passwortverwaltung mit SSH-Key-/Token-Ablage, z. B. iCloud-Schlüsselbund, 1Password oder Bitwarden.
-4. Verwende nach Möglichkeit eine externe Tastatur. Terminal- und Git-Arbeit wird dadurch deutlich schneller.
+Vom Repository-Stamm ausführen:
 
-### 4.2 Apps installieren
+```sh
+scripts/validate_repository.sh
+```
 
-Installiere mindestens:
+Die Prüfung deckt ab:
 
-- Working Copy
-- a-Shell
-- Textastic oder Code App
+- Pflichtdateien vorhanden und nicht leer.
+- Keine offenen Arbeitsmarker für unfertige Inhalte.
+- Shell-Syntax aller Skripte gültig.
+- Skripte sind ausführbar.
+- Lokale Markdown-Links zeigen auf vorhandene Dateien.
+- `git diff --check` meldet keine Whitespace-Fehler.
+- Start- und Endzeit werden als UTC-Zeitstempel ausgegeben.
 
-Optional:
+### 4.2 iPhone-Shell vorbereiten
 
-- iSH, wenn du eine Linux-ähnliche Umgebung möchtest.
-- Blink Shell, wenn du regelmäßig per SSH/Mosh auf Server gehst.
+Zuerst ohne Änderungen prüfen:
 
-## 5. Verzeichnisstruktur
+```sh
+scripts/iphone_local_dev_bootstrap.sh --dry-run
+```
 
-Lege in der Dateien-App unter **Auf meinem iPhone** eine klare Struktur an:
+Dann anwenden:
+
+```sh
+scripts/iphone_local_dev_bootstrap.sh
+```
+
+Das Skript erstellt unter `~/Developer` diese Ordner:
 
 ```text
 Developer/
@@ -72,53 +79,74 @@ Developer/
   keys/
   exports/
   backups/
+  logs/
 ```
 
-Empfehlung:
+Zusätzlich schreibt es `~/.iphone-local-dev-profile`. Diese Datei wird mit folgendem Befehl in die App-Shell geladen:
 
-- `repos/`: aktive Git-Repositories.
-- `scratch/`: Experimente und Einmal-Skripte.
-- `keys/`: nur wenn deine App diesen Speicherort verschlüsselt oder sicher anbietet; private Keys nicht unverschlüsselt herumkopieren.
-- `exports/`: ZIPs, Logs, Artefakte.
-- `backups/`: manuelle Sicherungen wichtiger Dateien.
+```sh
+. "$HOME/.iphone-local-dev-profile"
+```
 
-Working Copy verwaltet Repositories intern sehr gut. Öffne sie im Editor möglichst als externe Ordner, statt dieselben Dateien mehrfach zu kopieren.
+Für Git-Identität können Werte vor dem Start gesetzt werden; ohne diese Variablen verändert das Skript keine persönliche Identität:
 
-## 6. Git mit Working Copy einrichten
+```sh
+export GIT_AUTHOR_NAME="$(id -un 2>/dev/null || printf '%s' mobile)"
+export GIT_AUTHOR_EMAIL="$(id -un 2>/dev/null || printf '%s' mobile)@users.noreply.github.com"
+scripts/iphone_local_dev_bootstrap.sh
+```
+
+## 5. Basisinstallation auf dem iPhone
+
+1. iOS über **Einstellungen → Allgemein → Softwareupdate** aktualisieren.
+2. iCloud Drive aktivieren, wenn Dokumente zwischen Apps gesichert werden sollen.
+3. Passwortverwaltung aktivieren, beispielsweise iCloud-Schlüsselbund, 1Password oder Bitwarden.
+4. Externe Tastatur koppeln, wenn regelmäßig Terminal- oder Git-Arbeit geplant ist.
+5. Working Copy installieren und mit der Git-Plattform verbinden.
+6. a-Shell installieren und `python3 --version`, `node --version`, `curl --version` prüfen.
+7. Textastic oder Code App installieren und mit dem Working-Copy-Repository testen.
+8. Optional iSH installieren, falls Linux-Pakete über `apk` benötigt werden.
+9. Optional Blink Shell installieren, falls Remote-Sessions länger laufen müssen.
+
+## 6. Git mit Working Copy
 
 ### 6.1 Konto verbinden
 
-1. Öffne Working Copy.
-2. Verbinde GitHub, GitLab, Bitbucket oder deinen eigenen Git-Server.
-3. Richte Authentifizierung über OAuth oder Personal Access Token ein.
-4. Klone dein Repository.
+1. Working Copy öffnen.
+2. GitHub, GitLab, Bitbucket oder einen eigenen Git-Server verbinden.
+3. OAuth, Passkey, SSH-Key oder Personal Access Token mit minimalen Rechten nutzen.
+4. Repository klonen.
+5. Pro-Features nur dort aktivieren, wo sie für Push, Dateifreigaben oder Automatisierung notwendig sind.
 
 ### 6.2 Git-Identität setzen
 
-Setze in Working Copy pro Repository oder global:
+In Working Copy pro Repository oder global setzen:
 
-```text
-Name: Dein Name
-Email: deine-commit-email@example.com
+- Name: derselbe Name, der auch auf der Git-Plattform angezeigt werden soll.
+- Email: GitHub-Noreply-Adresse oder eine dedizierte Commit-Adresse.
+
+In iSH oder einer klassischen Shell:
+
+```sh
+git config --global user.name "$GIT_AUTHOR_NAME"
+git config --global user.email "$GIT_AUTHOR_EMAIL"
+git config --global init.defaultBranch main
+git config --global pull.ff only
 ```
-
-Wenn du GitHub nutzt, verwende bei Bedarf die GitHub-`noreply`-Adresse, damit deine private E-Mail verborgen bleibt.
 
 ### 6.3 Standard-Workflow
 
-1. `Pull` oder `Fetch` ausführen.
-2. Branch erstellen, z. B. `feature/iphone-setup`.
+1. `Fetch` oder `Pull` ausführen.
+2. Branch erstellen, beispielsweise mit Datum und Zweck im Namen.
 3. Dateien im Editor bearbeiten.
-4. Zurück in Working Copy Änderungen prüfen.
-5. Sinnvolle Commit-Nachricht schreiben.
-6. Push ausführen.
-7. Pull Request im Browser oder über deine Git-Plattform öffnen.
+4. Diff in Working Copy prüfen.
+5. Kleine, logisch abgeschlossene Commits erstellen.
+6. Branch pushen.
+7. Pull Request auf der Git-Plattform öffnen.
 
-## 7. a-Shell einrichten
+## 7. a-Shell
 
 ### 7.1 Erste Prüfung
-
-Öffne a-Shell und führe aus:
 
 ```sh
 pwd
@@ -126,65 +154,39 @@ help -l
 python3 --version
 node --version
 clang --version
+curl --version
 ```
 
-Nicht jedes Projekt braucht alle Tools. Prüfe zuerst, was lokal schon vorhanden ist.
+### 7.2 Profil laden
 
-### 7.2 Arbeitsordner öffnen
-
-In a-Shell kannst du über die iOS-Dateiauswahl Projektordner verfügbar machen. Lege anschließend einen Arbeitsordner an:
+Nach dem Bootstrap:
 
 ```sh
-mkdir -p ~/Developer/scratch
-cd ~/Developer/scratch
+. "$HOME/.iphone-local-dev-profile"
+printf '%s\n' "$DEV_URL"
 ```
 
-### 7.3 Nützliche Shell-Konfiguration
-
-Erstelle eine kleine Profil-Datei:
+### 7.3 Python-Test
 
 ```sh
-cat > ~/.profile <<'PROFILE'
-export EDITOR=vim
-alias ll='ls -la'
-alias py='python3'
-alias serve='python3 -m http.server 8000'
-PROFILE
-```
-
-Lade sie neu:
-
-```sh
-. ~/.profile
-```
-
-### 7.4 Python-Projekt testen
-
-```sh
-mkdir -p ~/Developer/scratch/hello-python
-cd ~/Developer/scratch/hello-python
-cat > hello.py <<'PY'
-print("Hallo vom iPhone")
-PY
+mkdir -p "$IPHONE_DEV_HOME/scratch/hello-python"
+cd "$IPHONE_DEV_HOME/scratch/hello-python"
+printf 'print("Hallo vom iPhone")\n' > hello.py
 python3 hello.py
 ```
 
-### 7.5 JavaScript-Projekt testen
+### 7.4 JavaScript-Test
 
 ```sh
-mkdir -p ~/Developer/scratch/hello-js
-cd ~/Developer/scratch/hello-js
-cat > hello.js <<'JS'
-console.log("Hallo vom iPhone")
-JS
+mkdir -p "$IPHONE_DEV_HOME/scratch/hello-js"
+cd "$IPHONE_DEV_HOME/scratch/hello-js"
+printf 'console.log("Hallo vom iPhone")\n' > hello.js
 node hello.js
 ```
 
-Wenn `node` in deiner Installation nicht verfügbar ist, nutze Code App für JavaScript-Experimente oder weiche auf iSH/Remote aus.
+Wenn `node` nicht verfügbar ist, JavaScript in Code App oder auf einem Remote-Host ausführen.
 
-## 8. iSH einrichten
-
-Nutze iSH, wenn du eine Alpine-Linux-ähnliche Umgebung brauchst.
+## 8. iSH
 
 ### 8.1 Pakete aktualisieren
 
@@ -199,33 +201,29 @@ apk upgrade
 apk add git openssh curl wget nano vim python3 py3-pip nodejs npm make
 ```
 
-Je nach iSH-/Alpine-Stand können Paketnamen oder Versionen abweichen. Wenn ein Paket nicht gefunden wird, suche mit:
+Wenn ein Paketname nicht vorhanden ist:
 
 ```sh
-apk search <name>
+apk search python
+apk search node
+apk search git
+cat /etc/apk/repositories
 ```
 
-### 8.3 Git konfigurieren
+### 8.3 SSH-Key erzeugen
 
 ```sh
-git config --global user.name "Dein Name"
-git config --global user.email "deine-commit-email@example.com"
-git config --global init.defaultBranch main
-git config --global pull.rebase false
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+ssh-keygen -t ed25519 -C "$GIT_AUTHOR_EMAIL"
+chmod 600 "$HOME/.ssh/id_ed25519"
+chmod 644 "$HOME/.ssh/id_ed25519.pub"
+cat "$HOME/.ssh/id_ed25519.pub"
 ```
 
-### 8.4 SSH-Key erzeugen
+Nur den öffentlichen Schlüssel aus `id_ed25519.pub` kopieren. Der private Schlüssel `id_ed25519` bleibt auf dem Gerät und wird nie verschickt.
 
-```sh
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
-ssh-keygen -t ed25519 -C "iphone-dev"
-cat ~/.ssh/id_ed25519.pub
-```
-
-Kopiere den öffentlichen Schlüssel in GitHub/GitLab/Bitbucket oder auf deinen Server. Teile niemals `id_ed25519`, sondern nur `id_ed25519.pub`.
-
-### 8.5 SSH-Verbindung testen
+### 8.4 SSH testen
 
 Für GitHub:
 
@@ -233,258 +231,155 @@ Für GitHub:
 ssh -T git@github.com
 ```
 
-Für einen eigenen Server:
+Für eigene Infrastruktur:
 
 ```sh
-ssh user@example.com
+ssh "$REMOTE_USER@$REMOTE_HOST"
 ```
+
+`REMOTE_USER` und `REMOTE_HOST` müssen bewusst in der aktuellen Shell gesetzt werden; das Repository speichert keine privaten Zugangsdaten.
 
 ## 9. Editor-Workflow
 
 ### 9.1 Textastic mit Working Copy
 
-1. Klone das Repository in Working Copy.
-2. Öffne Textastic.
-3. Füge den Working-Copy-Repository-Ordner als externen Ordner hinzu.
-4. Bearbeite Dateien in Textastic.
-5. Wechsle zu Working Copy, prüfe den Diff und committe.
+1. Repository in Working Copy klonen.
+2. Textastic öffnen.
+3. Working-Copy-Repository-Ordner als externen Ordner hinzufügen.
+4. Dateien in Textastic bearbeiten.
+5. Zurück in Working Copy Diff prüfen, committen und pushen.
 
-### 9.2 Code App als All-in-one-Option
+### 9.2 Code App
 
-Code App eignet sich, wenn du Editor, Terminal, Git und einfache Paketmanager in einer App bevorzugst.
+Code App eignet sich, wenn Editor, Terminal, Git und kleine Paketmanager-Aufgaben in einer App bevorzugt werden.
 
-Empfohlener Start:
+Empfohlener Ablauf:
 
-1. Neues lokales Projekt anlegen.
-2. Eine `README.md` und eine kleine Testdatei erstellen.
-3. Git aktivieren oder mit einem bestehenden Repository verbinden.
-4. `pip`/`npm` nur für kleine Projekte nutzen und große Abhängigkeiten vermeiden.
+1. Lokalen Projektordner öffnen.
+2. Repository verbinden oder Dateien aus Working Copy freigeben.
+3. Kleine Tests direkt im eingebetteten Terminal ausführen.
+4. Große Builds auf Remote-Host verschieben.
 
 ## 10. Lokale Web-Entwicklung
 
-### 10.1 Sinnvolle Localhost-Variablen
+Das Bootstrap-Profil setzt diese produktiven Defaults:
 
-Lege für lokale Webprojekte wiederverwendbare Umgebungsvariablen an. So musst du Ports, Hostnamen und Proxy-Ausnahmen nicht in jedem Projekt neu tippen.
-
-Für a-Shell oder iSH:
-
-```sh
-cat >> ~/.profile <<'PROFILE'
-# Lokale Entwicklung
-export DEV_HOST=127.0.0.1
-export DEV_BIND=127.0.0.1
-export DEV_PORT=8000
-export DEV_ALT_PORT=3000
-export DEV_URL="http://${DEV_HOST}:${DEV_PORT}"
-export LOCALHOST_URL="$DEV_URL"
-
-# Proxy-Ausnahmen: lokale Ziele sollen nie über Firmen-/VPN-Proxys laufen.
-export NO_PROXY="localhost,127.0.0.1,::1,*.local"
-export no_proxy="$NO_PROXY"
-
-# Häufig genutzte Tool-Defaults
-export PYTHONUNBUFFERED=1
-export PIP_DISABLE_PIP_VERSION_CHECK=1
-export npm_config_audit=false
-export npm_config_fund=false
-PROFILE
-. ~/.profile
-```
-
-Wenn du ein Projekt aus dem lokalen Netzwerk erreichen musst, ändere bewusst nur die Bind-Adresse:
-
-```sh
-export DEV_BIND=0.0.0.0
-python3 -m http.server "$DEV_PORT" --bind "$DEV_BIND"
-```
-
-Nutze `127.0.0.1` für private Tests auf demselben iPhone. Nutze `0.0.0.0` nur, wenn andere Geräte im gleichen Netzwerk zugreifen sollen und du dem Netzwerk vertraust.
-
-Typische Variablen:
-
-| Variable | Beispiel | Zweck |
+| Variable | Wert | Zweck |
 | --- | --- | --- |
-| `DEV_HOST` | `127.0.0.1` | Hostname oder IP, die du im Browser öffnest. |
-| `DEV_BIND` | `127.0.0.1` oder `0.0.0.0` | Adresse, auf der ein Server lauscht. |
+| `DEV_HOST` | `127.0.0.1` | Adresse, die im Browser geöffnet wird. |
+| `DEV_BIND` | `127.0.0.1` | Adresse, auf der der Server lauscht. |
 | `DEV_PORT` | `8000` | Standardport für kleine lokale Server. |
-| `DEV_ALT_PORT` | `3000` | Alternativport für Node-/Frontend-Projekte. |
-| `DEV_URL` | `http://127.0.0.1:8000` | Kopierbare Basis-URL. |
-| `NO_PROXY`/`no_proxy` | `localhost,127.0.0.1,::1,*.local` | Verhindert Proxy-Nutzung für lokale Adressen. |
-| `HTTP_PROXY`/`HTTPS_PROXY` | `http://proxy.example:8080` | Nur setzen, wenn dein Netzwerk zwingend einen Proxy verlangt. |
-| `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE` | `/path/ca.pem` | Eigene CA-Zertifikate für Python/Requests. |
-| `CURL_CA_BUNDLE`/`GIT_SSL_CAINFO` | `/path/ca.pem` | Eigene CA-Zertifikate für curl/Git. |
+| `DEV_ALT_PORT` | `3000` | Alternativport für Frontend-Projekte. |
+| `DEV_URL` | `http://127.0.0.1:8000` | Kopierbare lokale Basis-URL. |
+| `NO_PROXY` | lokale Hosts | Lokale Ziele umgehen Proxy und VPN-Sonderrouting. |
 
-### 10.2 Lokalen Server starten
-
-Für statische Seiten oder kleine Python-Server:
+Server starten:
 
 ```sh
-cd /pfad/zu/deinem/projekt
+cd "$IPHONE_DEV_HOME/scratch"
 python3 -m http.server "$DEV_PORT" --bind "$DEV_BIND"
 ```
 
-Öffne anschließend im iPhone-Browser:
+Browser-URL:
 
 ```text
-http://localhost:8000
 http://127.0.0.1:8000
 ```
 
-Hinweise:
+Nur in vertrauenswürdigen lokalen Netzen auf allen Interfaces lauschen:
 
-- iOS kann lokale Server stoppen, wenn die App im Hintergrund ist.
-- Für Frameworks mit Watch-Modus, Hot Reload oder langen Builds ist ein Remote-Server oft stabiler.
-- Wenn `localhost` nicht funktioniert, teste `http://127.0.0.1:8000` und prüfe, ob der Server wirklich noch läuft.
-- Wenn ein Port belegt ist, erhöhe `DEV_PORT`, z. B. auf `8001`, `8080` oder `3000`.
+```sh
+DEV_BIND=0.0.0.0 python3 -m http.server "$DEV_PORT" --bind 0.0.0.0
+```
 
-### 10.3 Netzwerkdiagnose für Localhost
+## 11. Netzwerkdiagnose
 
 ```sh
 printf '%s\n' "$DEV_URL"
 curl -I "$DEV_URL"
-python3 -m http.server "$DEV_PORT" --bind "$DEV_BIND"
-```
-
-Fehlersuche:
-
-- `Connection refused`: Der Server läuft nicht oder lauscht auf einem anderen Port.
-- `Timeout`: Netzwerk, VPN, Firewall oder iOS-Hintergrundverhalten blockiert den Zugriff.
-- `404`: Der Server läuft, aber der Pfad oder Arbeitsordner ist falsch.
-- `SSL certificate problem`: Du nutzt HTTPS mit einem selbstsignierten Zertifikat; verwende lokal zunächst HTTP oder installiere bewusst eine passende lokale CA.
-
-## 11. Internet-Grundlagen und Online-Arbeit
-
-Das Internet ist kein einzelner Dienst, sondern ein Verbund aus Netzen, Protokollen, Servern, Clients und Vertrauenssystemen. Für mobile Entwicklung reichen meist diese Bausteine:
-
-- **IP-Adresse**: numerische Adresse eines Geräts oder Servers, z. B. `127.0.0.1` lokal oder eine öffentliche Server-IP.
-- **DNS**: übersetzt Namen wie `example.com` in IP-Adressen.
-- **HTTP/HTTPS**: Protokoll für Webseiten und APIs; HTTPS verschlüsselt und prüft Zertifikate.
-- **URL**: vollständige Adresse wie `https://example.com/docs?lang=de`.
-- **Port**: Dienstnummer wie `80` für HTTP, `443` für HTTPS, `22` für SSH oder `8000` für lokale Entwicklung.
-- **TLS-Zertifikat**: beweist, dass du mit dem richtigen HTTPS-Server sprichst.
-- **Cookies, Tokens und Sessions**: merken Anmeldung oder API-Zugriff; behandle sie wie Passwörter.
-- **API**: maschinenlesbare Schnittstelle, oft JSON über HTTP.
-- **CDN und Cache**: beschleunigen Inhalte, können aber veraltete Antworten liefern.
-
-### 11.1 Verbindung prüfen
-
-```sh
-curl -I https://example.com
+curl -I https://www.iana.org/
 python3 - <<'PY'
 import socket
-print(socket.gethostbyname('example.com'))
+print(socket.gethostbyname('www.iana.org'))
 PY
 ```
 
-Wenn `curl` scheitert:
+Fehlerbilder:
 
-1. Prüfe WLAN/Mobilfunk und VPN.
-2. Öffne dieselbe URL im Browser.
-3. Teste DNS mit einem einfachen Host wie `example.com`.
-4. Prüfe Datum/Uhrzeit; falsche Uhrzeiten brechen HTTPS-Zertifikatsprüfungen.
-5. Deaktiviere testweise Proxy-Variablen, wenn lokale oder öffentliche Ziele falsch geroutet werden.
+- `Connection refused`: Server läuft nicht oder lauscht auf anderem Port.
+- `Timeout`: VPN, Firewall, Mobilfunknetz oder iOS-Hintergrundverhalten blockiert.
+- `404`: Server läuft, aber Arbeitsordner oder Pfad ist falsch.
+- Zertifikatsfehler: Datum/Uhrzeit prüfen und eigene CA nur bewusst installieren.
 
-### 11.2 Sicher herunterladen
+## 12. Internet- und API-Grundlagen
 
-```sh
-curl -L -o datei.zip https://example.com/datei.zip
-python3 -m zipfile -t datei.zip
-```
+- **IP-Adresse**: numerische Adresse eines Geräts oder Servers.
+- **DNS**: übersetzt Namen in IP-Adressen.
+- **HTTP/HTTPS**: Protokoll für Webseiten und APIs; HTTPS verschlüsselt und prüft Zertifikate.
+- **Port**: Dienstnummer wie `22`, `80`, `443`, `8000` oder `3000`.
+- **TLS-Zertifikat**: Vertrauensnachweis für HTTPS.
+- **Token und Sessions**: wie Passwörter behandeln.
+- **API**: maschinenlesbare Schnittstelle, oft JSON über HTTPS.
 
-Gute Praxis:
-
-- Lade Tools möglichst von offiziellen Projektseiten, App Stores oder bekannten Paketquellen.
-- Prüfe Checksums oder Signaturen, wenn ein Projekt sie anbietet.
-- Führe unbekannte Shell-Skripte nicht blind mit `curl ... | sh` aus; erst speichern, lesen, dann ausführen.
-- Trenne private Tokens, SSH-Keys und `.env`-Dateien strikt von öffentlichen Repositories.
-
-### 11.3 APIs nutzen
-
-Ein minimaler API-Test mit `curl`:
+Sicherer API-Aufruf ohne Token in Dateien:
 
 ```sh
-curl -s https://api.github.com/repos/git/git | python3 -m json.tool | head
-```
-
-Mit Token, ohne ihn in die Shell-History zu schreiben:
-
-```sh
-read -r API_TOKEN
-curl -H "Authorization: Bearer $API_TOKEN" https://api.example.com/me
+IFS= read -r API_TOKEN
+curl -fsS -H "Authorization: Bearer $API_TOKEN" https://api.github.com/user
 unset API_TOKEN
 ```
 
-API-Regeln:
+Statuscodes beachten: `200` Erfolg, `201` erstellt, `400` fehlerhafte Anfrage, `401` nicht angemeldet, `403` keine Rechte oder Rate-Limit, `404` nicht gefunden, `429` zu viele Anfragen, `500` Serverfehler.
 
-- Lies Statuscodes: `200` Erfolg, `201` erstellt, `301/302` Weiterleitung, `400` fehlerhafte Anfrage, `401` nicht angemeldet, `403` keine Rechte oder Rate-Limit, `404` nicht gefunden, `429` zu viele Anfragen, `500` Serverfehler.
-- Verwende `GET` zum Lesen, `POST` zum Erstellen, `PUT/PATCH` zum Ändern und `DELETE` zum Löschen.
-- Speichere Secrets in Passwortmanager, Keychain oder App-spezifischen Secret-Stores, nicht in Git.
-- Baue Retries mit Wartezeit ein, aber respektiere Rate-Limits.
+## 13. Remote-Ergänzung für große Projekte
 
-### 11.4 Web-Recherche und Quellenbewertung
+Wenn lokale Grenzen erreicht sind:
 
-Beim Arbeiten im Browser:
+- Mac mini, MacBook, Linux-Server, VPS, Codespace oder CI-Runner verwenden.
+- SSH/Mosh mit Blink Shell, a-Shell oder iSH nutzen.
+- Git als Synchronisationsquelle behalten.
+- Builds, Tests, Docker, Datenbanken und lange Prozesse remote ausführen.
 
-- Bevorzuge Primärquellen: offizielle Dokumentation, Spezifikationen, Release Notes, Maintainer-Repositories.
-- Prüfe Datum, Version und Plattform; iOS-, App- und Paketmanager-Verhalten ändert sich.
-- Vergleiche mindestens zwei Quellen, wenn eine Anleitung tief in Sicherheit, Geld, Medizin, Recht oder Infrastruktur eingreift.
-- Kopiere Fehlermeldungen exakt, aber entferne Tokens, private URLs und personenbezogene Daten.
-- Notiere funktionierende Befehle in `README.md`, `docs/` oder einem Projekt-Wiki.
-
-### 11.5 Privatsphäre und Sicherheit im Internet
-
-- Verwende unterschiedliche Passwörter und aktiviere 2FA/MFA.
-- Bevorzuge Passkeys oder Hardware-Keys, wenn der Dienst sie unterstützt.
-- Gib Apps nur notwendige Berechtigungen.
-- Prüfe vor OAuth-Logins, welche Rechte eine App anfordert.
-- Nutze VPN nur, wenn du dem Anbieter vertraust; ein VPN ersetzt kein HTTPS.
-- Öffne keine unbekannten Profile, Zertifikate oder Konfigurationsdateien auf iOS, wenn du die Quelle nicht sicher kennst.
-
-## 12. Remote-Ergänzung für große Projekte
-
-Wenn lokale Grenzen erreicht sind, nutze das iPhone als Client und baue auf einem Remote-System:
-
-- Mac mini, MacBook, Linux-Server, VPS oder Homelab.
-- SSH/Mosh mit Blink Shell oder a-Shell.
-- Git bleibt die Synchronisationsquelle.
-- Builds, Tests, Docker und Datenbanken laufen remote.
-
-Beispiel-Workflow:
+Remote-Workflow mit bewusst gesetzten Zielvariablen:
 
 ```sh
-ssh dev@example.com
-cd ~/projects/mein-projekt
-git pull
+ssh "$REMOTE_USER@$REMOTE_HOST"
+cd "$REMOTE_PROJECT_DIR"
+git pull --ff-only
 npm test
 ```
 
-## 13. Sicherheit
+## 14. Sicherheit
 
-- Aktiviere Face ID/Code und Geräteverschlüsselung.
-- Verwende pro Dienst separate Tokens mit minimalen Rechten.
-- Bevorzuge SSH-Keys mit Passphrase.
-- Speichere Recovery-Codes außerhalb des iPhones.
-- Entferne alte Tokens und Keys regelmäßig.
-- Prüfe vor jedem Push den Diff.
+- Face ID oder starken Gerätecode aktivieren.
+- Pro Dienst separate Tokens mit minimalen Rechten verwenden.
+- SSH-Keys mit Passphrase schützen.
+- Recovery-Codes außerhalb des iPhones speichern.
+- Alte Tokens und Keys regelmäßig entfernen.
+- Vor jedem Push Diff prüfen.
+- Private Keys, `.env`-Dateien, Sessions und Tokens nie in Git speichern.
+- OAuth-Berechtigungen vor Zustimmung lesen.
+- VPN nur verwenden, wenn Anbieter und Profil vertrauenswürdig sind.
 
-## 14. Backup-Strategie
+## 15. Backup-Strategie
 
-Mindestens eine dieser Strategien sollte aktiv sein:
+Mindestens eine Sicherung muss aktiv sein:
 
 1. Remote-Git-Repository als primäre Sicherung.
 2. iCloud-Backup des iPhones.
-3. Manuelle ZIP-Exports wichtiger Projekte nach `Developer/backups/`.
+3. Manuelle ZIP-Exports wichtiger Projekte nach `~/Developer/backups`.
 4. Regelmäßige Pushes nach kleinen Arbeitsschritten.
 
-Für aktive Projekte gilt: Nicht committete Änderungen sind nicht zuverlässig gesichert.
+Regel: Nicht committete Änderungen sind nicht zuverlässig gesichert.
 
-## 15. Wartung
+## 16. Wartung
 
 Wöchentlich:
 
 ```sh
 git status
-git fetch --all
+git fetch --all --prune
+scripts/validate_repository.sh
 ```
 
 In iSH:
@@ -500,69 +395,55 @@ Monatlich:
 - Nicht benötigte Klone entfernen.
 - Tokens und SSH-Keys prüfen.
 - Backups testweise öffnen.
+- App-Updates prüfen.
+- Remote-Build-Hosts patchen.
 
-## 16. Fehlerbehebung
+## 17. Fehlerbehebung
 
 ### Git-Push schlägt fehl
 
-- Prüfe Internetverbindung und VPN.
-- Prüfe Token-/SSH-Key-Rechte.
-- Führe zuerst Fetch/Pull aus.
-- Löse Konflikte in Working Copy oder im Editor.
+- Internetverbindung und VPN prüfen.
+- Token-, OAuth- oder SSH-Key-Rechte prüfen.
+- `Fetch` ausführen und Konflikte lösen.
+- Sicherstellen, dass Branch und Remote korrekt sind.
 
 ### Editor sieht Repository-Dateien nicht
 
 - Repository-Ordner erneut über die Dateien-App freigeben.
-- In Working Copy prüfen, ob der Ordner als externer Ordner verfügbar ist.
+- In Working Copy prüfen, ob externe Ordnerfreigabe aktiv ist.
 - Keine parallelen Kopien desselben Repositories bearbeiten.
 
 ### Paketinstallation in iSH schlägt fehl
 
 ```sh
 apk update
-apk search <paketname>
+apk search git
+apk search python
 cat /etc/apk/repositories
 ```
 
-Wenn die Repository-Konfiguration veraltet ist, verwende die von iSH empfohlene Paketquelle oder installiere iSH neu und migriere nur deine Projektdaten.
+Wenn Repository-Konfigurationen veraltet sind, iSH-Empfehlungen zur Paketquelle befolgen oder iSH neu installieren und nur Projektdaten migrieren.
 
 ### Lokaler Server ist nicht erreichbar
 
-- Prüfe, ob die Terminal-App im Vordergrund läuft.
-- Prüfe Port und URL, z. B. `http://localhost:8000`.
-- Starte den Server neu.
+- Terminal-App im Vordergrund halten.
+- `DEV_PORT`, `DEV_BIND` und URL prüfen.
+- Server neu starten.
+- Browser mit `http://127.0.0.1:8000` statt `localhost` testen.
 
-## 17. Minimal-Checkliste
+## 18. Abschluss-Checkliste
 
 - [ ] iOS aktualisiert.
 - [ ] Working Copy installiert und Git-Konto verbunden.
 - [ ] Editor installiert und mit Working Copy getestet.
-- [ ] a-Shell installiert und `python3 --version` geprüft.
+- [ ] a-Shell installiert und Tool-Versionen geprüft.
+- [ ] Repository-Validierung erfolgreich ausgeführt.
+- [ ] Bootstrap im Dry-Run geprüft.
+- [ ] Bootstrap angewendet und Profil geladen.
 - [ ] Optional iSH installiert und `apk update` geprüft.
 - [ ] SSH-Key oder Token eingerichtet.
 - [ ] Test-Repository geklont.
-- [ ] Localhost-Variablen gesetzt und `http://127.0.0.1:8000` getestet.
-- [ ] Internet-/API-Grundlagen mit `curl -I https://example.com` geprüft.
+- [ ] Localhost mit `http://127.0.0.1:8000` getestet.
+- [ ] Internetdiagnose mit `curl -I https://www.iana.org/` geprüft.
 - [ ] Teständerung committet und gepusht.
 - [ ] Backup-Strategie festgelegt.
-
-## 18. Empfohlene Startkonfiguration
-
-Wenn du sofort loslegen willst:
-
-1. Installiere Working Copy, Textastic und a-Shell.
-2. Klone dein wichtigstes Repository in Working Copy.
-3. Öffne es in Textastic als externen Ordner.
-4. Teste in a-Shell:
-
-```sh
-python3 --version
-node --version
-```
-
-5. Ändere eine Markdown-Datei.
-6. Prüfe den Diff in Working Copy.
-7. Committe mit einer kleinen, klaren Nachricht.
-8. Pushe den Branch.
-
-Damit hast du einen vollständigen, mobilen lokalen Entwicklungsworkflow auf dem iPhone.

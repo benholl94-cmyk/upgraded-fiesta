@@ -10,6 +10,8 @@ printf 'Repository: %s\n' "$repo_root"
 required_files=(
   "README.md"
   "docs/iphone-local-dev-setup.md"
+  "scripts/iphone_local_dev_bootstrap.sh"
+  "scripts/validate_repository.sh"
 )
 
 for file in "${required_files[@]}"; do
@@ -19,7 +21,6 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-# This repository currently contains documentation only, so no package
-# installation is required. Keep the script intentionally lightweight and
-# deterministic for Codex/cloud bootstrap jobs.
-printf 'No dependency installation required. Documentation files are present.\n'
+printf 'Running repository validation.\n'
+"$repo_root/scripts/validate_repository.sh"
+printf 'No dependency installation required. Documentation and scripts are production-ready.\n'
