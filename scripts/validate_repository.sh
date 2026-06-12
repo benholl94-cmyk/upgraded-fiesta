@@ -19,6 +19,7 @@ required_paths=(
   "docs/iphone-local-dev-setup.md"
   "scripts/codex_cloud_setup.sh"
   "scripts/iphone_local_dev_bootstrap.sh"
+  "scripts/repository_audit_report.sh"
   "scripts/validate_repository.sh"
 )
 
@@ -40,7 +41,7 @@ while IFS= read -r file; do
 done < <(git ls-files)
 
 placeholder_regex='(TODO|FIXME|TBD|PLACEHOLDER|CHANGEME|your-|your_|dein-|deine-|<[^>]+>|\.\.\.|xxx|dummy|sample-token|api[_-]?key|password-here)'
-if matches="$(rg -n --hidden -g '!\.git' -g '!node_modules' -g '!Pods' -g '!DerivedData' -g '!build' -g '!scripts/validate_repository.sh' -e "$placeholder_regex" . || true)"; then
+if matches="$(rg -n --hidden -g '!\.git' -g '!node_modules' -g '!Pods' -g '!DerivedData' -g '!build' -g '!scripts/validate_repository.sh' -g '!scripts/repository_audit_report.sh' -e "$placeholder_regex" . || true)"; then
   if [[ -n "$matches" ]]; then
     printf '%s\n' "$matches" >&2
     fail "unresolved placeholder markers were found"
@@ -94,6 +95,14 @@ case $? in
   0) ;;
   *) fail "markdown local link validation failed" ;;
 esac
+
+audit_tmp="$(mktemp)"
+if scripts/repository_audit_report.sh --format json >"$audit_tmp"; then
+  pass "live repository audit report can be generated"
+else
+  fail "live repository audit report generation failed"
+fi
+rm -f "$audit_tmp"
 
 if git diff --check -- .; then
   pass "git diff whitespace check passed"
