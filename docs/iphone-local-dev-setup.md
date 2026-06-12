@@ -96,6 +96,23 @@ export GIT_AUTHOR_EMAIL="$(id -un 2>/dev/null || printf '%s' mobile)@users.norep
 scripts/iphone_local_dev_bootstrap.sh
 ```
 
+
+### 4.3 Vollständiges Live-Repository-Audit
+
+Für eine aktuelle Inventarisierung jedes Ordners und jeder Datei im Checkout:
+
+```sh
+scripts/repository_audit_report.sh --format markdown
+```
+
+Maschinenlesbare Ausgabe für CI, Archivierung oder spätere Diff-Prüfungen:
+
+```sh
+scripts/repository_audit_report.sh --format json --output /tmp/upgraded-fiesta-audit.json
+```
+
+Der Audit-Report liest alle Daten live aus dem aktuellen Dateisystem und Git-Checkout. Er enthält UTC-Start- und Endzeit, Git-Branch, Git-HEAD, Arbeitsbaumstatus, Tool-Versionen, Ordnerliste, Dateiliste, SHA-256-Hashes, Dateigrößen, Zeilenzahlen, Änderungszeiten, Shell-Syntaxstatus, lokale Markdown-Link-Befunde und Inhaltslücken-Befunde.
+
 ## 5. Basisinstallation auf dem iPhone
 
 1. iOS über **Einstellungen → Allgemein → Softwareupdate** aktualisieren.

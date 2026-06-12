@@ -5,6 +5,7 @@ Dieses Repository enthält eine vollständige, deutschsprachige und ausführbare
 - Hauptanleitung: [`docs/iphone-local-dev-setup.md`](docs/iphone-local-dev-setup.md)
 - Ausführbares iPhone-Shell-Bootstrap: [`scripts/iphone_local_dev_bootstrap.sh`](scripts/iphone_local_dev_bootstrap.sh)
 - Repository-Qualitätsprüfung: [`scripts/validate_repository.sh`](scripts/validate_repository.sh)
+- Live-Inventar und Audit-Report: [`scripts/repository_audit_report.sh`](scripts/repository_audit_report.sh)
 - Stand der geprüften Repository-Inhalte: 2026-06-12
 - Live-Datum/Uhrzeit werden von den Skripten zur Laufzeit mit `date` ermittelt, damit keine statischen Messwerte als aktuelle Daten ausgegeben werden.
 
@@ -22,8 +23,9 @@ Für die meisten iPhone-Workflows ist die stabilste Kombination:
 
 ```sh
 scripts/validate_repository.sh
+scripts/repository_audit_report.sh --format markdown
 scripts/iphone_local_dev_bootstrap.sh --dry-run
 scripts/iphone_local_dev_bootstrap.sh
 ```
 
-`validate_repository.sh` prüft Pflichtdateien, leere Dateien, Shell-Syntax, ausführbare Bits, lokale Markdown-Links, Git-Whitespace und offene Platzhaltermarker. `iphone_local_dev_bootstrap.sh` erstellt idempotent eine belastbare lokale Developer-Struktur und ein wiederverwendbares Shell-Profil für a-Shell oder iSH.
+`validate_repository.sh` prüft Pflichtdateien, leere Dateien, Shell-Syntax, ausführbare Bits, lokale Markdown-Links, Git-Whitespace, Audit-Erzeugbarkeit und offene Inhaltslücken-Marker. `repository_audit_report.sh` erzeugt zur Laufzeit ein vollständiges Live-Inventar aller Repository-Ordner und Dateien mit Hashes, Größen, Zeitstempeln und Qualitätsbefunden. `iphone_local_dev_bootstrap.sh` erstellt idempotent eine belastbare lokale Developer-Struktur und ein wiederverwendbares Shell-Profil für a-Shell oder iSH.
