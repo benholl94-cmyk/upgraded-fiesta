@@ -49,3 +49,7 @@ When changing backend code, run at least `cargo check --workspace`; run `cargo t
 ## Completion criteria
 
 A task is done only when the relevant checks have run, failures are fixed or explicitly documented, and the final response states the exact commands executed plus any remaining verification gap.
+
+## Surface gaps while working
+
+While investigating or fixing anything in this repo, call out other real gaps you notice on the way — dead code paths that never execute, config drift between code and docs, unbounded growth, missing error handling at a boundary — even if not explicitly asked. Report them plainly; do not fix them unless asked, and never invent speculative features or "unbreakable"/absolute security claims to fill a gap. Small, clearly-scoped fixes (e.g. a genuinely dead status code, a doc that no longer matches the code) can be made directly and called out in the summary.
