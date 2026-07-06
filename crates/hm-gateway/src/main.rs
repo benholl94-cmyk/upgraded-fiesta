@@ -2,7 +2,7 @@ use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
 use hm_memory::MemoryStore;
 use hm_plugins::PluginRegistry;
-use hm_storage::{FileStorage, LocalFsStorage};
+use hm_storage::{FileStorage, LocalFsStorage, RemoteHttpStorage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -143,7 +143,7 @@ struct AppState {
     started_at: SystemTime,
     zero_staked: bool,
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
-    storage: Arc<LocalFsStorage>,
+    storage: Arc<dyn FileStorage>,
     memory: Arc<MemoryStore>,
     agent: Arc<Agent>,
     diagnostics: Arc<Mutex<Vec<DiagnosticsReport>>>,
@@ -226,7 +226,7 @@ async fn main() -> anyhow::Result<()> {
         PluginRegistry::empty()
     });
 
-    let storage: Arc<LocalFsStorage> = Arc::new(LocalFsStorage::from_env());
+    let storage: Arc<dyn FileStorage> = build_storage_backend()?;
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
     let memory = MemoryStore::load(storage.clone(), memory_key).await;
 
@@ -786,6 +786,29 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
     }
 
     json_response(202, response)
+}
+
+/// Selects the `FileStorage` backend from `HM_STORAGE_BACKEND` (`local`,
+/// the default, or `remote`). Fails loudly rather than silently falling
+/// back to local disk if `remote` is requested but `HM_REMOTE_STORAGE_URL`
+/// is missing or malformed -- an operator who asked for external storage
+/// and got local storage instead without being told is a correctness bug,
+/// not a convenience.
+fn build_storage_backend() -> anyhow::Result<Arc<dyn FileStorage>> {
+    let backend = env::var("HM_STORAGE_BACKEND").unwrap_or_else(|_| "local".to_string());
+    match backend.as_str() {
+        "local" => Ok(Arc::new(LocalFsStorage::from_env())),
+        "remote" => match RemoteHttpStorage::from_env()? {
+            Some(remote) => Ok(Arc::new(remote)),
+            None => anyhow::bail!(
+                "HM_STORAGE_BACKEND=remote requires HM_REMOTE_STORAGE_URL to be set \
+                 (e.g. http://storage-host:8080), and optionally HM_REMOTE_STORAGE_TOKEN"
+            ),
+        },
+        other => {
+            anyhow::bail!("unknown HM_STORAGE_BACKEND '{other}'; expected 'local' or 'remote'")
+        }
+    }
 }
 
 /// Falls back to `server.bind` in `config/heavy-metal.json` (relative to the

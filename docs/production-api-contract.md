@@ -16,6 +16,19 @@
 | `HM_GATEWAY_ALLOW_NO_AUTH` | `false` | Explicit opt-out (`true` exactly) to run with no authentication -- local development only, never in a reachable deployment |
 | `HM_DIAGNOSTICS_KEY` | `diagnostics/reports.json` | Storage key (under `HM_STORAGE_ROOT`) where submitted diagnostics reports are persisted |
 | `HM_RATE_LIMIT_PER_MINUTE` | `120` | Max requests per source IP per 60s window before `429`; `0` disables rate limiting entirely |
+| `HM_STORAGE_BACKEND` | `local` | `local` (uses `HM_STORAGE_ROOT`) or `remote` (uses `HM_REMOTE_STORAGE_URL`/`HM_REMOTE_STORAGE_TOKEN`) -- see "External memory place" below |
+| `HM_REMOTE_STORAGE_URL` | *(unset)* | Required when `HM_STORAGE_BACKEND=remote`: a plain `http://host:port` URL of another `hm-gateway`-compatible `/storage` endpoint |
+| `HM_REMOTE_STORAGE_TOKEN` | *(unset)* | Bearer token sent with every request to `HM_REMOTE_STORAGE_URL`, if that endpoint requires auth (it should) |
+
+## External memory place (`hm-storage::RemoteHttpStorage`)
+
+`FileStorage` (the trait `hm-storage` and everything built on it -- `hm-memory`, the `/storage` routes -- are generic over) has a second implementation alongside `LocalFsStorage`: `RemoteHttpStorage`, which persists every `put`/`get`/`delete`/`exists` call to another host's `/storage/{key}` endpoint instead of local disk. Set `HM_STORAGE_BACKEND=remote` + `HM_REMOTE_STORAGE_URL` to point a gateway at external storage -- most naturally, a second `hm-gateway` instance acting purely as a storage node.
+
+Deliberately a hand-rolled plain-HTTP client (no TLS, no external HTTP crate dependency), matching this codebase's existing style, and intended for a private/internal network -- the same trust model already assumed for `HM_GATEWAY_ALLOW_NO_AUTH` and LAN-bound deployments. Never point `HM_REMOTE_STORAGE_URL` at a host over the open internet without a TLS-terminating proxy in front of it.
+
+`HM_STORAGE_BACKEND=remote` without a valid `HM_REMOTE_STORAGE_URL` fails the gateway at startup rather than silently falling back to local disk -- an operator who asked for external storage and got local storage instead, without being told, would be a correctness bug.
+
+**Verified live** (two real `hm-gateway` processes, not simulated): a `POST /memory` on a "primary" instance configured with `HM_STORAGE_BACKEND=remote` pointed at a second "storage node" instance produced zero files on the primary's own disk (its `HM_STORAGE_ROOT` directory was never even created) and the real, complete memory index (including embedding vectors) landed on the storage node, retrievable independently via that node's own `/storage/memory/index.json`.
 
 ## Observability and abuse protection
 
