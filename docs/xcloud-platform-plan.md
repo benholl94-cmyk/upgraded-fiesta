@@ -1,0 +1,178 @@
+# Standalone AI Platform Roadmap: external memory + cloud-portable deployment
+
+## What this document is
+
+A proof-of-concept-first, staged plan for extending the existing Fullstack
+Heavy Metal stack (`hm-gateway` + `hm-agent` + `hm-memory` + `hm-plugins`)
+into a genuinely standalone, cloud-portable AI platform with memory storage
+that can live outside the single host the gateway runs on. **This is a plan,
+not a changelog** — nothing described below as a future phase has been built
+yet. Phase 0 is what already exists and is verified; phases 1-5 are ordered,
+independently PR-sized worksteps, each with a concrete "done" condition, so
+any one of them can be picked up on its own without committing to the rest.
+
+Every phase builds on a real, already-verified seam in the current code —
+none of this requires a rewrite. Where a phase depends on a decision only a
+human can make (which cloud, which credentials, which LLM provider), that's
+called out explicitly rather than guessed.
+
+## Phase 0 — Foundation (done, verified this session)
+
+- `hm-gateway`: hand-rolled async TCP server, owner-token auth, graceful
+  `SIGTERM`/`SIGINT` shutdown, systemd unit with real hardening + a health
+  watchdog (`deploy/hm-gateway.service`, `deploy/hm-gateway-watchdog.timer`).
+- `hm-agent`: real task dispatch → plugin invocation → memory recording link
+  (previously a disconnected stub).
+- `hm-plugins`: subprocess plugin protocol, two registered plugins (`echo`,
+  `ops-tool`), the latter a real allowlisted ops-check tool.
+- `hm-memory`: flat, persistent, offline-embedded semantic memory
+  (`MemoryStore`), backed by `hm-storage`'s `FileStorage` trait.
+- `scripts/generate_knowledge_graph_seed.py`: live-introspected structural
+  graph of the repo itself (crates, dependencies, plugins, skills, docs) —
+  today's seed export, verified against 9 tests.
+- Two Claude Code Skills (`xcode-alternative`, `pr-bot-triage`) as reusable,
+  tested capability packages.
+
+**Known, already-documented gaps this plan does not silently paper over**:
+`docker-compose.yml`'s real gateway path is not the same as
+`deploy/fullstack-compose.yml`'s placeholder Python "gateway"; the runtime
+Docker image doesn't package plugin binaries. See `CLAUDE.md` and
+`docs/production-api-contract.md` for the full detail — phases below note
+where they intersect with these.
+
+## Phase 1 — External memory place (smallest real PoC)
+
+**Goal**: prove memory can live somewhere other than the gateway's local
+disk, without touching `hm-gateway` or `hm-memory`'s own code.
+
+**Why this is the right first step**: `hm-storage::FileStorage` is already
+a trait with exactly one implementation (`LocalFsStorage`). `MemoryStore`
+and the gateway's `/storage` routes are already generic over
+`Arc<dyn FileStorage>` — this is a pre-existing extension seam, not new
+architecture.
+
+**Worksteps**:
+1. Add a second `FileStorage` implementor in `crates/hm-storage` — e.g.
+   `S3CompatibleStorage` (works against any S3-API object store: AWS S3,
+   Cloudflare R2, MinIO self-hosted) or `SftpStorage` for a plain remote
+   host. **Needs a human decision**: which external target to target first
+   — pick based on what you actually have access to test against.
+2. Select the backend via an env var (`HM_STORAGE_BACKEND=local|s3`, extending
+   the existing `HM_STORAGE_ROOT` convention) at gateway startup — no new
+   route or protocol change.
+3. Verify live: run a real gateway with the new backend selected, `PUT`/`GET`/
+   `DELETE` through `/storage/{key}`, confirm a real object landed in the
+   external target (not just that the Rust code compiled).
+4. Document the new env var in `docs/production-api-contract.md`, and the
+   credential/config requirements plainly (no invented "zero-config cloud
+   magic" — a real external store needs real credentials).
+
+**Done when**: a `POST /memory` record survives a gateway restart *and* is
+verifiably sitting in the external store, not just local disk.
+
+## Phase 2 — Cloud-portable deployment (prove "standalone", not "one host")
+
+**Goal**: the same `hm-gateway` binary + systemd unit from Phase 0 runs
+unmodified on at least two different hosting substrates, proving it's not
+accidentally coupled to this dev sandbox.
+
+**Worksteps**:
+1. Reconcile the two divergent compose files noted in Phase 0's gaps: decide
+   whether `deploy/fullstack-compose.yml` should be deleted, or updated to
+   actually run `crates/hm-gateway` instead of the placeholder Python script
+   — **needs a human decision**, since it changes what "deploy" means for
+   anyone currently using that file.
+2. Fix the Dockerfile packaging gap (already documented, not yet fixed):
+   decide what the runtime image should install for plugin dispatch to work
+   (copy `plugins/`, `config/`, a Python interpreter, and any plugin
+   binaries like `hm-tool-exec`) — or explicitly scope plugins out of the
+   containerized deployment path if that's the intended split.
+3. Stand up `deploy/hm-gateway.service` for real on one non-sandbox host
+   (a VPS, a spare machine, a cloud VM) and confirm `systemd-analyze verify`
+   plus an actual `systemctl start` + real `/health` request — this
+   environment has no systemd daemon, so this step has never actually run
+   the unit, only verified its syntax.
+4. Stand up the docker-compose path on a second, different host/provider.
+
+**Done when**: two independently-provisioned hosts (different providers or
+at least different environments) both run a working `hm-gateway` from the
+same checked-in artifacts, with no host-specific patches.
+
+## Phase 3 — Graph-enhanced memory (build on today's seed, not a rewrite)
+
+**Goal**: let `/memory/search` answer structural questions ("what depends
+on hm-gateway", "which plugins does hm-tool-exec back") alongside its
+existing text-similarity search, using the knowledge-graph seed already
+built in Phase 0.
+
+**Worksteps**:
+1. Add an optional `graph_seed_path` to `MemoryStore::load` that ingests
+   `generate_knowledge_graph_seed.py`'s JSON output as additional, distinctly-
+   typed records (tag them, don't blend them silently with free-text memory).
+2. Add a narrow `GET /memory/graph` route returning the ingested graph as-is
+   (nodes/edges), separate from the existing free-text `/memory` — don't
+   overload one endpoint with two different data shapes.
+3. Regenerate the seed on a schedule (a cron-like job, or on gateway start)
+   so the ingested graph doesn't silently go stale as the repo evolves.
+
+**Done when**: `GET /memory/graph` on a live gateway returns the same graph
+`generate_knowledge_graph_seed.py` would produce standalone, fetched over
+HTTP instead of run as a script.
+
+## Phase 4 — Close the "AI" loop (currently the biggest real gap)
+
+**Goal**: name the actual gap plainly — nothing in this stack calls an LLM
+today. `hm-agent` dispatches to fixed, deterministic plugins; there is no
+chat/completion call anywhere in the codebase. Calling this an "AI platform"
+before this phase would overstate what exists.
+
+**Worksteps**:
+1. Add a new plugin (same subprocess protocol as `echo`/`ops-tool`) that
+   calls a real LLM API. **Needs a human decision**: which provider/model,
+   and the credential has to come from the operator, not be invented —
+   follow the exact consent/disclosure pattern already established in
+   `ghm_core/cli.py` (`report-diagnostics`) for anything that sends data
+   off-machine.
+2. Register it as a `task_type` in `config/plugins.json`, e.g. `"llm-chat"`.
+3. Wire the UI's existing chat-shaped panel (if any) or add a minimal one
+   to `ui/` that calls `POST /tasks` with `taskType: "llm-chat"` and renders
+   `plugin_result`.
+4. Verify live: a real prompt round-trips through gateway → agent → plugin →
+   real LLM API → response, with the outcome recorded in memory per the
+   existing `Agent::dispatch` behavior from Phase 0 — no mocked responses.
+
+**Done when**: a real chat message sent through the UI gets a real LLM
+response back, and `GET /memory` shows the recorded outcome.
+
+## Phase 5 — Multi-environment scaling (only after 1-4 are real)
+
+**Goal**: prove the "platform" framing for real — more than one `hm-gateway`
+instance (different hosts/regions/providers from Phase 2), each optionally
+pointed at its own or a shared external memory place (Phase 1), fronted by
+the UI's already-existing endpoint-rotation/failover logic
+(`ui/src/endpoint-rotation.ts`), which today only *simulates* multi-endpoint
+behavior against a single real instance plus fallbacks that were never live.
+
+**Worksteps**:
+1. Deploy 2+ real `hm-gateway` instances from Phase 2 on genuinely different
+   hosts.
+2. Point `ui/public/platform-config.json` at their real URLs (replacing the
+   `/api`/`/gateway` reverse-proxy assumption already flagged as a gap in
+   `docs/production-api-contract.md`).
+3. Verify live: kill one instance, confirm the UI's existing rotation logic
+   actually fails over to a second real instance — this has never been
+   tested against more than one real gateway.
+
+**Done when**: a real failover between two genuinely independent, running
+`hm-gateway` instances is observed, not simulated.
+
+## How to use this plan
+
+Each phase stands alone — pick one, and it's a normal PR-sized piece of
+work following the same rigor as everything else in this repo's history:
+minimal scope, real verification (build/test/live-exercise), documented
+gaps left open rather than papered over. Phase 4 is flagged as the largest
+conceptual gap (no LLM call exists anywhere yet); Phase 1 is the smallest,
+safest starting point given the trait boundary already in place. Say which
+phase to start, and any human-only decisions it needs (cloud provider, LLM
+provider, credentials) up front.
