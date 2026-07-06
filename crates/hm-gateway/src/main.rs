@@ -230,6 +230,27 @@ async fn main() -> anyhow::Result<()> {
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
     let memory = MemoryStore::load(storage.clone(), memory_key).await;
 
+    // Optional: ingest the structural knowledge-graph seed produced by
+    // scripts/generate_knowledge_graph_seed.py. A missing/malformed seed
+    // must never block gateway startup -- it's a nice-to-have alongside
+    // free-text memory, not a required dependency.
+    if let Ok(graph_seed_path) = env::var("HM_MEMORY_GRAPH_SEED_PATH") {
+        match std::fs::read(&graph_seed_path) {
+            Ok(bytes) => {
+                if let Err(error) = memory.ingest_graph_seed(&bytes).await {
+                    eprintln!(
+                        "hm-gateway: ignoring invalid graph seed at {graph_seed_path}: {error}"
+                    );
+                }
+            }
+            Err(error) => {
+                eprintln!(
+                    "hm-gateway: could not read HM_MEMORY_GRAPH_SEED_PATH={graph_seed_path}: {error}"
+                );
+            }
+        }
+    }
+
     let diagnostics_key =
         env::var("HM_DIAGNOSTICS_KEY").unwrap_or_else(|_| "diagnostics/reports.json".to_string());
     let diagnostics: Vec<DiagnosticsReport> = storage
@@ -534,6 +555,7 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         ("GET", "/memory") => memory_list(&state).await,
         ("POST", "/memory") => memory_remember(&state, request.body).await,
         ("POST", "/memory/search") => memory_search(&state, request.body).await,
+        ("GET", "/memory/graph") => memory_graph(&state).await,
         ("GET", "/diagnostics") => diagnostics_list(&state).await,
         ("POST", "/diagnostics") => diagnostics_submit(&state, request.body).await,
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
@@ -600,6 +622,20 @@ fn default_top_k() -> usize {
 async fn memory_list(state: &AppState) -> Vec<u8> {
     let records = state.memory.list().await;
     json_response(200, json!({ "status": "online", "records": records }))
+}
+
+/// Distinct from `GET /memory`: the structural knowledge-graph seed, if one
+/// has been ingested at startup (`HM_MEMORY_GRAPH_SEED_PATH`), never the
+/// free-text records. `404` if nothing has been ingested rather than an
+/// empty 200, so a caller can tell "no graph" apart from "empty graph".
+async fn memory_graph(state: &AppState) -> Vec<u8> {
+    match state.memory.graph().await {
+        Some(graph) => json_response(200, json!({ "status": "online", "graph": graph })),
+        None => json_response(
+            404,
+            json!({ "status": "not_found", "reason": "no graph seed has been ingested" }),
+        ),
+    }
 }
 
 async fn memory_remember(state: &AppState, body: Vec<u8>) -> Vec<u8> {

@@ -19,6 +19,7 @@
 | `HM_STORAGE_BACKEND` | `local` | `local` (uses `HM_STORAGE_ROOT`) or `remote` (uses `HM_REMOTE_STORAGE_URL`/`HM_REMOTE_STORAGE_TOKEN`) -- see "External memory place" below |
 | `HM_REMOTE_STORAGE_URL` | *(unset)* | Required when `HM_STORAGE_BACKEND=remote`: a plain `http://host:port` URL of another `hm-gateway`-compatible `/storage` endpoint |
 | `HM_REMOTE_STORAGE_TOKEN` | *(unset)* | Bearer token sent with every request to `HM_REMOTE_STORAGE_URL`, if that endpoint requires auth (it should) |
+| `HM_MEMORY_GRAPH_SEED_PATH` | *(unset)* | Path to a `scripts/generate_knowledge_graph_seed.py`-shaped JSON file (`{"nodes":[...],"edges":[...]}`), ingested into `hm-memory` at startup -- see "Graph-enhanced memory" below. A missing or malformed file logs a warning and does not block startup. |
 
 ## External memory place (`hm-storage::RemoteHttpStorage`)
 
@@ -29,6 +30,20 @@ Deliberately a hand-rolled plain-HTTP client (no TLS, no external HTTP crate dep
 `HM_STORAGE_BACKEND=remote` without a valid `HM_REMOTE_STORAGE_URL` fails the gateway at startup rather than silently falling back to local disk -- an operator who asked for external storage and got local storage instead, without being told, would be a correctness bug.
 
 **Verified live** (two real `hm-gateway` processes, not simulated): a `POST /memory` on a "primary" instance configured with `HM_STORAGE_BACKEND=remote` pointed at a second "storage node" instance produced zero files on the primary's own disk (its `HM_STORAGE_ROOT` directory was never even created) and the real, complete memory index (including embedding vectors) landed on the storage node, retrievable independently via that node's own `/storage/memory/index.json`.
+
+## Graph-enhanced memory (`GET /memory/graph`)
+
+`hm-memory`'s `MemoryStore` can hold, alongside its free-text records, exactly one structural knowledge-graph seed -- the `{"nodes":[...],"edges":[...]}` shape `scripts/generate_knowledge_graph_seed.py` produces. It is stored and served distinctly from free-text memory: ingesting a graph seed never appears in `GET /memory`'s records, and free-text `remember`/`recall` never touch the graph.
+
+Ingestion happens once, at gateway startup, from `HM_MEMORY_GRAPH_SEED_PATH` if set (there is no route to upload a graph at runtime). Re-ingesting on a later restart with a different file replaces the previous graph rather than accumulating.
+
+```
+GET /memory/graph
+```
+
+Returns `200 {"status": "online", "graph": {...}}` with the ingested graph as-is, or `404 {"status": "not_found", "reason": "no graph seed has been ingested"}` if `HM_MEMORY_GRAPH_SEED_PATH` was never set or ingestion failed.
+
+**Verified live**: ran a real `hm-gateway` process with `HM_MEMORY_GRAPH_SEED_PATH` pointed at a freshly generated `scripts/generate_knowledge_graph_seed.py` seed (37 nodes, 65 edges); `GET /memory/graph` returned that exact graph over HTTP (401 without the owner bearer token, 200 with it), the seed was confirmed persisted verbatim in the storage-backed index file on disk, and `GET /memory` remained empty throughout, confirming no cross-contamination.
 
 ## Observability and abuse protection
 
@@ -193,7 +208,8 @@ are external processes, defined in a JSON manifest (`HM_PLUGIN_MANIFEST`, defaul
 {
   "plugins": [
     { "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] },
-    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] }
+    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] },
+    { "task_type": "llm-chat", "command": ["python3", "plugins/llm_chat_plugin.py"] }
   ]
 }
 ```
@@ -224,14 +240,43 @@ $ curl -X POST http://localhost:8080/tasks -H "Authorization: Bearer $HM_OWNER_T
 {"accepted":true,"plugin_result":{"ok":true,"result":{"operation":"disk_usage","stdout":"...","stderr":""},...},...}
 ```
 
-**Known packaging gap**: the root `Dockerfile`'s runtime stage only copies the
-`hm-gateway` binary -- it does not copy `plugins/`, `config/`, a Python
-interpreter, or `hm-tool-exec`. This means plugin dispatch (`echo` *and*
-`ops-tool`) does not actually work in the Docker deployment as currently
-packaged; it only works when running `hm-gateway` directly from a full
-checkout (as `docker-compose.yml`'s bind-mounted dev setup and every example
-in this document do). Not fixed here -- packaging plugins into the runtime
-image is a separate decision.
+**Packaging gap, fixed and live-verified**: the root `Dockerfile`'s runtime
+stage previously only copied the `hm-gateway` binary -- no `plugins/`,
+`config/`, Python interpreter, or `hm-tool-exec` -- so plugin dispatch
+(`echo` *and* `ops-tool`) did not actually work in the Docker deployment as
+packaged, only when running `hm-gateway` directly from a full checkout. The
+runtime stage now installs `python3` and copies `config/`, `plugins/`, and
+the `hm-tool-exec` binary alongside `hm-gateway`.
+
+**Verified live, not just inspected**: built the actual image (`docker
+build .`), ran it as a real container, and dispatched both `POST /tasks`
+`taskType: "echo"` and `taskType: "ops-tool"` (`operation: "disk_usage"`)
+against it over HTTP -- both returned real `plugin_result.ok: true`, proving
+the fix, not just the Dockerfile diff. (This sandbox has no running Docker
+daemon by default -- one was started manually for this one verification,
+and `cargo build`'s access to crates.io through this sandbox's TLS-
+intercepting proxy required a temporary, uncommitted CA-trust step used only
+for that local test build; the actual committed `Dockerfile` has no such
+workaround and is unchanged from a normal production Dockerfile's shape.)
+
+### `llm-chat` (`plugins/llm_chat_plugin.py`) -- scaffold, not live-verified
+
+The first (and only) plugin in this repo that calls a real third-party API.
+Targets a generic OpenAI-compatible `/chat/completions`-shaped endpoint.
+Refuses to run -- with a machine-readable `result.reason`, `ok: false` --
+unless **all** of `HM_LLM_ENABLE=true`, `HM_LLM_API_URL`, `HM_LLM_API_KEY`,
+and `HM_LLM_MODEL` are explicitly set; no default model or endpoint is
+invented. Discloses exactly what it's about to send (destination URL, model,
+message length -- never the message body) to stderr before every call, per
+this codebase's off-machine-data disclosure rule (`ghm_core/cli.py`'s
+`cmd_report_diagnostics`).
+
+**Not live-verified**: no real LLM API credentials or egress exist in this
+environment. `tests/test_llm_chat_plugin.py` exercises the refusal paths, a
+successful round-trip, an upstream error, and an unreachable host against a
+hermetic local mock HTTP server -- proving the plugin's own logic, not a
+real provider round-trip. See `docs/xcloud-platform-plan.md`'s Phase 4 for
+the exact scope disclosure.
 
 ## Memory endpoints (hm-memory / hm-vector)
 
@@ -239,6 +284,7 @@ image is a separate decision.
 GET  /memory
 POST /memory
 POST /memory/search
+GET  /memory/graph
 ```
 
 A persistent, semantically-searchable text memory, backed by `hm-storage` (so it
@@ -284,6 +330,14 @@ those two always fail and every request falls through to `gateway-local`
 (`http://127.0.0.1:8080`, a direct URL). This was true before the memory panel existed
 and is unrelated to it; not fixed here since there's no Docker daemon available in this
 environment to verify an nginx proxy config end-to-end.
+
+**Multi-instance failover, verified live**: `scripts/verify_multi_instance_failover.mjs`
+imports `endpoint-rotation.ts` unmodified and runs it against two real, independently
+spawned `hm-gateway` processes -- confirms a real dispatch lands on the priority-1
+instance, then, after that process is actually killed, confirms the identical dispatch
+call fails over to the priority-2 instance. Both instances run on this same host
+(disclosed scope: proves the rotation algorithm, not a multi-region deployment -- see
+`docs/xcloud-platform-plan.md` Phase 5).
 
 ## Diagnostics endpoints
 
