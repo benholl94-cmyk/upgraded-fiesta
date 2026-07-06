@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "crates/hm-core",
+  "crates/hm-storage",
   "crates/hm-gateway",
   "crates/hm-agent",
   "crates/hm-memory",
