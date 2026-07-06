@@ -14,6 +14,7 @@
 | `HM_MEMORY_KEY` | `memory/index.json` | Storage key (under `HM_STORAGE_ROOT`) where `hm-memory` persists its index |
 | `HM_OWNER_TOKEN` | *(required)* | Bearer token gating every route. The process refuses to start without it. |
 | `HM_GATEWAY_ALLOW_NO_AUTH` | `false` | Explicit opt-out (`true` exactly) to run with no authentication -- local development only, never in a reachable deployment |
+| `HM_DIAGNOSTICS_KEY` | `diagnostics/reports.json` | Storage key (under `HM_STORAGE_ROOT`) where submitted diagnostics reports are persisted |
 
 ## Authentication
 
@@ -210,6 +211,52 @@ those two always fail and every request falls through to `gateway-local`
 (`http://127.0.0.1:8080`, a direct URL). This was true before the memory panel existed
 and is unrelated to it; not fixed here since there's no Docker daemon available in this
 environment to verify an nginx proxy config end-to-end.
+
+## Diagnostics endpoints
+
+```http
+GET  /diagnostics
+POST /diagnostics
+```
+
+Persistent, opt-in-only diagnostics reports (OS name, OS version, Python version,
+architecture -- exactly these four fields, nothing else), submitted by the
+`ghm-core report-diagnostics` CLI (see below) and gated by the same owner bearer
+token as every other route.
+
+```console
+$ curl -X POST http://localhost:8080/diagnostics \
+    -H "Authorization: Bearer $HM_OWNER_TOKEN" \
+    -d '{"os_name":"Linux","os_version":"6.18.5","python_version":"3.11.15","architecture":"x86_64"}'
+{"status":"stored","report":{...,"reported_at_unix":...}}
+
+$ curl -H "Authorization: Bearer $HM_OWNER_TOKEN" http://localhost:8080/diagnostics
+{"status":"online","reports":[...]}
+```
+
+### `ghm-core report-diagnostics` (pip package)
+
+`ghm_core` is now a real installable package (`pyproject.toml` at the repo root,
+console script `ghm-core`; `pip install -e .` for local use). Its
+`report-diagnostics` subcommand:
+
+1. Prints the exact fields it's about to send (never anything beyond `os_name`,
+   `os_version`, `python_version`, `architecture`) and the destination URL.
+2. Requires explicit consent -- an interactive `[y/N]` prompt, or `--yes` for
+   scripted use. **Never sends anything in a non-interactive run without `--yes`**
+   (exits `1` with a clear reason instead of silently no-op'ing or silently sending).
+3. Reads the bearer token from `HM_OWNER_TOKEN` in the environment; refuses to send
+   (exits `1`) if it's unset, rather than sending unauthenticated and getting a
+   confusing `401` back.
+
+```console
+$ pip install -e .
+$ HM_OWNER_TOKEN=... ghm-core report-diagnostics
+This will send exactly these fields, nothing else, to your own gateway:
+{ "os_name": "Linux", "os_version": "6.18.5", "python_version": "3.11.15", "architecture": "x86_64" }
+Destination: http://127.0.0.1:8080/diagnostics
+Send this? [y/N]:
+```
 
 ## Channel bot tokens (hm-auth)
 

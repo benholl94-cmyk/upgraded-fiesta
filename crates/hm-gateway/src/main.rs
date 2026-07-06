@@ -37,9 +37,34 @@ struct AppState {
     storage: Arc<LocalFsStorage>,
     plugins: Arc<PluginRegistry>,
     memory: Arc<MemoryStore>,
+    diagnostics: Arc<Mutex<Vec<DiagnosticsReport>>>,
+    diagnostics_key: Arc<String>,
     /// `None` only when `HM_GATEWAY_ALLOW_NO_AUTH=true` was explicitly set at
     /// startup; otherwise the process refuses to start without a real token.
     owner_token: Option<Arc<String>>,
+}
+
+/// Exactly the fields `ghm_core report-diagnostics` discloses to the user
+/// before sending -- never extend this without updating that prompt too.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct DiagnosticsReport {
+    os_name: String,
+    os_version: String,
+    python_version: String,
+    architecture: String,
+    reported_at_unix: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct DiagnosticsInput {
+    #[serde(default)]
+    os_name: String,
+    #[serde(default)]
+    os_version: String,
+    #[serde(default)]
+    python_version: String,
+    #[serde(default)]
+    architecture: String,
 }
 
 #[derive(Debug)]
@@ -95,6 +120,15 @@ async fn main() -> anyhow::Result<()> {
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
     let memory = MemoryStore::load(storage.clone(), memory_key).await;
 
+    let diagnostics_key =
+        env::var("HM_DIAGNOSTICS_KEY").unwrap_or_else(|_| "diagnostics/reports.json".to_string());
+    let diagnostics: Vec<DiagnosticsReport> = storage
+        .get(&diagnostics_key)
+        .await
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default();
+
     let owner_token = match hm_auth::load_owner_token() {
         Ok(token) => Some(Arc::new(token)),
         Err(error) => {
@@ -128,6 +162,8 @@ async fn main() -> anyhow::Result<()> {
         storage,
         plugins: Arc::new(plugins),
         memory: Arc::new(memory),
+        diagnostics: Arc::new(Mutex::new(diagnostics)),
+        diagnostics_key: Arc::new(diagnostics_key),
         owner_token,
     };
 
@@ -298,6 +334,8 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         ("GET", "/memory") => memory_list(&state).await,
         ("POST", "/memory") => memory_remember(&state, request.body).await,
         ("POST", "/memory/search") => memory_search(&state, request.body).await,
+        ("GET", "/diagnostics") => diagnostics_list(&state).await,
+        ("POST", "/diagnostics") => diagnostics_submit(&state, request.body).await,
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
     }
 }
@@ -407,6 +445,54 @@ async fn memory_search(state: &AppState, body: Vec<u8>) -> Vec<u8> {
     json_response(200, json!({ "status": "online", "results": results }))
 }
 
+async fn diagnostics_list(state: &AppState) -> Vec<u8> {
+    let reports = state.diagnostics.lock().await.clone();
+    json_response(200, json!({ "status": "online", "reports": reports }))
+}
+
+async fn diagnostics_submit(state: &AppState, body: Vec<u8>) -> Vec<u8> {
+    let input: DiagnosticsInput = match serde_json::from_slice(&body) {
+        Ok(input) => input,
+        Err(error) => {
+            return json_response(
+                400,
+                json!({ "status": "invalid_request", "reason": error.to_string() }),
+            );
+        }
+    };
+
+    let report = DiagnosticsReport {
+        os_name: input.os_name,
+        os_version: input.os_version,
+        python_version: input.python_version,
+        architecture: input.architecture,
+        reported_at_unix: unix_now(),
+    };
+
+    let snapshot = {
+        let mut reports = state.diagnostics.lock().await;
+        reports.push(report.clone());
+        reports.clone()
+    };
+
+    match state
+        .storage
+        .put(
+            &state.diagnostics_key,
+            serde_json::to_string(&snapshot)
+                .unwrap_or_default()
+                .as_bytes(),
+        )
+        .await
+    {
+        Ok(()) => json_response(201, json!({ "status": "stored", "report": report })),
+        Err(error) => json_response(
+            500,
+            json!({ "status": "diagnostics_error", "reason": error.to_string() }),
+        ),
+    }
+}
+
 async fn gateway_info(state: &AppState) -> Value {
     json!({
         "service": "hm-gateway",
@@ -416,7 +502,8 @@ async fn gateway_info(state: &AppState) -> Value {
             "GET /health", "GET /api/health", "GET /gateway/health",
             "POST /tasks", "POST /api/tasks", "POST /gateway/tasks", "GET /tasks",
             "PUT /storage/{key}", "GET /storage/{key}", "DELETE /storage/{key}",
-            "GET /memory", "POST /memory", "POST /memory/search"
+            "GET /memory", "POST /memory", "POST /memory/search",
+            "GET /diagnostics", "POST /diagnostics"
         ],
         "uptime_seconds": uptime_seconds(state.started_at)
     })
