@@ -4,9 +4,14 @@ import "./styles.css";
 import {
   checkEndpoint,
   dispatchWithRotation,
+  listMemoryWithRotation,
   loadPlatformConfig,
+  rememberMemoryWithRotation,
+  searchMemoryWithRotation,
   type DispatchResult,
   type EndpointHealth,
+  type MemoryRecord,
+  type MemorySearchHit,
   type PlatformConfig
 } from "./endpoint-rotation";
 
@@ -25,9 +30,21 @@ function App(): React.ReactElement {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [memoryText, setMemoryText] = useState("");
+  const [memoryQuery, setMemoryQuery] = useState("");
+  const [memoryRecords, setMemoryRecords] = useState<MemoryRecord[]>([]);
+  const [memoryResults, setMemoryResults] = useState<MemorySearchHit[]>([]);
+  const [memoryBusy, setMemoryBusy] = useState(false);
+  const [memoryError, setMemoryError] = useState<string | null>(null);
+
   useEffect(() => {
     loadPlatformConfig().then(setConfig).catch((err: unknown) => setError(err instanceof Error ? err.message : "config_load_failed"));
   }, []);
+
+  useEffect(() => {
+    if (!config) return;
+    listMemoryWithRotation(config).then(setMemoryRecords).catch(() => undefined);
+  }, [config]);
 
   const activeEndpoint = useMemo(() => config?.endpoints[0], [config]);
 
@@ -64,6 +81,34 @@ function App(): React.ReactElement {
       setError(err instanceof Error ? err.message : "dispatch_failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runRemember(): Promise<void> {
+    if (!config || memoryText.trim().length === 0) return;
+    setMemoryBusy(true);
+    setMemoryError(null);
+    try {
+      await rememberMemoryWithRotation(config, memoryText);
+      setMemoryText("");
+      setMemoryRecords(await listMemoryWithRotation(config));
+    } catch (err) {
+      setMemoryError(err instanceof Error ? err.message : "memory_store_failed");
+    } finally {
+      setMemoryBusy(false);
+    }
+  }
+
+  async function runMemorySearch(): Promise<void> {
+    if (!config || memoryQuery.trim().length === 0) return;
+    setMemoryBusy(true);
+    setMemoryError(null);
+    try {
+      setMemoryResults(await searchMemoryWithRotation(config, memoryQuery, 5));
+    } catch (err) {
+      setMemoryError(err instanceof Error ? err.message : "memory_search_failed");
+    } finally {
+      setMemoryBusy(false);
     }
   }
 
@@ -106,6 +151,36 @@ function App(): React.ReactElement {
     React.createElement("section", { className: "panel" },
       React.createElement("h2", null, "Last dispatch result"),
       React.createElement("pre", null, JSON.stringify(result ?? { status: "idle" }, null, 2))
+    ),
+    React.createElement("section", { className: "panel" },
+      React.createElement("h2", null, "Memory"),
+      React.createElement("label", null, "Remember something", React.createElement("textarea", {
+        value: memoryText,
+        onChange: (event) => setMemoryText(event.target.value),
+        rows: 2,
+        placeholder: "Text to store and make searchable"
+      })),
+      React.createElement("div", { className: "actions" },
+        React.createElement("button", { onClick: runRemember, disabled: memoryBusy || !config || memoryText.trim().length === 0 }, "Remember")
+      ),
+      React.createElement("label", null, "Search memory", React.createElement("textarea", {
+        value: memoryQuery,
+        onChange: (event) => setMemoryQuery(event.target.value),
+        rows: 1,
+        placeholder: "What are you looking for?"
+      })),
+      React.createElement("div", { className: "actions" },
+        React.createElement("button", { onClick: runMemorySearch, disabled: memoryBusy || !config || memoryQuery.trim().length === 0 }, "Search")
+      ),
+      memoryError ? React.createElement("pre", { className: "error" }, memoryError) : null,
+      React.createElement("div", { className: "endpointList" },
+        memoryResults.length > 0
+          ? memoryResults.map((hit) => React.createElement("article", { key: hit.record.id, className: "endpoint online" },
+              React.createElement("strong", null, hit.record.text),
+              React.createElement("span", null, `score ${hit.score.toFixed(3)}`)
+            ))
+          : React.createElement("p", null, `${memoryRecords.length} memories stored. Search results appear here.`)
+      )
     )
   );
 }
