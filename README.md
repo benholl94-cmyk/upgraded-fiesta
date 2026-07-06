@@ -53,3 +53,9 @@ python3 scripts/validate_repo.py
 `docs/master-dossier.html` is a visual dossier of the workspace — architecture,
 per-crate line counts, the `hm-gateway` API (including the local `/storage`
 file endpoints), and CI/self-monitoring status. Open it directly in a browser.
+
+## Other projects in this repository
+
+`iphone-dev-platform/` is a self-contained static site (German-language iPhone
+local-dev setup guide) with its own toolchain, unrelated to the Rust
+workspace above — see its own `README.md`.
