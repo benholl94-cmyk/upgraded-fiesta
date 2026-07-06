@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-06T18:07:03.113666+00:00",
+  "generated_at": "2026-07-06T18:21:58.219889+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -62,7 +62,7 @@
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 5619
+      "size_bytes": 6456
     },
     {
       "exists": true,
@@ -80,13 +80,13 @@
       "exists": true,
       "is_file": true,
       "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 5704
+      "size_bytes": 9015
     },
     {
       "exists": true,
       "is_file": true,
       "path": "ui/src/main.ts",
-      "size_bytes": 5431
+      "size_bytes": 8646
     },
     {
       "exists": true,
