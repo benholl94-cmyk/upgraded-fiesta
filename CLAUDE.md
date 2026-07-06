@@ -66,6 +66,8 @@ Routes (all gated by the same auth check except `OPTIONS`):
 
 **Plugins (`hm-plugins` + `hm-sdk`)**: task types are dispatched to external subprocesses declared in `config/plugins.json`. Each invocation writes one line of JSON (`PluginRequest`) to the child's stdin and reads one line back (`PluginResponse`) with a 5s timeout. `plugins/echo_plugin.py` is the only registered example.
 
+**Agent runtime (`hm-agent`)**: `POST /tasks` routes through `hm_agent::Agent::dispatch`, not directly against `hm-plugins`. `Agent::dispatch` invokes the matching plugin (if any) *and* records a one-line summary of every outcome — dispatched or unhandled — into `hm-memory`, so `GET /memory` shows a durable task history, not just what was explicitly `POST`ed there. This is the real `Gateway -> Agent Runtime -> Memory` link from `docs/architecture.md`.
+
 Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_GATEWAY_BIND`, `HM_ZERO_STAKED`, `HM_STORAGE_ROOT`, `HM_MEMORY_KEY`, `HM_OWNER_TOKEN`, `HM_GATEWAY_ALLOW_NO_AUTH`, `HM_DIAGNOSTICS_KEY`.
 
 **Shutdown/persistence**: the accept loop handles `SIGTERM`/`SIGINT` via `tokio::select!`, drains in-flight connections (10s deadline), and exits 0 — required for `deploy/hm-gateway.service` (a hardened systemd unit: `Restart=on-failure`, dropped capabilities, resource limits, non-root user) to manage it as a persistent service. `scripts/hm_gateway_watchdog.py` + `deploy/hm-gateway-watchdog.timer` cover the gap systemd's own crash-restart doesn't: a process that's alive but hung. Verify any edits to the `.service`/`.timer` files with `systemd-analyze verify`, since that's the only way to actually validate them (no systemd daemon runs in a normal dev sandbox).
@@ -74,9 +76,9 @@ Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_
 
 ## Architecture: rest of the Rust workspace
 
-Most other workspace members are **intentional placeholders**, not partial implementations — `hm-core`, `hm-agent`, `hm-cli`, `hm-cron`, `hm-sessions`, and all four `hm-tools/hm-tool-*` crates are single-function/single-constant stubs. The four `hm-channels/hm-channel-*` crates (telegram/discord/slack/whatsapp) only load and validate a bot token via `hm_auth::load_bot_token`; **none makes real calls to any chat platform** — that requires real bot credentials to build and live-test responsibly, per `AGENTS.md`'s "surface gaps" rule. Don't mistake the presence of a crate for a working feature; check line count/content before assuming behavior exists.
+Most other workspace members are **intentional placeholders**, not partial implementations — `hm-core`, `hm-cli`, `hm-cron`, `hm-sessions`, and all four `hm-tools/hm-tool-*` crates are single-function/single-constant stubs. The four `hm-channels/hm-channel-*` crates (telegram/discord/slack/whatsapp) only load and validate a bot token via `hm_auth::load_bot_token`; **none makes real calls to any chat platform** — that requires real bot credentials to build and live-test responsibly, per `AGENTS.md`'s "surface gaps" rule. Don't mistake the presence of a crate for a working feature; check line count/content before assuming behavior exists.
 
-`hm-memory` (semantic-ish "remember"/"recall" store) and `hm-vector` are the only other crates with real logic.
+`hm-memory` (semantic-ish "remember"/"recall" store), `hm-vector`, and `hm-agent` (see above) are the other crates with real logic. `hm-agent` used to be a stub too and, unlike the rest of this list, wasn't even a dependency of anything in the workspace — check `cargo tree` or a crate's `Cargo.toml`, not just file existence, before assuming a crate is unused.
 
 ## Architecture: UI
 
@@ -95,4 +97,4 @@ Key piece: `ui/src/endpoint-rotation.ts`. The UI is designed to fail over across
 
 - `docs/production-api-contract.md` — the authoritative reference for every gateway route, env var, and the `ghm-core` CLI subcommands. Update this when changing gateway behavior.
 - `docs/master-dossier.html` — visual dossier (architecture, per-crate line counts, API reference); open in a browser.
-- `docs/architecture.md` is a one-line stub (`Gateway -> Agent Runtime -> Memory -> Channels -> Tools -> Plugins -> UI`) describing the intended shape, not the current implementation — most of that chain is still placeholder crates (see above).
+- `docs/architecture.md` states the intended chain (`Gateway -> Agent Runtime -> Memory -> Channels -> Tools -> Plugins -> UI`) and, below it, which links are real vs. still placeholder — keep that table in sync when a stub crate becomes real.

@@ -1,3 +1,4 @@
+use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
 use hm_memory::MemoryStore;
 use hm_plugins::PluginRegistry;
@@ -41,8 +42,8 @@ struct AppState {
     zero_staked: bool,
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
     storage: Arc<LocalFsStorage>,
-    plugins: Arc<PluginRegistry>,
     memory: Arc<MemoryStore>,
+    agent: Arc<Agent>,
     diagnostics: Arc<Mutex<Vec<DiagnosticsReport>>>,
     diagnostics_key: Arc<String>,
     /// `None` only when `HM_GATEWAY_ALLOW_NO_AUTH=true` was explicitly set at
@@ -161,13 +162,16 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    let memory = Arc::new(memory);
+    let agent = Arc::new(Agent::new(Arc::new(plugins), memory.clone()));
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
         tasks: Arc::new(Mutex::new(Vec::new())),
         storage,
-        plugins: Arc::new(plugins),
-        memory: Arc::new(memory),
+        memory,
+        agent,
         diagnostics: Arc::new(Mutex::new(diagnostics)),
         diagnostics_key: Arc::new(diagnostics_key),
         owner_token,
@@ -620,20 +624,17 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         "agent_managed": true
     });
 
-    if state.plugins.has(&task.task_type) {
-        let plugin_result = match state
-            .plugins
-            .invoke(&task.task_type, &task.objective, task.payload.clone())
-            .await
-        {
-            Ok(plugin_response) => json!({
-                "ok": plugin_response.ok,
-                "result": plugin_response.result,
-                "message": plugin_response.message
-            }),
-            Err(error) => json!({ "ok": false, "message": error.to_string() }),
-        };
-        response["plugin_result"] = plugin_result;
+    let outcome = state
+        .agent
+        .dispatch(&task.task_type, &task.objective, task.payload.clone())
+        .await;
+    if let TaskOutcome::PluginDispatched {
+        ok,
+        result,
+        message,
+    } = outcome
+    {
+        response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
     }
 
     json_response(202, response)

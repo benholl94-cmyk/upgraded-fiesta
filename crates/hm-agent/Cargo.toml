@@ -5,8 +5,14 @@ edition.workspace=true
 license.workspace=true
 [dependencies]
 hm-core={path="../hm-core"}
+hm-plugins={path="../hm-plugins"}
+hm-memory={path="../hm-memory"}
 serde.workspace=true
 serde_json.workspace=true
 tokio.workspace=true
 anyhow.workspace=true
 async-trait.workspace=true
+
+[dev-dependencies]
+hm-storage={path="../hm-storage"}
+uuid.workspace=true

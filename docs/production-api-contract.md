@@ -102,6 +102,15 @@ Accepted response:
 
 When the gateway is in zero-staked mode, task dispatch returns HTTP 503 with status `zero_staked`; the UI rotates to the next configured endpoint.
 
+Every accepted task is routed through `hm-agent`'s `Agent::dispatch` (not
+invoked directly against `hm-plugins`): if a plugin is registered for
+`taskType` in `config/plugins.json`, it runs and the response gains a
+`plugin_result` field (`{"ok", "result", "message"}`), exactly as before.
+If no plugin matches, the response shape is unchanged (no extra field) --
+but either way, `Agent::dispatch` also records a one-line summary of the
+outcome into `hm-memory`, so `GET /memory` shows a durable history of what
+every task actually did, not just what was explicitly `POST`ed to `/memory`.
+
 ## Task registry endpoint
 
 ```http
