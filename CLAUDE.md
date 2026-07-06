@@ -106,3 +106,4 @@ Key piece: `ui/src/endpoint-rotation.ts`. The UI is designed to fail over across
 - `docs/production-api-contract.md` — the authoritative reference for every gateway route, env var, and the `ghm-core` CLI subcommands. Update this when changing gateway behavior.
 - `docs/master-dossier.html` — visual dossier (architecture, per-crate line counts, API reference); open in a browser.
 - `docs/architecture.md` states the intended chain (`Gateway -> Agent Runtime -> Memory -> Channels -> Tools -> Plugins -> UI`) and, below it, which links are real vs. still placeholder — keep that table in sync when a stub crate becomes real.
+- `docs/xcloud-platform-plan.md` — a staged, PoC-first roadmap (external memory backends via the existing `FileStorage` trait, cloud-portable deployment, graph-enhanced memory, an actual LLM-calling plugin, multi-instance failover). A plan, not a changelog — check it before assuming any of those phases already exist.
