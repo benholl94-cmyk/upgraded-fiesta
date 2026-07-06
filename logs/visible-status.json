@@ -1,7 +1,7 @@
 {
   "actor": "benholl94-cmyk",
   "connector_visibility_workaround": true,
-  "generated_at": "2026-07-06T19:51:40.430310+00:00",
+  "generated_at": "2026-07-06T19:54:19.183053+00:00",
   "marker_failures": [],
   "missing_files": [],
   "monitor_ok": true,
@@ -17,11 +17,11 @@
     "has_timeout": true,
     "has_zero_staked_status": true
   },
-  "ref": "refs/heads/claude/env-points-anchors-localization-flyoos",
+  "ref": "refs/heads/main",
   "repository": "benholl94-cmyk/upgraded-fiesta",
-  "run_id": "28818931144",
-  "run_number": "104",
-  "sha": "1bb82aa81a64448930fe05b4bb4da7f5301a374a",
+  "run_id": "28819087895",
+  "run_number": "105",
+  "sha": "24de83777535286e9b0c3609b639f361b1934576",
   "source": "scripts/write_visible_status.py",
   "status_file_visible_via_contents_api": true,
   "workflow": "visible-status"
