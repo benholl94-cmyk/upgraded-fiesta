@@ -225,10 +225,18 @@ class TestBuildQueryFormat:
     def test_special_chars_in_description_are_encoded(self):
         args = _make_args(description="foo & bar <baz>")
         result = script.build_query(args)
-        # raw special chars should not appear unencoded
-        assert "&" not in result.split("description=")[0]  # only separator & expected
-        qs = parse_qs(result)
-        assert qs["description"] == ["foo & bar <baz>"]
+        # The raw special characters must not appear literally in the query
+        # string -- only their percent-encoded form. (Checking the whole
+        # query string for "&" would be wrong: every other param is joined
+        # with a literal "&" separator, so that character is expected to
+        # appear -- what matters is that it's absent from the *encoded
+        # description value itself*.)
+        description_value = parse_qs(result)["description"][0]
+        assert description_value == "foo & bar <baz>"
+        encoded_segment = [pair for pair in result.split("&") if pair.startswith("description=")][0]
+        assert "&" not in encoded_segment
+        assert "<" not in encoded_segment
+        assert ">" not in encoded_segment
 
 
 # ---------------------------------------------------------------------------
