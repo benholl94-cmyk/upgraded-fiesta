@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add logs/monitoring-report.json logs/visible-status.json
+          git add -f logs/monitoring-report.json logs/visible-status.json
           if git diff --cached --quiet; then
             echo "visible status unchanged"
           else

@@ -248,7 +248,8 @@ async fn gateway_info(state: &AppState) -> Value {
         "status": status_text(state.zero_staked),
         "agent_managed": true,
         "routes": [
-            "GET /health", "GET /api/health", "POST /tasks", "POST /api/tasks", "GET /tasks",
+            "GET /health", "GET /api/health", "GET /gateway/health",
+            "POST /tasks", "POST /api/tasks", "POST /gateway/tasks", "GET /tasks",
             "PUT /storage/{key}", "GET /storage/{key}", "DELETE /storage/{key}"
         ],
         "uptime_seconds": uptime_seconds(state.started_at)
