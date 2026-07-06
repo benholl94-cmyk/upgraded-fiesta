@@ -61,15 +61,20 @@ def main() -> int:
         return 0
 
     if restart_on_failure:
-        proc = subprocess.run(
-            ["systemctl", "restart", unit],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        result["restarted"] = proc.returncode == 0
-        if proc.returncode != 0:
-            result["restart_error"] = proc.stderr.strip()
+        try:
+            proc = subprocess.run(
+                ["/usr/bin/systemctl", "restart", unit],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=30,
+            )
+            result["restarted"] = proc.returncode == 0
+            if proc.returncode != 0:
+                result["restart_error"] = proc.stderr.strip()
+        except subprocess.TimeoutExpired:
+            result["restarted"] = False
+            result["restart_error"] = "systemctl restart timed out after 30s"
 
     print(json.dumps(result))
     return 1

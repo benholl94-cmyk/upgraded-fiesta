@@ -77,8 +77,13 @@ impl Agent {
                 format!("task '{task_type}' ({objective}) unhandled: {reason}")
             }
         };
-        // Best-effort: a memory write failure shouldn't fail task dispatch.
-        let _ = self.memory.remember(summary).await;
+        // Best-effort: a memory write failure shouldn't fail task dispatch,
+        // but it must not vanish silently either -- a persistently failing
+        // memory backend (e.g. a storage permission issue) should be
+        // observable, not just an empty GET /memory nobody can explain.
+        if let Err(error) = self.memory.remember(summary).await {
+            eprintln!("hm-agent: failed to record task outcome to memory: {error}");
+        }
     }
 }
 

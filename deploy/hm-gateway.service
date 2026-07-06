@@ -61,6 +61,10 @@ RestrictRealtime=true
 RestrictNamespaces=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
+# A plain TCP server has no business with any socket family beyond IPv4/IPv6.
+RestrictAddressFamilies=AF_INET AF_INET6
+ProtectHostname=true
+ProtectClock=true
 SystemCallFilter=@system-service
 SystemCallErrorNumber=EPERM
 CapabilityBoundingSet=

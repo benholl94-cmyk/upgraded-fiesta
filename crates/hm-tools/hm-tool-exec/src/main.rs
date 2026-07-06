@@ -29,11 +29,17 @@ const ALLOWED_OPERATIONS: &[&str] = &[
     "memory_usage",
 ];
 
-/// Runs one allowlisted, read-only operational check and returns its
-/// captured (stdout, stderr). The `name` argument selects a fixed,
-/// hardcoded `(program, args)` pair -- it is never interpolated into a
-/// shell or used to build argv itself.
-fn run_operation(name: &str) -> Result<(String, String), String> {
+/// Runs one allowlisted, read-only operational check and returns whether
+/// the command itself exited successfully, alongside its captured
+/// (stdout, stderr). The `name` argument selects a fixed, hardcoded
+/// `(program, args)` pair -- it is never interpolated into a shell or used
+/// to build argv itself.
+///
+/// The `Result::Err` case is reserved for "couldn't even run this" (unknown
+/// operation, failed to spawn); a command that ran but exited non-zero
+/// (e.g. `systemctl status` on an inactive unit) is `Ok((false, ...))`, not
+/// an `Err`, since output was still produced.
+fn run_operation(name: &str) -> Result<(bool, String, String), String> {
     let (program, args): (&str, &[&str]) = match name {
         "gateway_status" => ("systemctl", &["status", "hm-gateway.service", "--no-pager"]),
         "gateway_logs" => (
@@ -54,6 +60,7 @@ fn run_operation(name: &str) -> Result<(String, String), String> {
         .output()
         .map_err(|error| format!("failed to run '{program}': {error}"))?;
     Ok((
+        output.status.success(),
         String::from_utf8_lossy(&output.stdout).into_owned(),
         String::from_utf8_lossy(&output.stderr).into_owned(),
     ))
@@ -94,10 +101,14 @@ fn main() {
         .unwrap_or("");
 
     match run_operation(operation) {
-        Ok((stdout, stderr)) => write_response(
-            true,
+        Ok((exit_ok, stdout, stderr)) => write_response(
+            exit_ok,
             json!({ "operation": operation, "stdout": stdout, "stderr": stderr }),
-            "ok",
+            if exit_ok {
+                "ok"
+            } else {
+                "command exited with a non-zero status"
+            },
         ),
         Err(reason) => write_response(false, Value::Null, &reason),
     }
@@ -109,8 +120,24 @@ mod tests {
 
     #[test]
     fn allowlisted_operation_runs_successfully() {
-        let (stdout, _stderr) = run_operation("disk_usage").expect("df is always available");
+        let (exit_ok, stdout, _stderr) =
+            run_operation("disk_usage").expect("df is always available");
+        assert!(exit_ok);
         assert!(!stdout.is_empty());
+    }
+
+    #[test]
+    fn non_zero_exit_status_is_surfaced_not_masked_as_ok() {
+        // "status" on a unit name that can't exist is systemctl's standard
+        // way of reporting "not found" -- and that's a non-zero exit even
+        // though the command ran and produced output, which is exactly the
+        // case this field exists to distinguish from a real success.
+        let (exit_ok, _stdout, _stderr) =
+            run_operation("gateway_status").expect("systemctl is always available");
+        // In this sandboxed test environment there's no live hm-gateway.service,
+        // and no systemd PID 1 either, so systemctl itself fails -- either way
+        // exit_ok must be false, never silently true.
+        assert!(!exit_ok);
     }
 
     #[test]

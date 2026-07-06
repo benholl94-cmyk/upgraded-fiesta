@@ -186,7 +186,13 @@ async fn main() -> anyhow::Result<()> {
     loop {
         tokio::select! {
             accepted = listener.accept() => {
-                let (stream, remote_addr) = accepted?;
+                let (stream, remote_addr) = match accepted {
+                    Ok(pair) => pair,
+                    Err(error) => {
+                        eprintln!("hm-gateway: accept() failed, continuing: {error}");
+                        continue;
+                    }
+                };
                 let state = state.clone();
                 connections.spawn(async move {
                     if let Err(error) = handle_connection(stream, remote_addr, state).await {

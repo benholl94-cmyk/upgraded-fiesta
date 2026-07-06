@@ -233,7 +233,7 @@ class TestBuildQueryFormat:
         # description value itself*.)
         description_value = parse_qs(result)["description"][0]
         assert description_value == "foo & bar <baz>"
-        encoded_segment = [pair for pair in result.split("&") if pair.startswith("description=")][0]
+        encoded_segment = next(pair for pair in result.split("&") if pair.startswith("description="))
         assert "&" not in encoded_segment
         assert "<" not in encoded_segment
         assert ">" not in encoded_segment
