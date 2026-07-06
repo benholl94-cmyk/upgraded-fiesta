@@ -1,3 +1,4 @@
+use hm_storage::{FileStorage, LocalFsStorage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -19,6 +20,7 @@ struct AppState {
     started_at: SystemTime,
     zero_staked: bool,
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
+    storage: Arc<LocalFsStorage>,
 }
 
 #[derive(Debug)]
@@ -64,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
         started_at: SystemTime::now(),
         zero_staked,
         tasks: Arc::new(Mutex::new(Vec::new())),
+        storage: Arc::new(LocalFsStorage::from_env()),
     };
 
     let listener = TcpListener::bind(&bind).await?;
@@ -96,7 +99,7 @@ async fn handle_connection(
             }),
         ),
     };
-    stream.write_all(response.as_bytes()).await?;
+    stream.write_all(&response).await?;
     stream.shutdown().await?;
     Ok(())
 }
@@ -172,7 +175,7 @@ fn parse_content_length(headers: &str) -> usize {
         .unwrap_or(0)
 }
 
-async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> String {
+async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
     if request.method == "OPTIONS" {
         return empty_response(204);
     }
@@ -192,7 +195,50 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         ("POST", "/tasks") | ("POST", "/api/tasks") | ("POST", "/gateway/tasks") => {
             accept_task(request.body, remote_addr, state).await
         }
+        ("PUT", path) if path.starts_with("/storage/") => {
+            storage_put(&state, storage_key(path), request.body).await
+        }
+        ("GET", path) if path.starts_with("/storage/") => {
+            storage_get(&state, storage_key(path)).await
+        }
+        ("DELETE", path) if path.starts_with("/storage/") => {
+            storage_delete(&state, storage_key(path)).await
+        }
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
+    }
+}
+
+fn storage_key(path: &str) -> &str {
+    path.trim_start_matches("/storage/")
+}
+
+async fn storage_put(state: &AppState, key: &str, body: Vec<u8>) -> Vec<u8> {
+    match state.storage.put(key, &body).await {
+        Ok(()) => json_response(
+            200,
+            json!({ "status": "stored", "key": key, "bytes": body.len() }),
+        ),
+        Err(error) => json_response(
+            400,
+            json!({ "status": "storage_error", "key": key, "reason": error.to_string() }),
+        ),
+    }
+}
+
+async fn storage_get(state: &AppState, key: &str) -> Vec<u8> {
+    match state.storage.get(key).await {
+        Ok(bytes) => binary_response(200, &bytes),
+        Err(_) => json_response(404, json!({ "status": "not_found", "key": key })),
+    }
+}
+
+async fn storage_delete(state: &AppState, key: &str) -> Vec<u8> {
+    match state.storage.delete(key).await {
+        Ok(()) => json_response(200, json!({ "status": "deleted", "key": key })),
+        Err(error) => json_response(
+            400,
+            json!({ "status": "storage_error", "key": key, "reason": error.to_string() }),
+        ),
     }
 }
 
@@ -201,7 +247,11 @@ async fn gateway_info(state: &AppState) -> Value {
         "service": "hm-gateway",
         "status": status_text(state.zero_staked),
         "agent_managed": true,
-        "routes": ["GET /health", "GET /api/health", "POST /tasks", "POST /api/tasks", "GET /tasks"],
+        "routes": [
+            "GET /health", "GET /api/health", "GET /gateway/health",
+            "POST /tasks", "POST /api/tasks", "POST /gateway/tasks", "GET /tasks",
+            "PUT /storage/{key}", "GET /storage/{key}", "DELETE /storage/{key}"
+        ],
         "uptime_seconds": uptime_seconds(state.started_at)
     })
 }
@@ -219,7 +269,7 @@ async fn health_payload(state: &AppState) -> Value {
     })
 }
 
-async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) -> String {
+async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
     if state.zero_staked {
         return json_response(
             503,
@@ -295,23 +345,29 @@ fn uptime_seconds(started_at: SystemTime) -> u64 {
         .as_secs()
 }
 
-fn empty_response(status: u16) -> String {
-    format!(
-        "HTTP/1.1 {status} {}\r\n{}Content-Length: 0\r\n\r\n",
-        reason_phrase(status),
-        common_headers("text/plain")
-    )
+fn empty_response(status: u16) -> Vec<u8> {
+    raw_response(status, "text/plain", &[])
 }
 
-fn json_response(status: u16, payload: Value) -> String {
+fn binary_response(status: u16, body: &[u8]) -> Vec<u8> {
+    raw_response(status, "application/octet-stream", body)
+}
+
+fn json_response(status: u16, payload: Value) -> Vec<u8> {
     let body = serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string());
-    format!(
-        "HTTP/1.1 {status} {}\r\n{}Content-Length: {}\r\n\r\n{}",
+    raw_response(status, "application/json; charset=utf-8", body.as_bytes())
+}
+
+fn raw_response(status: u16, content_type: &str, body: &[u8]) -> Vec<u8> {
+    let headers = format!(
+        "HTTP/1.1 {status} {}\r\n{}Content-Length: {}\r\n\r\n",
         reason_phrase(status),
-        common_headers("application/json; charset=utf-8"),
-        body.len(),
-        body
-    )
+        common_headers(content_type),
+        body.len()
+    );
+    let mut response = headers.into_bytes();
+    response.extend_from_slice(body);
+    response
 }
 
 fn common_headers(content_type: &str) -> String {

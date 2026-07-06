@@ -5,6 +5,7 @@ edition.workspace=true
 license.workspace=true
 [dependencies]
 hm-core={path="../hm-core"}
+hm-storage={path="../hm-storage"}
 tokio.workspace=true
 serde.workspace=true
 serde_json.workspace=true
