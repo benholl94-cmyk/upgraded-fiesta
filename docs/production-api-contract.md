@@ -155,7 +155,12 @@ are external processes, defined in a JSON manifest (`HM_PLUGIN_MANIFEST`, defaul
 `config/plugins.json`) that maps a `task_type` to a fixed command:
 
 ```json
-{ "plugins": [{ "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] }] }
+{
+  "plugins": [
+    { "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] },
+    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] }
+  ]
+}
 ```
 
 Protocol: the gateway writes one `PluginRequest` JSON line (`task_type`, `objective`,
@@ -168,6 +173,30 @@ the task dispatch itself.
 
 See `crates/hm-sdk` for the request/response types and `plugins/echo_plugin.py` for
 a minimal working example.
+
+### `ops-tool` (`crates/hm-tools/hm-tool-exec`)
+
+The first real `hm-tools/*` crate (the rest are still 1-line stubs). Deliberately
+**not** an arbitrary-command-execution plugin: `payload.operation` only ever
+*selects* one entry from a fixed, hardcoded allowlist (`gateway_status`,
+`gateway_logs`, `disk_usage`, `memory_usage`) -- it never contributes to argv
+construction, so there is no command-injection surface regardless of what a
+caller sends. Every allowlisted operation is read-only.
+
+```console
+$ curl -X POST http://localhost:8080/tasks -H "Authorization: Bearer $HM_OWNER_TOKEN" \
+    -d '{"taskType":"ops-tool","objective":"check disk","payload":{"operation":"disk_usage"}}'
+{"accepted":true,"plugin_result":{"ok":true,"result":{"operation":"disk_usage","stdout":"...","stderr":""},...},...}
+```
+
+**Known packaging gap**: the root `Dockerfile`'s runtime stage only copies the
+`hm-gateway` binary -- it does not copy `plugins/`, `config/`, a Python
+interpreter, or `hm-tool-exec`. This means plugin dispatch (`echo` *and*
+`ops-tool`) does not actually work in the Docker deployment as currently
+packaged; it only works when running `hm-gateway` directly from a full
+checkout (as `docker-compose.yml`'s bind-mounted dev setup and every example
+in this document do). Not fixed here -- packaging plugins into the runtime
+image is a separate decision.
 
 ## Memory endpoints (hm-memory / hm-vector)
 

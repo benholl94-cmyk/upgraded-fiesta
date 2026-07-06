@@ -76,9 +76,13 @@ Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_
 
 ## Architecture: rest of the Rust workspace
 
-Most other workspace members are **intentional placeholders**, not partial implementations — `hm-core`, `hm-cli`, `hm-cron`, `hm-sessions`, and all four `hm-tools/hm-tool-*` crates are single-function/single-constant stubs. The four `hm-channels/hm-channel-*` crates (telegram/discord/slack/whatsapp) only load and validate a bot token via `hm_auth::load_bot_token`; **none makes real calls to any chat platform** — that requires real bot credentials to build and live-test responsibly, per `AGENTS.md`'s "surface gaps" rule. Don't mistake the presence of a crate for a working feature; check line count/content before assuming behavior exists.
+Most other workspace members are **intentional placeholders**, not partial implementations — `hm-core`, `hm-cli`, `hm-cron`, `hm-sessions`, and three of the four `hm-tools/hm-tool-*` crates (`hm-tool-browser`, `hm-tool-media`, `hm-tool-web`) are single-function/single-constant stubs. The four `hm-channels/hm-channel-*` crates (telegram/discord/slack/whatsapp) only load and validate a bot token via `hm_auth::load_bot_token`; **none makes real calls to any chat platform** — that requires real bot credentials to build and live-test responsibly, per `AGENTS.md`'s "surface gaps" rule. Don't mistake the presence of a crate for a working feature; check line count/content before assuming behavior exists.
 
-`hm-memory` (semantic-ish "remember"/"recall" store), `hm-vector`, and `hm-agent` (see above) are the other crates with real logic. `hm-agent` used to be a stub too and, unlike the rest of this list, wasn't even a dependency of anything in the workspace — check `cargo tree` or a crate's `Cargo.toml`, not just file existence, before assuming a crate is unused.
+`hm-memory` (semantic-ish "remember"/"recall" store), `hm-vector`, `hm-agent` (see above), and `hm-tool-exec` are the crates with real logic. `hm-agent` used to be a stub too and, unlike the rest of this list, wasn't even a dependency of anything in the workspace — check `cargo tree` or a crate's `Cargo.toml`, not just file existence, before assuming a crate is unused.
+
+**`hm-tool-exec`** (`crates/hm-tools/hm-tool-exec/src/main.rs`) is a real hm-plugins-protocol binary registered as the `ops-tool` task_type in `config/plugins.json`. It is deliberately **not** arbitrary command execution: `payload.operation` only ever selects one entry from a fixed, hardcoded allowlist (`gateway_status`, `gateway_logs`, `disk_usage`, `memory_usage`) — it never contributes to argv construction. If you add more allowlisted operations, keep that property: the payload must only ever choose among fixed `(program, args)` pairs, never build one.
+
+**Known packaging gap**: the root `Dockerfile`'s runtime stage only copies the `hm-gateway` binary — no `plugins/`, `config/`, Python interpreter, or `hm-tool-exec`. Plugin dispatch (`echo` and `ops-tool`) does not actually work in the Docker deployment as packaged; it only works running `hm-gateway` from a full checkout.
 
 ## Architecture: UI
 
