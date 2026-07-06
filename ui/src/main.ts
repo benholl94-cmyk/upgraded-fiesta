@@ -4,10 +4,12 @@ import "./styles.css";
 import {
   checkEndpoint,
   dispatchWithRotation,
+  getOwnerToken,
   listMemoryWithRotation,
   loadPlatformConfig,
   rememberMemoryWithRotation,
   searchMemoryWithRotation,
+  setOwnerToken,
   type DispatchResult,
   type EndpointHealth,
   type MemoryRecord,
@@ -36,6 +38,9 @@ function App(): React.ReactElement {
   const [memoryResults, setMemoryResults] = useState<MemorySearchHit[]>([]);
   const [memoryBusy, setMemoryBusy] = useState(false);
   const [memoryError, setMemoryError] = useState<string | null>(null);
+
+  const [ownerTokenInput, setOwnerTokenInput] = useState(() => getOwnerToken());
+  const [tokenSaved, setTokenSaved] = useState(false);
 
   useEffect(() => {
     loadPlatformConfig().then(setConfig).catch((err: unknown) => setError(err instanceof Error ? err.message : "config_load_failed"));
@@ -84,6 +89,15 @@ function App(): React.ReactElement {
     }
   }
 
+  function saveOwnerToken(): void {
+    setOwnerToken(ownerTokenInput);
+    setTokenSaved(true);
+    window.setTimeout(() => setTokenSaved(false), 2000);
+    if (config) {
+      listMemoryWithRotation(config).then(setMemoryRecords).catch(() => undefined);
+    }
+  }
+
   async function runRemember(): Promise<void> {
     if (!config || memoryText.trim().length === 0) return;
     setMemoryBusy(true);
@@ -124,6 +138,21 @@ function App(): React.ReactElement {
         React.createElement("div", null, React.createElement("span", null, "Timeout"), React.createElement("strong", null, `${config?.requestTimeoutMs ?? 0} ms`)),
         React.createElement("div", null, React.createElement("span", null, "Failover state"), React.createElement("strong", null, config?.zeroStakedStatus ?? "zero_staked"))
       )
+    ),
+    React.createElement("section", { className: "panel" },
+      React.createElement("h2", null, "Owner access"),
+      React.createElement("label", null, "Bearer token", React.createElement("textarea", {
+        value: ownerTokenInput,
+        onChange: (event) => setOwnerTokenInput(event.target.value),
+        rows: 1,
+        spellCheck: false,
+        placeholder: "Paste the HM_OWNER_TOKEN configured on the gateway",
+        style: { fontFamily: "monospace" }
+      })),
+      React.createElement("div", { className: "actions" },
+        React.createElement("button", { onClick: saveOwnerToken }, tokenSaved ? "Saved" : "Save token")
+      ),
+      React.createElement("p", { style: { fontSize: "0.8rem" } }, "Stored only in this browser's localStorage, sent as an Authorization header on every gateway request. Every route requires it unless the gateway was started with HM_GATEWAY_ALLOW_NO_AUTH=true.")
     ),
     React.createElement("section", { className: "panel" },
       React.createElement("h2", null, "Task dispatch"),

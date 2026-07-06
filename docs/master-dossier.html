@@ -612,6 +612,15 @@
     <div class="eyebrow">03 · API Reference</div>
     <h2>hm-gateway endpoints</h2>
     <p>Everything is served over plain HTTP by a hand-rolled async TCP handler — no framework dependency.</p>
+    <div class="panel" style="margin-bottom:18px;">
+      <span class="pill good"><span class="dot"></span>Auth required on every route</span>
+      <p style="margin-top:10px; font-size:13px;">
+        <code>Authorization: Bearer &lt;HM_OWNER_TOKEN&gt;</code> is required on every
+        route (OPTIONS preflight excepted); the process refuses to start without a
+        token configured unless <code>HM_GATEWAY_ALLOW_NO_AUTH=true</code> is set
+        explicitly. Wrong/missing tokens get <code>401</code> with a generic reason.
+      </p>
+    </div>
 
     <div class="table-wrap">
     <table>

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-06T18:25:38.971988+00:00",
+  "generated_at": "2026-07-06T18:44:58.968628+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -62,7 +62,7 @@
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 6456
+      "size_bytes": 8909
     },
     {
       "exists": true,
@@ -80,13 +80,13 @@
       "exists": true,
       "is_file": true,
       "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 9015
+      "size_bytes": 10618
     },
     {
       "exists": true,
       "is_file": true,
       "path": "ui/src/main.ts",
-      "size_bytes": 8646
+      "size_bytes": 10004
     },
     {
       "exists": true,
@@ -110,13 +110,13 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 16549
+      "size_bytes": 18909
     },
     {
       "exists": true,
       "is_file": true,
       "path": "docker-compose.yml",
-      "size_bytes": 741
+      "size_bytes": 837
     },
     {
       "exists": true,

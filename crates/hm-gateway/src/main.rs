@@ -1,3 +1,4 @@
+use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
 use hm_memory::MemoryStore;
 use hm_plugins::PluginRegistry;
 use hm_storage::{FileStorage, LocalFsStorage};
@@ -36,12 +37,16 @@ struct AppState {
     storage: Arc<LocalFsStorage>,
     plugins: Arc<PluginRegistry>,
     memory: Arc<MemoryStore>,
+    /// `None` only when `HM_GATEWAY_ALLOW_NO_AUTH=true` was explicitly set at
+    /// startup; otherwise the process refuses to start without a real token.
+    owner_token: Option<Arc<String>>,
 }
 
 #[derive(Debug)]
 struct HttpRequest {
     method: String,
     path: String,
+    authorization: Option<String>,
     body: Vec<u8>,
 }
 
@@ -90,6 +95,32 @@ async fn main() -> anyhow::Result<()> {
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
     let memory = MemoryStore::load(storage.clone(), memory_key).await;
 
+    let owner_token = match hm_auth::load_owner_token() {
+        Ok(token) => Some(Arc::new(token)),
+        Err(error) => {
+            let allow_no_auth = env::var(ALLOW_NO_AUTH_VAR)
+                .map(|v| v == "true")
+                .unwrap_or(false);
+            if !allow_no_auth {
+                eprintln!(
+                    "hm-gateway: refusing to start without owner authentication ({error}). \
+                     Set {} to a real secret, or explicitly set {}=true to run without auth \
+                     (local development only -- never in a reachable deployment).",
+                    hm_auth::OWNER_TOKEN_VAR,
+                    ALLOW_NO_AUTH_VAR
+                );
+                std::process::exit(1);
+            }
+            eprintln!(
+                "hm-gateway: WARNING -- running with no owner authentication ({} is set). \
+                 Every route is unauthenticated. Do not expose this port to anything but \
+                 localhost/trusted networks.",
+                ALLOW_NO_AUTH_VAR
+            );
+            None
+        }
+    };
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
@@ -97,6 +128,7 @@ async fn main() -> anyhow::Result<()> {
         storage,
         plugins: Arc::new(plugins),
         memory: Arc::new(memory),
+        owner_token,
     };
 
     let listener = TcpListener::bind(&bind).await?;
@@ -184,13 +216,26 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
     let method = parts.next().unwrap_or_default().to_string();
     let raw_path = parts.next().unwrap_or("/");
     let path = raw_path.split('?').next().unwrap_or("/").to_string();
+    let authorization = parse_authorization(&header_text);
     let body_start = header_end + 4;
     let body_end = body_start.saturating_add(content_length).min(buffer.len());
 
     Ok(HttpRequest {
         method,
         path,
+        authorization,
         body: buffer[body_start..body_end].to_vec(),
+    })
+}
+
+fn parse_authorization(headers: &str) -> Option<String> {
+    headers.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.eq_ignore_ascii_case("authorization") {
+            Some(value.trim().to_string())
+        } else {
+            None
+        }
     })
 }
 
@@ -215,6 +260,15 @@ fn parse_content_length(headers: &str) -> usize {
 async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
     if request.method == "OPTIONS" {
         return empty_response(204);
+    }
+
+    if let Some(owner_token) = &state.owner_token {
+        if !bearer_matches(request.authorization.as_deref(), owner_token) {
+            return json_response(
+                401,
+                json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
+            );
+        }
     }
 
     match (request.method.as_str(), request.path.as_str()) {
@@ -245,6 +299,13 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         ("POST", "/memory") => memory_remember(&state, request.body).await,
         ("POST", "/memory/search") => memory_search(&state, request.body).await,
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
+    }
+}
+
+fn bearer_matches(header: Option<&str>, expected: &str) -> bool {
+    match header.and_then(|value| value.strip_prefix("Bearer ")) {
+        Some(provided) => tokens_match(provided, expected),
+        None => false,
     }
 }
 
@@ -510,7 +571,7 @@ fn raw_response(status: u16, content_type: &str, body: &[u8]) -> Vec<u8> {
 
 fn common_headers(content_type: &str) -> String {
     format!(
-        "Content-Type: {content_type}\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: content-type, accept\r\nConnection: close\r\n"
+        "Content-Type: {content_type}\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\nAccess-Control-Allow-Headers: content-type, accept, authorization\r\nConnection: close\r\n"
     )
 }
 
@@ -521,6 +582,7 @@ fn reason_phrase(status: u16) -> &'static str {
         202 => "Accepted",
         204 => "No Content",
         400 => "Bad Request",
+        401 => "Unauthorized",
         404 => "Not Found",
         413 => "Payload Too Large",
         500 => "Internal Server Error",

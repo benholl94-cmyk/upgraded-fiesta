@@ -75,21 +75,60 @@ function joinUrl(baseUrl: string, path: string): string {
   return `${base}${suffix}`;
 }
 
+// A 2xx status alone doesn't prove a real gateway answered -- a static file
+// server's SPA fallback (or a misconfigured reverse proxy) can return 200
+// with an unrelated body for any unmatched path. Only treat the endpoint as
+// "online" when the body is a recognizable status/state/health payload;
+// anything else is "unknown", which callers must treat as not usable (same
+// as offline), not silently trusted.
 function detectState(value: unknown, zeroStakedStatus: string): EndpointState {
-  if (!value || typeof value !== "object") return "online";
+  if (!value || typeof value !== "object") return "unknown";
   const source = value as Record<string, unknown>;
+  if (source.status === undefined && source.state === undefined && source.health === undefined) {
+    return "unknown";
+  }
   const raw = String(source.status ?? source.state ?? source.health ?? "online").toLowerCase();
   if (raw === zeroStakedStatus || raw === "zero-staked" || raw === "zero staked") return "zero_staked";
   if (raw === "degraded" || raw === "warning") return "degraded";
   if (raw === "offline" || raw === "down" || raw === "failed") return "offline";
-  return "online";
+  if (raw === "online" || raw === "ok" || raw === "up" || raw === "healthy") return "online";
+  return "unknown";
+}
+
+const OWNER_TOKEN_STORAGE_KEY = "hm_owner_token";
+
+// Reads the owner bearer token from localStorage, or "" if unset/unavailable.
+export function getOwnerToken(): string {
+  try {
+    return window.localStorage.getItem(OWNER_TOKEN_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+// Persists the owner bearer token in localStorage (cleared if blank).
+// Never sent anywhere except as the Authorization header on gateway requests.
+export function setOwnerToken(token: string): void {
+  try {
+    const trimmed = token.trim();
+    if (trimmed.length === 0) {
+      window.localStorage.removeItem(OWNER_TOKEN_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(OWNER_TOKEN_STORAGE_KEY, trimmed);
+    }
+  } catch {
+    // localStorage unavailable (private browsing, disabled storage, etc.) -- ignore.
+  }
 }
 
 async function fetchJsonWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<{ status: number; body: unknown }> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const headers = new Headers(init.headers);
+  const token = getOwnerToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   try {
-    const response = await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, headers, signal: controller.signal });
     const text = await response.text();
     let body: unknown = null;
     if (text.trim().length > 0) {
