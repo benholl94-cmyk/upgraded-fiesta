@@ -11,6 +11,7 @@
 | `HM_GATEWAY_BIND` | `config/heavy-metal.json`'s `server.bind`, else `0.0.0.0:8080` | TCP bind address |
 | `HM_ZERO_STAKED` | `false` | Forces health and task responses into `zero_staked` failover status when true |
 | `HM_STORAGE_ROOT` | `./data/storage` | Local-disk root for the `/storage` file API (see `hm-storage` crate) |
+| `HM_MEMORY_KEY` | `memory/index.json` | Storage key (under `HM_STORAGE_ROOT`) where `hm-memory` persists its index |
 
 ## Health endpoints
 
@@ -134,6 +135,32 @@ the task dispatch itself.
 
 See `crates/hm-sdk` for the request/response types and `plugins/echo_plugin.py` for
 a minimal working example.
+
+## Memory endpoints (hm-memory / hm-vector)
+
+```http
+GET  /memory
+POST /memory
+POST /memory/search
+```
+
+A persistent, semantically-searchable text memory, backed by `hm-storage` (so it
+survives process restarts) and `hm-vector`'s cosine-similarity index. Embeddings are
+a deterministic, fully offline hashing-trick bag-of-words (`hm_vector::embed`) -- no
+external model, no API key, no network call. This captures lexical/word-overlap
+similarity, not learned deep semantics; swapping in a real embedding model later is a
+drop-in replacement for `embed()` behind the same `MemoryStore` API.
+
+```console
+$ curl -X POST http://localhost:8080/memory -d '{"text":"the gateway exposes a storage API"}'
+{"status":"stored","record":{"id":"mem-...","text":"...","created_at_unix":...}}
+
+$ curl -X POST http://localhost:8080/memory/search -d '{"query":"storage api on the gateway","topK":5}'
+{"status":"online","results":[{"record":{...},"score":0.57}, ...]}
+
+$ curl http://localhost:8080/memory
+{"status":"online","records":[...]}
+```
 
 ## Channel bot tokens (hm-auth)
 
