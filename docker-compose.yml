@@ -20,6 +20,7 @@ services:
       HM_GATEWAY_BIND: 0.0.0.0:8080
       HM_ZERO_STAKED: "false"
       HM_STORAGE_ROOT: /data/storage
+      HM_OWNER_TOKEN: ${HM_OWNER_TOKEN:?set HM_OWNER_TOKEN in your .env before running compose}
     ports: ["8080:8080"]
     volumes:
       - hm_storage:/data/storage

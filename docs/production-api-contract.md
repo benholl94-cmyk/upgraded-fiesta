@@ -12,6 +12,29 @@
 | `HM_ZERO_STAKED` | `false` | Forces health and task responses into `zero_staked` failover status when true |
 | `HM_STORAGE_ROOT` | `./data/storage` | Local-disk root for the `/storage` file API (see `hm-storage` crate) |
 | `HM_MEMORY_KEY` | `memory/index.json` | Storage key (under `HM_STORAGE_ROOT`) where `hm-memory` persists its index |
+| `HM_OWNER_TOKEN` | *(required)* | Bearer token gating every route. The process refuses to start without it. |
+| `HM_GATEWAY_ALLOW_NO_AUTH` | `false` | Explicit opt-out (`true` exactly) to run with no authentication -- local development only, never in a reachable deployment |
+
+## Authentication
+
+Every route (including `/health`) requires `Authorization: Bearer <HM_OWNER_TOKEN>`
+unless the gateway was started with `HM_GATEWAY_ALLOW_NO_AUTH=true`. Missing or
+incorrect tokens get `401`, with a generic reason that doesn't reveal which part was
+wrong. Token comparison is constant-time (`hm_auth::tokens_match`) to resist timing
+attacks. `OPTIONS` (CORS preflight) is exempt since it carries no data.
+
+```console
+$ curl http://localhost:8080/health
+HTTP/1.1 401 Unauthorized
+{"status":"unauthorized","reason":"missing or invalid bearer token"}
+
+$ curl -H "Authorization: Bearer $HM_OWNER_TOKEN" http://localhost:8080/health
+HTTP/1.1 200 OK
+{"service":"hm-gateway","status":"online",...}
+```
+
+The UI stores the token in the browser's `localStorage` (see "UI integration" below)
+and sends it on every request; it is never logged or echoed back by the gateway.
 
 ## Health endpoints
 
@@ -165,7 +188,19 @@ $ curl http://localhost:8080/memory
 ## UI integration
 
 `ui/src/main.ts` has a "Memory" panel calling the endpoints above through the same
-priority-ordered endpoint rotation as task dispatch (`ui/src/endpoint-rotation.ts`).
+priority-ordered endpoint rotation as task dispatch (`ui/src/endpoint-rotation.ts`), and
+an "Owner access" panel for entering the bearer token, persisted in `localStorage` and
+attached as `Authorization: Bearer <token>` to every gateway request.
+
+**Found and fixed while adding auth**: `detectState()` in `endpoint-rotation.ts`
+defaulted any 2xx response it couldn't parse into a known status/state/health shape to
+`"online"`. Serving the UI via a static file server with SPA fallback (e.g. `vite
+preview`, or any nginx `try_files ... /index.html` config) returns `200` with the app's
+own HTML for an unmatched path like `/api/health` -- which this code then treated as a
+healthy gateway. Live-tested: with an incorrect owner token, this masked real `401`s
+from the actual gateway behind a confusing `memory_store_failed_404` from the fake
+"online" endpoint instead. Fixed by requiring a recognized status/state/health field
+before returning anything other than `"unknown"` (treated the same as offline).
 
 **Known gap**: the `primary` (`/api`) and `gateway-fallback` (`/gateway`) endpoints in
 `ui/public/platform-config.json` assume a reverse proxy stripping that prefix before
@@ -187,10 +222,15 @@ real bot credentials to build and live-test responsibly.
 
 ## Operational guarantees
 
-- no client-side secrets;
+- every route requires the owner bearer token unless explicitly opted out
+  (`HM_GATEWAY_ALLOW_NO_AUTH=true`); the gateway process itself refuses to start
+  without one configured;
+- the owner token is the one client-side secret in this system -- held only in the
+  browser's `localStorage`, never logged, never committed to the repo;
 - fixed endpoint list from `ui/public/platform-config.json`;
 - timeout-based endpoint checks;
 - zero_staked failover;
-- CORS support for configured frontend use;
+- CORS support for configured frontend use, restricted to the methods and headers
+  this API actually uses;
 - plugin commands are fixed by the checked-in manifest, never by request input --
   a client selects a registered `task_type`, it cannot supply arbitrary commands.
