@@ -6,10 +6,11 @@ use hm_storage::{FileStorage, LocalFsStorage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
+    collections::HashMap,
     env,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -24,6 +25,107 @@ use tokio::{
 const SHUTDOWN_DRAIN: Duration = Duration::from_secs(10);
 
 const MAX_REQUEST_BYTES: usize = 1_048_576;
+
+/// Bounds memory use of the rate limiter's per-IP map: once it grows past
+/// this many distinct IPs, expired entries are pruned on the next check
+/// instead of waiting for a dedicated background sweep.
+const RATE_LIMITER_PRUNE_THRESHOLD: usize = 10_000;
+
+/// Per-IP fixed-window request limiter, checked before a request is even
+/// read off the socket -- rejecting abusive clients before they can make
+/// the gateway do any real work (parsing, auth, dispatch) is the point.
+struct RateLimiter {
+    per_ip: Mutex<HashMap<IpAddr, (Instant, u32)>>,
+    max_per_window: u32,
+    window: Duration,
+}
+
+impl RateLimiter {
+    fn new(max_per_window: u32, window: Duration) -> Self {
+        Self {
+            per_ip: Mutex::new(HashMap::new()),
+            max_per_window,
+            window,
+        }
+    }
+
+    /// `max_per_window == 0` disables rate limiting entirely (always allows).
+    async fn allow(&self, ip: IpAddr) -> bool {
+        if self.max_per_window == 0 {
+            return true;
+        }
+        let now = Instant::now();
+        let mut map = self.per_ip.lock().await;
+
+        if map.len() > RATE_LIMITER_PRUNE_THRESHOLD {
+            let window = self.window;
+            map.retain(|_, (started, _)| now.duration_since(*started) <= window);
+        }
+
+        let entry = map.entry(ip).or_insert((now, 0));
+        if now.duration_since(entry.0) > self.window {
+            *entry = (now, 1);
+            true
+        } else if entry.1 < self.max_per_window {
+            entry.1 += 1;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[cfg(test)]
+mod rate_limiter_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn allows_requests_within_the_window_limit() {
+        let limiter = RateLimiter::new(3, Duration::from_secs(60));
+        let ip: IpAddr = "127.0.0.1".parse().unwrap();
+        assert!(limiter.allow(ip).await);
+        assert!(limiter.allow(ip).await);
+        assert!(limiter.allow(ip).await);
+    }
+
+    #[tokio::test]
+    async fn rejects_requests_beyond_the_window_limit() {
+        let limiter = RateLimiter::new(2, Duration::from_secs(60));
+        let ip: IpAddr = "127.0.0.1".parse().unwrap();
+        assert!(limiter.allow(ip).await);
+        assert!(limiter.allow(ip).await);
+        assert!(!limiter.allow(ip).await);
+    }
+
+    #[tokio::test]
+    async fn different_ips_have_independent_limits() {
+        let limiter = RateLimiter::new(1, Duration::from_secs(60));
+        let a: IpAddr = "127.0.0.1".parse().unwrap();
+        let b: IpAddr = "127.0.0.2".parse().unwrap();
+        assert!(limiter.allow(a).await);
+        assert!(!limiter.allow(a).await);
+        assert!(limiter.allow(b).await);
+    }
+
+    #[tokio::test]
+    async fn resets_after_the_window_elapses() {
+        let limiter = RateLimiter::new(1, Duration::from_millis(30));
+        let ip: IpAddr = "127.0.0.1".parse().unwrap();
+        assert!(limiter.allow(ip).await);
+        assert!(!limiter.allow(ip).await);
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        assert!(limiter.allow(ip).await);
+    }
+
+    #[tokio::test]
+    async fn zero_max_disables_limiting() {
+        let limiter = RateLimiter::new(0, Duration::from_secs(60));
+        let ip: IpAddr = "127.0.0.1".parse().unwrap();
+        for _ in 0..50 {
+            assert!(limiter.allow(ip).await);
+        }
+    }
+}
 
 #[derive(Debug)]
 struct RequestTooLarge;
@@ -49,6 +151,7 @@ struct AppState {
     /// `None` only when `HM_GATEWAY_ALLOW_NO_AUTH=true` was explicitly set at
     /// startup; otherwise the process refuses to start without a real token.
     owner_token: Option<Arc<String>>,
+    rate_limiter: Arc<RateLimiter>,
 }
 
 /// Exactly the fields `ghm_core report-diagnostics` discloses to the user
@@ -165,6 +268,18 @@ async fn main() -> anyhow::Result<()> {
     let memory = Arc::new(memory);
     let agent = Arc::new(Agent::new(Arc::new(plugins), memory.clone()));
 
+    // 0 disables rate limiting entirely; unset defaults to a generous but
+    // real per-IP cap so a single misbehaving client can't monopolize the
+    // gateway, without needing any configuration to get basic protection.
+    let rate_limit_per_minute: u32 = env::var("HM_RATE_LIMIT_PER_MINUTE")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(120);
+    let rate_limiter = Arc::new(RateLimiter::new(
+        rate_limit_per_minute,
+        Duration::from_secs(60),
+    ));
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
@@ -175,6 +290,7 @@ async fn main() -> anyhow::Result<()> {
         diagnostics: Arc::new(Mutex::new(diagnostics)),
         diagnostics_key: Arc::new(diagnostics_key),
         owner_token,
+        rate_limiter,
     };
 
     let listener = TcpListener::bind(&bind).await?;
@@ -244,14 +360,40 @@ async fn handle_connection(
     remote_addr: SocketAddr,
     state: AppState,
 ) -> anyhow::Result<()> {
+    let started = Instant::now();
+
+    if !state.rate_limiter.allow(remote_addr.ip()).await {
+        let response = json_response(
+            429,
+            json!({ "status": "rate_limited", "reason": "too many requests from this client" }),
+        );
+        audit_log(remote_addr, "?", "?", 429, started.elapsed());
+        stream.write_all(&response).await?;
+        stream.shutdown().await?;
+        return Ok(());
+    }
+
     let response = match read_request(&mut stream).await {
-        Ok(request) => route_request(request, remote_addr, state).await,
+        Ok(request) => {
+            let method = request.method.clone();
+            let path = request.path.clone();
+            let response = route_request(request, remote_addr, state).await;
+            audit_log(
+                remote_addr,
+                &method,
+                &path,
+                extract_status_code(&response),
+                started.elapsed(),
+            );
+            response
+        }
         Err(error) => {
             let status = if error.downcast_ref::<RequestTooLarge>().is_some() {
                 413
             } else {
                 400
             };
+            audit_log(remote_addr, "?", "?", status, started.elapsed());
             json_response(
                 status,
                 json!({
@@ -727,8 +869,62 @@ fn reason_phrase(status: u16) -> &'static str {
         401 => "Unauthorized",
         404 => "Not Found",
         413 => "Payload Too Large",
+        429 => "Too Many Requests",
         500 => "Internal Server Error",
         503 => "Service Unavailable",
         _ => "OK",
+    }
+}
+
+/// Pulls the status code back out of a fully-rendered response (`"HTTP/1.1
+/// 200 OK\r\n..."`). Every response in this file goes through
+/// [`raw_response`], which always writes exactly this format, so this is
+/// exact, not a heuristic -- kept separate from the handler functions so
+/// audit logging doesn't require threading a status code through every
+/// individual route handler's return type.
+fn extract_status_code(response: &[u8]) -> u16 {
+    let prefix_len = response.len().min(32);
+    let text = String::from_utf8_lossy(&response[..prefix_len]);
+    text.split_whitespace()
+        .nth(1)
+        .and_then(|code| code.parse().ok())
+        .unwrap_or(0)
+}
+
+/// One structured JSON line per request to stdout -- under the systemd unit
+/// this repo ships (`deploy/hm-gateway.service`), stdout goes straight to
+/// journald, so this is a real, queryable audit trail with no extra
+/// plumbing required, not a logging framework that still needs wiring up.
+fn audit_log(remote_addr: SocketAddr, method: &str, path: &str, status: u16, latency: Duration) {
+    println!(
+        "{}",
+        json!({
+            "audit": true,
+            "ts_unix": unix_now(),
+            "remote_addr": remote_addr.to_string(),
+            "method": method,
+            "path": path,
+            "status": status,
+            "latency_ms": latency.as_millis(),
+        })
+    );
+}
+
+#[cfg(test)]
+mod audit_tests {
+    use super::*;
+
+    #[test]
+    fn extracts_status_from_a_real_response() {
+        let response = json_response(200, json!({"ok": true}));
+        assert_eq!(extract_status_code(&response), 200);
+    }
+
+    #[test]
+    fn extracts_status_for_every_response_helper() {
+        assert_eq!(extract_status_code(&empty_response(204)), 204);
+        assert_eq!(extract_status_code(&binary_response(200, b"x")), 200);
+        assert_eq!(extract_status_code(&json_response(429, json!({}))), 429);
+        assert_eq!(extract_status_code(&json_response(404, json!({}))), 404);
     }
 }

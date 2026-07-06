@@ -15,6 +15,28 @@
 | `HM_OWNER_TOKEN` | *(required)* | Bearer token gating every route. The process refuses to start without it. |
 | `HM_GATEWAY_ALLOW_NO_AUTH` | `false` | Explicit opt-out (`true` exactly) to run with no authentication -- local development only, never in a reachable deployment |
 | `HM_DIAGNOSTICS_KEY` | `diagnostics/reports.json` | Storage key (under `HM_STORAGE_ROOT`) where submitted diagnostics reports are persisted |
+| `HM_RATE_LIMIT_PER_MINUTE` | `120` | Max requests per source IP per 60s window before `429`; `0` disables rate limiting entirely |
+
+## Observability and abuse protection
+
+Every request produces one structured JSON line on stdout (`{"audit": true, "ts_unix", "remote_addr", "method", "path", "status", "latency_ms"}`), checked before doing any real work so it also covers rejected/rate-limited requests. Under `deploy/hm-gateway.service` (the shipped systemd unit), stdout goes straight to journald -- `journalctl -u hm-gateway -o cat | grep '"audit"'` is a real, queryable audit trail with no extra logging infrastructure required.
+
+Requests are additionally rate-limited per source IP (`HM_RATE_LIMIT_PER_MINUTE`, default 120/minute, fixed window) *before* the request is even read off the socket -- an abusive client is rejected with `429` before it can make the gateway parse a body, run auth, or dispatch a task. This is in-process and per-instance (not shared across multiple gateway replicas); a shared/distributed limiter is a Phase 5/scaling concern, not something this single-instance gateway claims to solve.
+
+```console
+# client side:
+$ curl http://localhost:8080/health
+HTTP/1.1 401 Unauthorized
+{"status":"unauthorized","reason":"missing or invalid bearer token"}
+
+# server-side stdout, one line per request, independent of the client's response:
+{"audit":true,"ts_unix":1783374080,"remote_addr":"127.0.0.1:55854","method":"GET","path":"/health","status":401,"latency_ms":0}
+
+# client side, after HM_RATE_LIMIT_PER_MINUTE requests within 60s from the same IP:
+$ curl http://localhost:8080/health
+HTTP/1.1 429 Too Many Requests
+{"status":"rate_limited","reason":"too many requests from this client"}
+```
 
 ## Authentication
 
