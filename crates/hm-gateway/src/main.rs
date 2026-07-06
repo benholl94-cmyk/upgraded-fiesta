@@ -1,3 +1,4 @@
+use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
 use hm_memory::MemoryStore;
 use hm_plugins::PluginRegistry;
@@ -8,13 +9,19 @@ use std::{
     env,
     net::SocketAddr,
     sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
+    signal::unix::{signal, SignalKind},
     sync::Mutex,
+    task::JoinSet,
 };
+
+/// How long shutdown waits for in-flight connections to finish after a
+/// termination signal, before giving up and exiting anyway.
+const SHUTDOWN_DRAIN: Duration = Duration::from_secs(10);
 
 const MAX_REQUEST_BYTES: usize = 1_048_576;
 
@@ -35,8 +42,8 @@ struct AppState {
     zero_staked: bool,
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
     storage: Arc<LocalFsStorage>,
-    plugins: Arc<PluginRegistry>,
     memory: Arc<MemoryStore>,
+    agent: Arc<Agent>,
     diagnostics: Arc<Mutex<Vec<DiagnosticsReport>>>,
     diagnostics_key: Arc<String>,
     /// `None` only when `HM_GATEWAY_ALLOW_NO_AUTH=true` was explicitly set at
@@ -155,13 +162,16 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    let memory = Arc::new(memory);
+    let agent = Arc::new(Agent::new(Arc::new(plugins), memory.clone()));
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
         tasks: Arc::new(Mutex::new(Vec::new())),
         storage,
-        plugins: Arc::new(plugins),
-        memory: Arc::new(memory),
+        memory,
+        agent,
         diagnostics: Arc::new(Mutex::new(diagnostics)),
         diagnostics_key: Arc::new(diagnostics_key),
         owner_token,
@@ -170,15 +180,63 @@ async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind(&bind).await?;
     println!("hm-gateway listening on {bind}");
 
+    let mut sigterm = signal(SignalKind::terminate())?;
+    let mut connections = JoinSet::new();
+
     loop {
-        let (stream, remote_addr) = listener.accept().await?;
-        let state = state.clone();
-        tokio::spawn(async move {
-            if let Err(error) = handle_connection(stream, remote_addr, state).await {
-                eprintln!("hm-gateway request failed: {error}");
+        tokio::select! {
+            accepted = listener.accept() => {
+                let (stream, remote_addr) = match accepted {
+                    Ok(pair) => pair,
+                    Err(error) => {
+                        eprintln!("hm-gateway: accept() failed, continuing: {error}");
+                        continue;
+                    }
+                };
+                let state = state.clone();
+                connections.spawn(async move {
+                    if let Err(error) = handle_connection(stream, remote_addr, state).await {
+                        eprintln!("hm-gateway request failed: {error}");
+                    }
+                });
+                while connections.try_join_next().is_some() {}
             }
-        });
+            _ = tokio::signal::ctrl_c() => {
+                println!("hm-gateway received SIGINT, shutting down gracefully");
+                break;
+            }
+            _ = sigterm.recv() => {
+                println!("hm-gateway received SIGTERM, shutting down gracefully");
+                break;
+            }
+        }
     }
+
+    drop(listener);
+    println!(
+        "hm-gateway draining {} in-flight connection(s)",
+        connections.len()
+    );
+    let drain_deadline = tokio::time::sleep(SHUTDOWN_DRAIN);
+    tokio::pin!(drain_deadline);
+    loop {
+        tokio::select! {
+            _ = &mut drain_deadline => {
+                eprintln!(
+                    "hm-gateway drain timed out with {} connection(s) still running; exiting anyway",
+                    connections.len()
+                );
+                break;
+            }
+            joined = connections.join_next() => {
+                if joined.is_none() {
+                    break;
+                }
+            }
+        }
+    }
+    println!("hm-gateway stopped");
+    Ok(())
 }
 
 async fn handle_connection(
@@ -572,20 +630,17 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         "agent_managed": true
     });
 
-    if state.plugins.has(&task.task_type) {
-        let plugin_result = match state
-            .plugins
-            .invoke(&task.task_type, &task.objective, task.payload.clone())
-            .await
-        {
-            Ok(plugin_response) => json!({
-                "ok": plugin_response.ok,
-                "result": plugin_response.result,
-                "message": plugin_response.message
-            }),
-            Err(error) => json!({ "ok": false, "message": error.to_string() }),
-        };
-        response["plugin_result"] = plugin_result;
+    let outcome = state
+        .agent
+        .dispatch(&task.task_type, &task.objective, task.payload.clone())
+        .await;
+    if let TaskOutcome::PluginDispatched {
+        ok,
+        result,
+        message,
+    } = outcome
+    {
+        response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
     }
 
     json_response(202, response)

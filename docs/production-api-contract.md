@@ -102,6 +102,15 @@ Accepted response:
 
 When the gateway is in zero-staked mode, task dispatch returns HTTP 503 with status `zero_staked`; the UI rotates to the next configured endpoint.
 
+Every accepted task is routed through `hm-agent`'s `Agent::dispatch` (not
+invoked directly against `hm-plugins`): if a plugin is registered for
+`taskType` in `config/plugins.json`, it runs and the response gains a
+`plugin_result` field (`{"ok", "result", "message"}`), exactly as before.
+If no plugin matches, the response shape is unchanged (no extra field) --
+but either way, `Agent::dispatch` also records a one-line summary of the
+outcome into `hm-memory`, so `GET /memory` shows a durable history of what
+every task actually did, not just what was explicitly `POST`ed to `/memory`.
+
 ## Task registry endpoint
 
 ```http
@@ -146,7 +155,12 @@ are external processes, defined in a JSON manifest (`HM_PLUGIN_MANIFEST`, defaul
 `config/plugins.json`) that maps a `task_type` to a fixed command:
 
 ```json
-{ "plugins": [{ "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] }] }
+{
+  "plugins": [
+    { "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] },
+    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] }
+  ]
+}
 ```
 
 Protocol: the gateway writes one `PluginRequest` JSON line (`task_type`, `objective`,
@@ -159,6 +173,30 @@ the task dispatch itself.
 
 See `crates/hm-sdk` for the request/response types and `plugins/echo_plugin.py` for
 a minimal working example.
+
+### `ops-tool` (`crates/hm-tools/hm-tool-exec`)
+
+The first real `hm-tools/*` crate (the rest are still 1-line stubs). Deliberately
+**not** an arbitrary-command-execution plugin: `payload.operation` only ever
+*selects* one entry from a fixed, hardcoded allowlist (`gateway_status`,
+`gateway_logs`, `disk_usage`, `memory_usage`) -- it never contributes to argv
+construction, so there is no command-injection surface regardless of what a
+caller sends. Every allowlisted operation is read-only.
+
+```console
+$ curl -X POST http://localhost:8080/tasks -H "Authorization: Bearer $HM_OWNER_TOKEN" \
+    -d '{"taskType":"ops-tool","objective":"check disk","payload":{"operation":"disk_usage"}}'
+{"accepted":true,"plugin_result":{"ok":true,"result":{"operation":"disk_usage","stdout":"...","stderr":""},...},...}
+```
+
+**Known packaging gap**: the root `Dockerfile`'s runtime stage only copies the
+`hm-gateway` binary -- it does not copy `plugins/`, `config/`, a Python
+interpreter, or `hm-tool-exec`. This means plugin dispatch (`echo` *and*
+`ops-tool`) does not actually work in the Docker deployment as currently
+packaged; it only works when running `hm-gateway` directly from a full
+checkout (as `docker-compose.yml`'s bind-mounted dev setup and every example
+in this document do). Not fixed here -- packaging plugins into the runtime
+image is a separate decision.
 
 ## Memory endpoints (hm-memory / hm-vector)
 
@@ -302,6 +340,42 @@ It returns a clear error -- never the token itself -- when the variable is unset
 empty, or contains whitespace. This is the token-loading mechanism only: no channel
 crate yet makes real calls to Telegram/Discord/Slack/WhatsApp, since that requires
 real bot credentials to build and live-test responsibly.
+
+## Persistence and hardening (production deployment)
+
+`hm-gateway` handles `SIGTERM`/`SIGINT` by draining in-flight connections
+(up to a 10s deadline) and exiting with status 0, so a process supervisor
+can stop it cleanly instead of hard-killing it.
+
+`deploy/hm-gateway.service` is a systemd unit for running it as a
+persistent, always-on host service: `Restart=on-failure` recovers from
+crashes, and a hardened sandbox (`ProtectSystem=strict`, `NoNewPrivileges`,
+dropped capabilities, `MemoryMax`/`CPUQuota`/`TasksMax` limits, a dedicated
+non-root user) limits what a compromised or misbehaving process can touch.
+See the comments in that file for install steps; verify edits to it with
+`systemd-analyze verify deploy/hm-gateway.service`.
+
+`Restart=on-failure` alone does not catch a process that's alive but wedged
+(deadlocked, exhausted file descriptors, etc.) and no longer answering
+requests. `scripts/hm_gateway_watchdog.py` closes that gap: a one-shot,
+stdlib-only script that makes one authenticated `GET /health` request and,
+on failure, runs `systemctl restart` on the unit. `deploy/hm-gateway-watchdog.timer`
+runs it every 30 seconds.
+
+`docker-compose.yml`'s `gateway` service also carries `restart: unless-stopped`,
+`cap_drop: ["ALL"]`, and `no-new-privileges:true` -- verified changes only
+(`docker compose config` was used to check syntax; there is no verified
+non-root-user or read-only-rootfs hardening for the container path yet,
+since that needs an actual container build+run pass to confirm volume
+permissions don't break on first boot).
+
+**Known drift, not yet reconciled**: `deploy/fullstack-compose.yml` runs a
+completely different, trivial placeholder (`deploy/gateway_service.py`, a
+stdlib `BaseHTTPRequestHandler` with no auth/plugins/memory/storage) under
+the name "gateway" -- it is unrelated to `crates/hm-gateway` and does not
+read any of the `HM_*` variables `.env.production.example` sets up for the
+real gateway. Don't assume `deploy/fullstack-compose.yml` deploys the real
+gateway; it currently doesn't.
 
 ## Operational guarantees
 
