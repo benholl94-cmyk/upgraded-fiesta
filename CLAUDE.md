@@ -13,6 +13,8 @@ This is a Rust workspace ("Fullstack Heavy Metal") with a Vite/React UI scaffold
 
 Config lives under `config/`, database bootstrap SQL is in `scripts/init-db.sql`, validation/dev scripts live under `scripts/`.
 
+`.claude/skills/xcode-alternative/` is a Claude Code Skill for scaffolding and building iOS/Swift projects without Xcode.app's GUI (SwiftPM `Package.swift` as the preferred real project format, plus a minimal `.xcodeproj` generator for when one is strictly required). It reproduces no proprietary Apple IDE data — see the skill's own "What this is (and isn't)" section. Its scaffolder is stdlib-only Python, tested in `tests/test_xcode_alternative_scaffold.py`; the actual build/sign/simulate steps it documents require a real macOS host and were not (and cannot be) executed from this Linux environment.
+
 ## Operating environment
 
 The primary operator may only have an iPhone/mobile client. Do not assume access to macOS, a desktop IDE, local Docker Desktop, Homebrew, or a long-running local shell. Prefer repository-native automation, Codex cloud, GitHub Actions, and portable shell/Python scripts. Do not replace this mobile-first operating model with desktop-only instructions.
