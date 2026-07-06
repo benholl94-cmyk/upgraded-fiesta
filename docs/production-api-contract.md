@@ -208,7 +208,8 @@ are external processes, defined in a JSON manifest (`HM_PLUGIN_MANIFEST`, defaul
 {
   "plugins": [
     { "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] },
-    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] }
+    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] },
+    { "task_type": "llm-chat", "command": ["python3", "plugins/llm_chat_plugin.py"] }
   ]
 }
 ```
@@ -247,6 +248,25 @@ packaged; it only works when running `hm-gateway` directly from a full
 checkout (as `docker-compose.yml`'s bind-mounted dev setup and every example
 in this document do). Not fixed here -- packaging plugins into the runtime
 image is a separate decision.
+
+### `llm-chat` (`plugins/llm_chat_plugin.py`) -- scaffold, not live-verified
+
+The first (and only) plugin in this repo that calls a real third-party API.
+Targets a generic OpenAI-compatible `/chat/completions`-shaped endpoint.
+Refuses to run -- with a machine-readable `result.reason`, `ok: false` --
+unless **all** of `HM_LLM_ENABLE=true`, `HM_LLM_API_URL`, `HM_LLM_API_KEY`,
+and `HM_LLM_MODEL` are explicitly set; no default model or endpoint is
+invented. Discloses exactly what it's about to send (destination URL, model,
+message length -- never the message body) to stderr before every call, per
+this codebase's off-machine-data disclosure rule (`ghm_core/cli.py`'s
+`cmd_report_diagnostics`).
+
+**Not live-verified**: no real LLM API credentials or egress exist in this
+environment. `tests/test_llm_chat_plugin.py` exercises the refusal paths, a
+successful round-trip, an upstream error, and an unreachable host against a
+hermetic local mock HTTP server -- proving the plugin's own logic, not a
+real provider round-trip. See `docs/xcloud-platform-plan.md`'s Phase 4 for
+the exact scope disclosure.
 
 ## Memory endpoints (hm-memory / hm-vector)
 

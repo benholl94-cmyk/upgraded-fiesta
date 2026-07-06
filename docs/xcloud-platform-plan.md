@@ -157,25 +157,49 @@ Regenerating the seed on a schedule (rather than once at process start) is
 left as a follow-up — see `docs/production-api-contract.md`'s "Graph-
 enhanced memory" section for the exact route/env var contract.
 
-## Phase 4 — Close the "AI" loop (currently the biggest real gap)
+## Phase 4 — Close the "AI" loop — **scaffold built, not live-verified**
 
 **Goal**: name the actual gap plainly — nothing in this stack calls an LLM
 today. `hm-agent` dispatches to fixed, deterministic plugins; there is no
 chat/completion call anywhere in the codebase. Calling this an "AI platform"
 before this phase would overstate what exists.
 
-**Worksteps**:
-1. Add a new plugin (same subprocess protocol as `echo`/`ops-tool`) that
-   calls a real LLM API. **Needs a human decision**: which provider/model,
-   and the credential has to come from the operator, not be invented —
-   follow the exact consent/disclosure pattern already established in
-   `ghm_core/cli.py` (`report-diagnostics`) for anything that sends data
-   off-machine.
-2. Register it as a `task_type` in `config/plugins.json`, e.g. `"llm-chat"`.
-3. Wire the UI's existing chat-shaped panel (if any) or add a minimal one
-   to `ui/` that calls `POST /tasks` with `taskType: "llm-chat"` and renders
+**What shipped**: `plugins/llm_chat_plugin.py`, a new subprocess plugin
+following the same `echo`/`ops-tool` protocol, registered as the `llm-chat`
+`task_type` in `config/plugins.json`. It targets a generic OpenAI-compatible
+`/chat/completions`-shaped endpoint (the most portable choice — works
+against many hosted providers and self-hosted gateways without hardcoding
+one vendor; picking a specific provider/model remains the human decision
+this phase always flagged). It follows this codebase's disclosure/consent
+rule for anything sending data off-machine (`ghm_core/cli.py`'s
+`cmd_report_diagnostics` pattern): it refuses loudly, with a machine-readable
+reason, unless `HM_LLM_ENABLE=true` **and** `HM_LLM_API_URL`,
+`HM_LLM_API_KEY`, and `HM_LLM_MODEL` are all explicitly set — no silent
+no-op, no invented default model or endpoint — and prints exactly what it's
+about to send (destination URL, model, message length, never the message
+body itself) to stderr before making the call.
+
+**Explicitly NOT done, and not claimed**: this plugin has **not** been
+live-verified against a real LLM API. This environment has no LLM API
+credentials and no network egress to a real completions endpoint to test
+against. `tests/test_llm_chat_plugin.py` (5 tests) exercises every code path
+— the two refusal cases, a successful round-trip, an upstream error status,
+and an unreachable-host error — against a **hermetic local mock HTTP
+server**, not a real provider. That proves the plugin's own logic is
+correct; it is not the same claim as "a real chat message gets a real LLM
+response," and this document will not say otherwise until that's actually
+been run.
+
+**Worksteps still open** (need a human decision on provider/model +
+credentials, then this environment or a real deployment target to test
+from):
+1. An operator picks a real provider/model and sets
+   `HM_LLM_ENABLE=true`/`HM_LLM_API_URL`/`HM_LLM_API_KEY`/`HM_LLM_MODEL` for
+   real.
+2. Wire the UI's existing chat-shaped panel (if any) or add a minimal one to
+   `ui/` that calls `POST /tasks` with `taskType: "llm-chat"` and renders
    `plugin_result`.
-4. Verify live: a real prompt round-trips through gateway → agent → plugin →
+3. Verify live: a real prompt round-trips through gateway → agent → plugin →
    real LLM API → response, with the outcome recorded in memory per the
    existing `Agent::dispatch` behavior from Phase 0 — no mocked responses.
 
