@@ -1,0 +1,5 @@
+{
+  "plugins": [
+    { "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] }
+  ]
+}

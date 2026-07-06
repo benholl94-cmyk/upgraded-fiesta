@@ -1,3 +1,4 @@
+use hm_plugins::PluginRegistry;
 use hm_storage::{FileStorage, LocalFsStorage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -32,6 +33,7 @@ struct AppState {
     zero_staked: bool,
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
     storage: Arc<LocalFsStorage>,
+    plugins: Arc<PluginRegistry>,
 }
 
 #[derive(Debug)]
@@ -75,11 +77,19 @@ async fn main() -> anyhow::Result<()> {
         })
         .unwrap_or(false);
 
+    let plugin_manifest =
+        env::var("HM_PLUGIN_MANIFEST").unwrap_or_else(|_| "config/plugins.json".to_string());
+    let plugins = PluginRegistry::from_manifest_file(&plugin_manifest).unwrap_or_else(|error| {
+        eprintln!("hm-gateway: ignoring unreadable plugin manifest {plugin_manifest}: {error}");
+        PluginRegistry::empty()
+    });
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
         tasks: Arc::new(Mutex::new(Vec::new())),
         storage: Arc::new(LocalFsStorage::from_env()),
+        plugins: Arc::new(plugins),
     };
 
     let listener = TcpListener::bind(&bind).await?;
@@ -331,16 +341,31 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
 
     state.tasks.lock().await.push(task.clone());
 
-    json_response(
-        202,
-        json!({
-            "status": "online",
-            "accepted": true,
-            "task_id": task.task_id,
-            "task_type": task.task_type,
-            "agent_managed": true
-        }),
-    )
+    let mut response = json!({
+        "status": "online",
+        "accepted": true,
+        "task_id": task.task_id,
+        "task_type": task.task_type,
+        "agent_managed": true
+    });
+
+    if state.plugins.has(&task.task_type) {
+        let plugin_result = match state
+            .plugins
+            .invoke(&task.task_type, &task.objective, task.payload.clone())
+            .await
+        {
+            Ok(plugin_response) => json!({
+                "ok": plugin_response.ok,
+                "result": plugin_response.result,
+                "message": plugin_response.message
+            }),
+            Err(error) => json!({ "ok": false, "message": error.to_string() }),
+        };
+        response["plugin_result"] = plugin_result;
+    }
+
+    json_response(202, response)
 }
 
 /// Falls back to `server.bind` in `config/heavy-metal.json` (relative to the
