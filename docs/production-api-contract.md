@@ -15,6 +15,41 @@
 | `HM_OWNER_TOKEN` | *(required)* | Bearer token gating every route. The process refuses to start without it. |
 | `HM_GATEWAY_ALLOW_NO_AUTH` | `false` | Explicit opt-out (`true` exactly) to run with no authentication -- local development only, never in a reachable deployment |
 | `HM_DIAGNOSTICS_KEY` | `diagnostics/reports.json` | Storage key (under `HM_STORAGE_ROOT`) where submitted diagnostics reports are persisted |
+| `HM_RATE_LIMIT_PER_MINUTE` | `120` | Max requests per source IP per 60s window before `429`; `0` disables rate limiting entirely |
+| `HM_STORAGE_BACKEND` | `local` | `local` (uses `HM_STORAGE_ROOT`) or `remote` (uses `HM_REMOTE_STORAGE_URL`/`HM_REMOTE_STORAGE_TOKEN`) -- see "External memory place" below |
+| `HM_REMOTE_STORAGE_URL` | *(unset)* | Required when `HM_STORAGE_BACKEND=remote`: a plain `http://host:port` URL of another `hm-gateway`-compatible `/storage` endpoint |
+| `HM_REMOTE_STORAGE_TOKEN` | *(unset)* | Bearer token sent with every request to `HM_REMOTE_STORAGE_URL`, if that endpoint requires auth (it should) |
+
+## External memory place (`hm-storage::RemoteHttpStorage`)
+
+`FileStorage` (the trait `hm-storage` and everything built on it -- `hm-memory`, the `/storage` routes -- are generic over) has a second implementation alongside `LocalFsStorage`: `RemoteHttpStorage`, which persists every `put`/`get`/`delete`/`exists` call to another host's `/storage/{key}` endpoint instead of local disk. Set `HM_STORAGE_BACKEND=remote` + `HM_REMOTE_STORAGE_URL` to point a gateway at external storage -- most naturally, a second `hm-gateway` instance acting purely as a storage node.
+
+Deliberately a hand-rolled plain-HTTP client (no TLS, no external HTTP crate dependency), matching this codebase's existing style, and intended for a private/internal network -- the same trust model already assumed for `HM_GATEWAY_ALLOW_NO_AUTH` and LAN-bound deployments. Never point `HM_REMOTE_STORAGE_URL` at a host over the open internet without a TLS-terminating proxy in front of it.
+
+`HM_STORAGE_BACKEND=remote` without a valid `HM_REMOTE_STORAGE_URL` fails the gateway at startup rather than silently falling back to local disk -- an operator who asked for external storage and got local storage instead, without being told, would be a correctness bug.
+
+**Verified live** (two real `hm-gateway` processes, not simulated): a `POST /memory` on a "primary" instance configured with `HM_STORAGE_BACKEND=remote` pointed at a second "storage node" instance produced zero files on the primary's own disk (its `HM_STORAGE_ROOT` directory was never even created) and the real, complete memory index (including embedding vectors) landed on the storage node, retrievable independently via that node's own `/storage/memory/index.json`.
+
+## Observability and abuse protection
+
+Every request produces one structured JSON line on stdout (`{"audit": true, "ts_unix", "remote_addr", "method", "path", "status", "latency_ms"}`), checked before doing any real work so it also covers rejected/rate-limited requests. Under `deploy/hm-gateway.service` (the shipped systemd unit), stdout goes straight to journald -- `journalctl -u hm-gateway -o cat | grep '"audit"'` is a real, queryable audit trail with no extra logging infrastructure required.
+
+Requests are additionally rate-limited per source IP (`HM_RATE_LIMIT_PER_MINUTE`, default 120/minute, fixed window) *before* the request is even read off the socket -- an abusive client is rejected with `429` before it can make the gateway parse a body, run auth, or dispatch a task. This is in-process and per-instance (not shared across multiple gateway replicas); a shared/distributed limiter is a Phase 5/scaling concern, not something this single-instance gateway claims to solve.
+
+```console
+# client side:
+$ curl http://localhost:8080/health
+HTTP/1.1 401 Unauthorized
+{"status":"unauthorized","reason":"missing or invalid bearer token"}
+
+# server-side stdout, one line per request, independent of the client's response:
+{"audit":true,"ts_unix":1783374080,"remote_addr":"127.0.0.1:55854","method":"GET","path":"/health","status":401,"latency_ms":0}
+
+# client side, after HM_RATE_LIMIT_PER_MINUTE requests within 60s from the same IP:
+$ curl http://localhost:8080/health
+HTTP/1.1 429 Too Many Requests
+{"status":"rate_limited","reason":"too many requests from this client"}
+```
 
 ## Authentication
 

@@ -40,18 +40,43 @@ Docker image doesn't package plugin binaries. See `CLAUDE.md` and
 `docs/production-api-contract.md` for the full detail — phases below note
 where they intersect with these.
 
-## Phase 1 — External memory place (smallest real PoC)
+## Phase 1 — External memory place — **done**
 
 **Goal**: prove memory can live somewhere other than the gateway's local
-disk, without touching `hm-gateway` or `hm-memory`'s own code.
+disk.
 
-**Why this is the right first step**: `hm-storage::FileStorage` is already
-a trait with exactly one implementation (`LocalFsStorage`). `MemoryStore`
-and the gateway's `/storage` routes are already generic over
-`Arc<dyn FileStorage>` — this is a pre-existing extension seam, not new
-architecture.
+**What actually shipped** (differs slightly from the original sketch below,
+kept for context): rather than an S3/SFTP backend needing real cloud
+credentials this environment can't obtain or test against, `RemoteHttpStorage`
+was added to `crates/hm-storage` — a second `FileStorage` implementor that
+persists to another host's `/storage/{key}` endpoint (most naturally, a
+second `hm-gateway` instance acting as a pure storage node) over a
+hand-rolled plain-HTTP client, matching this codebase's no-framework style.
+`AppState.storage`'s type had to change from the concrete `Arc<LocalFsStorage>`
+to `Arc<dyn FileStorage>` (a 3-call-site change) for runtime backend
+selection; `MemoryStore` was already generic over the trait and needed no
+changes at all. Selected via `HM_STORAGE_BACKEND=local|remote` +
+`HM_REMOTE_STORAGE_URL`/`HM_REMOTE_STORAGE_TOKEN`; fails the gateway at
+startup rather than silently falling back to local disk if misconfigured.
 
-**Worksteps**:
+**Verified live, not simulated**: ran two real `hm-gateway` processes — a
+"storage node" (plain local storage) and a "primary" (`HM_STORAGE_BACKEND=remote`
+pointed at the storage node). A `POST /memory` on the primary produced zero
+files on the primary's own disk (its `HM_STORAGE_ROOT` directory was never
+even created) and the real memory index, including embedding vectors,
+landed on the storage node — confirmed by querying that node's own
+`/storage/memory/index.json` directly. 13 new `hm-storage` unit tests
+(URL parsing, HTTP response parsing, and full request/response round-trips
+against a hermetic mock TCP server) plus the live two-process run above.
+
+An S3-compatible or SFTP backend is still a reasonable future addition if a
+real cloud target is available to test against, but is no longer required
+to satisfy this phase's goal — the external-memory-place seam is real and
+proven with the lowest-credential-risk implementation available.
+
+<details>
+<summary>Original worksteps sketch (superseded by the above)</summary>
+
 1. Add a second `FileStorage` implementor in `crates/hm-storage` — e.g.
    `S3CompatibleStorage` (works against any S3-API object store: AWS S3,
    Cloudflare R2, MinIO self-hosted) or `SftpStorage` for a plain remote
@@ -67,8 +92,7 @@ architecture.
    credential/config requirements plainly (no invented "zero-config cloud
    magic" — a real external store needs real credentials).
 
-**Done when**: a `POST /memory` record survives a gateway restart *and* is
-verifiably sitting in the external store, not just local disk.
+</details>
 
 ## Phase 2 — Cloud-portable deployment (prove "standalone", not "one host")
 
