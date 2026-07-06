@@ -15,6 +15,17 @@ use tokio::{
 
 const MAX_REQUEST_BYTES: usize = 1_048_576;
 
+#[derive(Debug)]
+struct RequestTooLarge;
+
+impl std::fmt::Display for RequestTooLarge {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "request exceeds {MAX_REQUEST_BYTES} byte limit")
+    }
+}
+
+impl std::error::Error for RequestTooLarge {}
+
 #[derive(Clone)]
 struct AppState {
     started_at: SystemTime,
@@ -90,14 +101,21 @@ async fn handle_connection(
 ) -> anyhow::Result<()> {
     let response = match read_request(&mut stream).await {
         Ok(request) => route_request(request, remote_addr, state).await,
-        Err(error) => json_response(
-            400,
-            json!({
-                "status": "invalid_request",
-                "accepted": false,
-                "reason": error.to_string()
-            }),
-        ),
+        Err(error) => {
+            let status = if error.downcast_ref::<RequestTooLarge>().is_some() {
+                413
+            } else {
+                400
+            };
+            json_response(
+                status,
+                json!({
+                    "status": "invalid_request",
+                    "accepted": false,
+                    "reason": error.to_string()
+                }),
+            )
+        }
     };
     stream.write_all(&response).await?;
     stream.shutdown().await?;
@@ -117,7 +135,7 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
         }
         buffer.extend_from_slice(&chunk[..n]);
         if buffer.len() > MAX_REQUEST_BYTES {
-            anyhow::bail!("request too large");
+            return Err(RequestTooLarge.into());
         }
         if header_end.is_none() {
             header_end = find_header_end(&buffer);
@@ -125,7 +143,7 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
                 let headers = String::from_utf8_lossy(&buffer[..end]);
                 content_length = parse_content_length(&headers);
                 if content_length > MAX_REQUEST_BYTES {
-                    anyhow::bail!("request body too large");
+                    return Err(RequestTooLarge.into());
                 }
             }
         }

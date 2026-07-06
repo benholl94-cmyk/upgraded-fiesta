@@ -19,10 +19,14 @@ services:
     environment:
       HM_GATEWAY_BIND: 0.0.0.0:8080
       HM_ZERO_STAKED: "false"
+      HM_STORAGE_ROOT: /data/storage
     ports: ["8080:8080"]
+    volumes:
+      - hm_storage:/data/storage
   ui:
     build: ./ui
     depends_on: [gateway]
     ports: ["3000:80"]
 volumes:
   pgdata:
+  hm_storage:
