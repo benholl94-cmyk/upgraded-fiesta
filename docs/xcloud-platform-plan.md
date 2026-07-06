@@ -182,7 +182,7 @@ before this phase would overstate what exists.
 **Done when**: a real chat message sent through the UI gets a real LLM
 response back, and `GET /memory` shows the recorded outcome.
 
-## Phase 5 — Multi-environment scaling (only after 1-4 are real)
+## Phase 5 — Multi-environment scaling — **partially done, scope disclosed**
 
 **Goal**: prove the "platform" framing for real — more than one `hm-gateway`
 instance (different hosts/regions/providers from Phase 2), each optionally
@@ -191,18 +191,45 @@ the UI's already-existing endpoint-rotation/failover logic
 (`ui/src/endpoint-rotation.ts`), which today only *simulates* multi-endpoint
 behavior against a single real instance plus fallbacks that were never live.
 
-**Worksteps**:
-1. Deploy 2+ real `hm-gateway` instances from Phase 2 on genuinely different
-   hosts.
-2. Point `ui/public/platform-config.json` at their real URLs (replacing the
-   `/api`/`/gateway` reverse-proxy assumption already flagged as a gap in
-   `docs/production-api-contract.md`).
-3. Verify live: kill one instance, confirm the UI's existing rotation logic
-   actually fails over to a second real instance — this has never been
-   tested against more than one real gateway.
+**What actually shipped**: `scripts/verify_multi_instance_failover.mjs` — a
+live verification script that imports `ui/src/endpoint-rotation.ts`
+*unmodified* (Node 22's native TypeScript-stripping support, no build step,
+no reimplementation of the rotation logic) and exercises it against two real,
+independently-spawned `hm-gateway` processes (distinct ports, distinct
+`HM_STORAGE_ROOT` directories). It calls the real `checkEndpoint` and
+`dispatchWithRotation` functions, confirms both instances are healthy, sends
+a real `echo` task and confirms it lands on the priority-1 instance, then
+**kills that process for real** and confirms the exact same rotation call
+fails over to the priority-2 instance — a real `202` response from a real
+second process, not a mocked one.
 
-**Done when**: a real failover between two genuinely independent, running
-`hm-gateway` instances is observed, not simulated.
+**Disclosed scope limitation**: both instances run on this same host/sandbox
+(different ports and storage roots, genuinely independent OS processes with
+independent state — not the same process pretending to be two endpoints),
+not genuinely different hosts, regions, or cloud providers. That gap is
+Phase 2's, which needs real infrastructure this environment doesn't have
+access to. What *is* proven live, not simulated: the rotation algorithm
+itself — unmodified production code — correctly detects a dead gateway via
+real HTTP health checks and correctly redirects real task dispatches to a
+surviving instance.
+
+**Verified live** (run yourself via `node --experimental-strip-types
+scripts/verify_multi_instance_failover.mjs` after `cargo build -p
+hm-gateway`): output confirms `gatewayA`/`gatewayB` both `online`, a dispatch
+picks `gateway-a` (priority 1, `202`), then after `gateway-a` is killed the
+identical dispatch call picks `gateway-b` (`202`) with `gateway-a` correctly
+recorded as `offline` in the attempt log.
+
+**Still open** (genuinely requires Phase 2's human decisions — cloud
+provider, real hosts): running this same script's *scenario* — not the
+script itself, which is host-agnostic already — against two instances on
+different real hosts/providers, and pointing `ui/public/platform-config.json`
+at their real URLs instead of the `/api`/`/gateway` reverse-proxy placeholder
+already flagged as a gap in `docs/production-api-contract.md`.
+
+**Done when** (revised): the disclosed same-host limitation above is closed
+— i.e. the same failover scenario observed against two genuinely
+independent hosts/providers from a completed Phase 2.
 
 ## How to use this plan
 

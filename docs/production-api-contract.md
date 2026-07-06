@@ -301,6 +301,14 @@ those two always fail and every request falls through to `gateway-local`
 and is unrelated to it; not fixed here since there's no Docker daemon available in this
 environment to verify an nginx proxy config end-to-end.
 
+**Multi-instance failover, verified live**: `scripts/verify_multi_instance_failover.mjs`
+imports `endpoint-rotation.ts` unmodified and runs it against two real, independently
+spawned `hm-gateway` processes -- confirms a real dispatch lands on the priority-1
+instance, then, after that process is actually killed, confirms the identical dispatch
+call fails over to the priority-2 instance. Both instances run on this same host
+(disclosed scope: proves the rotation algorithm, not a multi-region deployment -- see
+`docs/xcloud-platform-plan.md` Phase 5).
+
 ## Diagnostics endpoints
 
 ```http
