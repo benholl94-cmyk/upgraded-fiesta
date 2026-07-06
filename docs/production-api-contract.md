@@ -303,6 +303,42 @@ empty, or contains whitespace. This is the token-loading mechanism only: no chan
 crate yet makes real calls to Telegram/Discord/Slack/WhatsApp, since that requires
 real bot credentials to build and live-test responsibly.
 
+## Persistence and hardening (production deployment)
+
+`hm-gateway` handles `SIGTERM`/`SIGINT` by draining in-flight connections
+(up to a 10s deadline) and exiting with status 0, so a process supervisor
+can stop it cleanly instead of hard-killing it.
+
+`deploy/hm-gateway.service` is a systemd unit for running it as a
+persistent, always-on host service: `Restart=on-failure` recovers from
+crashes, and a hardened sandbox (`ProtectSystem=strict`, `NoNewPrivileges`,
+dropped capabilities, `MemoryMax`/`CPUQuota`/`TasksMax` limits, a dedicated
+non-root user) limits what a compromised or misbehaving process can touch.
+See the comments in that file for install steps; verify edits to it with
+`systemd-analyze verify deploy/hm-gateway.service`.
+
+`Restart=on-failure` alone does not catch a process that's alive but wedged
+(deadlocked, exhausted file descriptors, etc.) and no longer answering
+requests. `scripts/hm_gateway_watchdog.py` closes that gap: a one-shot,
+stdlib-only script that makes one authenticated `GET /health` request and,
+on failure, runs `systemctl restart` on the unit. `deploy/hm-gateway-watchdog.timer`
+runs it every 30 seconds.
+
+`docker-compose.yml`'s `gateway` service also carries `restart: unless-stopped`,
+`cap_drop: ["ALL"]`, and `no-new-privileges:true` -- verified changes only
+(`docker compose config` was used to check syntax; there is no verified
+non-root-user or read-only-rootfs hardening for the container path yet,
+since that needs an actual container build+run pass to confirm volume
+permissions don't break on first boot).
+
+**Known drift, not yet reconciled**: `deploy/fullstack-compose.yml` runs a
+completely different, trivial placeholder (`deploy/gateway_service.py`, a
+stdlib `BaseHTTPRequestHandler` with no auth/plugins/memory/storage) under
+the name "gateway" -- it is unrelated to `crates/hm-gateway` and does not
+read any of the `HM_*` variables `.env.production.example` sets up for the
+real gateway. Don't assume `deploy/fullstack-compose.yml` deploys the real
+gateway; it currently doesn't.
+
 ## Operational guarantees
 
 - every route requires the owner bearer token unless explicitly opted out

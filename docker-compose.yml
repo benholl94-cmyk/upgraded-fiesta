@@ -24,6 +24,11 @@ services:
     ports: ["8080:8080"]
     volumes:
       - hm_storage:/data/storage
+    restart: unless-stopped
+    # hm-gateway is a plain TCP server binding to an unprivileged port and
+    # doing local-disk I/O only -- it needs no Linux capabilities at all.
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
   ui:
     build: ./ui
     depends_on: [gateway]

@@ -8,13 +8,19 @@ use std::{
     env,
     net::SocketAddr,
     sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
+    signal::unix::{signal, SignalKind},
     sync::Mutex,
+    task::JoinSet,
 };
+
+/// How long shutdown waits for in-flight connections to finish after a
+/// termination signal, before giving up and exiting anyway.
+const SHUTDOWN_DRAIN: Duration = Duration::from_secs(10);
 
 const MAX_REQUEST_BYTES: usize = 1_048_576;
 
@@ -170,15 +176,57 @@ async fn main() -> anyhow::Result<()> {
     let listener = TcpListener::bind(&bind).await?;
     println!("hm-gateway listening on {bind}");
 
+    let mut sigterm = signal(SignalKind::terminate())?;
+    let mut connections = JoinSet::new();
+
     loop {
-        let (stream, remote_addr) = listener.accept().await?;
-        let state = state.clone();
-        tokio::spawn(async move {
-            if let Err(error) = handle_connection(stream, remote_addr, state).await {
-                eprintln!("hm-gateway request failed: {error}");
+        tokio::select! {
+            accepted = listener.accept() => {
+                let (stream, remote_addr) = accepted?;
+                let state = state.clone();
+                connections.spawn(async move {
+                    if let Err(error) = handle_connection(stream, remote_addr, state).await {
+                        eprintln!("hm-gateway request failed: {error}");
+                    }
+                });
+                while connections.try_join_next().is_some() {}
             }
-        });
+            _ = tokio::signal::ctrl_c() => {
+                println!("hm-gateway received SIGINT, shutting down gracefully");
+                break;
+            }
+            _ = sigterm.recv() => {
+                println!("hm-gateway received SIGTERM, shutting down gracefully");
+                break;
+            }
+        }
     }
+
+    drop(listener);
+    println!(
+        "hm-gateway draining {} in-flight connection(s)",
+        connections.len()
+    );
+    let drain_deadline = tokio::time::sleep(SHUTDOWN_DRAIN);
+    tokio::pin!(drain_deadline);
+    loop {
+        tokio::select! {
+            _ = &mut drain_deadline => {
+                eprintln!(
+                    "hm-gateway drain timed out with {} connection(s) still running; exiting anyway",
+                    connections.len()
+                );
+                break;
+            }
+            joined = connections.join_next() => {
+                if joined.is_none() {
+                    break;
+                }
+            }
+        }
+    }
+    println!("hm-gateway stopped");
+    Ok(())
 }
 
 async fn handle_connection(

@@ -68,6 +68,10 @@ Routes (all gated by the same auth check except `OPTIONS`):
 
 Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_GATEWAY_BIND`, `HM_ZERO_STAKED`, `HM_STORAGE_ROOT`, `HM_MEMORY_KEY`, `HM_OWNER_TOKEN`, `HM_GATEWAY_ALLOW_NO_AUTH`, `HM_DIAGNOSTICS_KEY`.
 
+**Shutdown/persistence**: the accept loop handles `SIGTERM`/`SIGINT` via `tokio::select!`, drains in-flight connections (10s deadline), and exits 0 — required for `deploy/hm-gateway.service` (a hardened systemd unit: `Restart=on-failure`, dropped capabilities, resource limits, non-root user) to manage it as a persistent service. `scripts/hm_gateway_watchdog.py` + `deploy/hm-gateway-watchdog.timer` cover the gap systemd's own crash-restart doesn't: a process that's alive but hung. Verify any edits to the `.service`/`.timer` files with `systemd-analyze verify`, since that's the only way to actually validate them (no systemd daemon runs in a normal dev sandbox).
+
+**Known drift**: `deploy/fullstack-compose.yml` runs `deploy/gateway_service.py` under the name "gateway" — a trivial, unrelated placeholder HTTP server with no auth/plugins/memory/storage. It is not `crates/hm-gateway` and doesn't read any of the `HM_*` vars `.env.production.example` defines for the real one. The root `docker-compose.yml` (via the root `Dockerfile`) is what actually builds and runs the real Rust gateway.
+
 ## Architecture: rest of the Rust workspace
 
 Most other workspace members are **intentional placeholders**, not partial implementations — `hm-core`, `hm-agent`, `hm-cli`, `hm-cron`, `hm-sessions`, and all four `hm-tools/hm-tool-*` crates are single-function/single-constant stubs. The four `hm-channels/hm-channel-*` crates (telegram/discord/slack/whatsapp) only load and validate a bot token via `hm_auth::load_bot_token`; **none makes real calls to any chat platform** — that requires real bot credentials to build and live-test responsibly, per `AGENTS.md`'s "surface gaps" rule. Don't mistake the presence of a crate for a working feature; check line count/content before assuming behavior exists.
