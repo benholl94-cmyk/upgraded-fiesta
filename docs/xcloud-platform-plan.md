@@ -33,12 +33,13 @@ called out explicitly rather than guessed.
 - Two Claude Code Skills (`xcode-alternative`, `pr-bot-triage`) as reusable,
   tested capability packages.
 
-**Known, already-documented gaps this plan does not silently paper over**:
+**Known, already-documented gap this plan does not silently paper over**:
 `docker-compose.yml`'s real gateway path is not the same as
-`deploy/fullstack-compose.yml`'s placeholder Python "gateway"; the runtime
-Docker image doesn't package plugin binaries. See `CLAUDE.md` and
-`docs/production-api-contract.md` for the full detail — phases below note
-where they intersect with these.
+`deploy/fullstack-compose.yml`'s placeholder Python "gateway" — still open,
+see Phase 2. (The other gap that used to be listed here — the runtime
+Docker image not packaging plugin binaries — was fixed and live-verified in
+Phase 2 this round.) See `CLAUDE.md` and `docs/production-api-contract.md`
+for the full detail.
 
 ## Phase 1 — External memory place — **done**
 
@@ -100,27 +101,46 @@ proven with the lowest-credential-risk implementation available.
 unmodified on at least two different hosting substrates, proving it's not
 accidentally coupled to this dev sandbox.
 
-**Worksteps**:
+**What shipped this round — worked, only sub-workstep 2**: the
+`Dockerfile`'s runtime stage now installs `python3` and copies `config/`,
+`plugins/`, and the `hm-tool-exec` binary alongside `hm-gateway`, closing the
+previously-documented packaging gap. **Live-verified, not just inspected**:
+this sandbox has no Docker daemon by default, but one was started manually
+(`dockerd`, root) purely for this verification; `docker build .` then really
+built the image (`cargo build --workspace --release` inside it, same as
+production), and a real container from that image answered `POST /tasks`
+with `taskType: "echo"` and `taskType: "ops-tool"`/`operation: "disk_usage"`
+with real `plugin_result.ok: true` for both — proof the fix actually works,
+not just that the Dockerfile diff looks right. One caveat, disclosed
+precisely: `cargo build`'s access to crates.io goes through this sandbox's
+own TLS-intercepting proxy, whose self-signed cert the build container
+doesn't trust by default; a temporary, uncommitted CA-trust step (copying
+this sandbox's own proxy CA bundle into a throwaway build stage) was used
+*only* to get that one verification build running here. It was never
+committed — the checked-in `Dockerfile` has no CA-trust workaround in it and
+is exactly what a normal deployment target (a real VPS/cloud VM building
+against the real crates.io) would need, nothing sandbox-specific added.
+
+**Still open, and genuinely needs a human** (no way to fabricate these
+honestly from this sandbox):
 1. Reconcile the two divergent compose files noted in Phase 0's gaps: decide
    whether `deploy/fullstack-compose.yml` should be deleted, or updated to
    actually run `crates/hm-gateway` instead of the placeholder Python script
-   — **needs a human decision**, since it changes what "deploy" means for
-   anyone currently using that file.
-2. Fix the Dockerfile packaging gap (already documented, not yet fixed):
-   decide what the runtime image should install for plugin dispatch to work
-   (copy `plugins/`, `config/`, a Python interpreter, and any plugin
-   binaries like `hm-tool-exec`) — or explicitly scope plugins out of the
-   containerized deployment path if that's the intended split.
+   — changes what "deploy" means for anyone currently using that file.
+2. ~~Fix the Dockerfile packaging gap~~ — done above.
 3. Stand up `deploy/hm-gateway.service` for real on one non-sandbox host
    (a VPS, a spare machine, a cloud VM) and confirm `systemd-analyze verify`
    plus an actual `systemctl start` + real `/health` request — this
    environment has no systemd daemon, so this step has never actually run
    the unit, only verified its syntax.
-4. Stand up the docker-compose path on a second, different host/provider.
+4. Stand up the docker-compose path on a second, different host/provider,
+   using the now-fixed image.
 
 **Done when**: two independently-provisioned hosts (different providers or
 at least different environments) both run a working `hm-gateway` from the
-same checked-in artifacts, with no host-specific patches.
+same checked-in artifacts, with no host-specific patches. (One concrete
+blocker to that — the Dockerfile packaging gap — is now closed; the
+remaining blockers are real hosts/credentials, not code.)
 
 ## Phase 3 — Graph-enhanced memory — **done**
 

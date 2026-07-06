@@ -89,7 +89,7 @@ Most other workspace members are **intentional placeholders**, not partial imple
 
 **`hm-tool-exec`** (`crates/hm-tools/hm-tool-exec/src/main.rs`) is a real hm-plugins-protocol binary registered as the `ops-tool` task_type in `config/plugins.json`. It is deliberately **not** arbitrary command execution: `payload.operation` only ever selects one entry from a fixed, hardcoded allowlist (`gateway_status`, `gateway_logs`, `disk_usage`, `memory_usage`) — it never contributes to argv construction. If you add more allowlisted operations, keep that property: the payload must only ever choose among fixed `(program, args)` pairs, never build one.
 
-**Known packaging gap**: the root `Dockerfile`'s runtime stage only copies the `hm-gateway` binary — no `plugins/`, `config/`, Python interpreter, or `hm-tool-exec`. Plugin dispatch (`echo` and `ops-tool`) does not actually work in the Docker deployment as packaged; it only works running `hm-gateway` from a full checkout.
+**Fixed, live-verified**: the root `Dockerfile`'s runtime stage now installs `python3` and copies `plugins/`, `config/`, and the `hm-tool-exec` binary alongside `hm-gateway` — plugin dispatch works in the containerized deployment, not just a full checkout. Verified by actually building the image and running both `echo` and `ops-tool` through a live container (see `docs/xcloud-platform-plan.md` Phase 2); this required a locally-started `dockerd` and a temporary, uncommitted CA-trust workaround for this sandbox's TLS-intercepting proxy during `cargo build` only — the committed `Dockerfile` itself has no such workaround.
 
 ## Architecture: UI
 

@@ -240,14 +240,24 @@ $ curl -X POST http://localhost:8080/tasks -H "Authorization: Bearer $HM_OWNER_T
 {"accepted":true,"plugin_result":{"ok":true,"result":{"operation":"disk_usage","stdout":"...","stderr":""},...},...}
 ```
 
-**Known packaging gap**: the root `Dockerfile`'s runtime stage only copies the
-`hm-gateway` binary -- it does not copy `plugins/`, `config/`, a Python
-interpreter, or `hm-tool-exec`. This means plugin dispatch (`echo` *and*
-`ops-tool`) does not actually work in the Docker deployment as currently
-packaged; it only works when running `hm-gateway` directly from a full
-checkout (as `docker-compose.yml`'s bind-mounted dev setup and every example
-in this document do). Not fixed here -- packaging plugins into the runtime
-image is a separate decision.
+**Packaging gap, fixed and live-verified**: the root `Dockerfile`'s runtime
+stage previously only copied the `hm-gateway` binary -- no `plugins/`,
+`config/`, Python interpreter, or `hm-tool-exec` -- so plugin dispatch
+(`echo` *and* `ops-tool`) did not actually work in the Docker deployment as
+packaged, only when running `hm-gateway` directly from a full checkout. The
+runtime stage now installs `python3` and copies `config/`, `plugins/`, and
+the `hm-tool-exec` binary alongside `hm-gateway`.
+
+**Verified live, not just inspected**: built the actual image (`docker
+build .`), ran it as a real container, and dispatched both `POST /tasks`
+`taskType: "echo"` and `taskType: "ops-tool"` (`operation: "disk_usage"`)
+against it over HTTP -- both returned real `plugin_result.ok: true`, proving
+the fix, not just the Dockerfile diff. (This sandbox has no running Docker
+daemon by default -- one was started manually for this one verification,
+and `cargo build`'s access to crates.io through this sandbox's TLS-
+intercepting proxy required a temporary, uncommitted CA-trust step used only
+for that local test build; the actual committed `Dockerfile` has no such
+workaround and is unchanged from a normal production Dockerfile's shape.)
 
 ### `llm-chat` (`plugins/llm_chat_plugin.py`) -- scaffold, not live-verified
 
