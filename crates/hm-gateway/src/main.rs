@@ -1,3 +1,4 @@
+use hm_memory::MemoryStore;
 use hm_plugins::PluginRegistry;
 use hm_storage::{FileStorage, LocalFsStorage};
 use serde::{Deserialize, Serialize};
@@ -34,6 +35,7 @@ struct AppState {
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
     storage: Arc<LocalFsStorage>,
     plugins: Arc<PluginRegistry>,
+    memory: Arc<MemoryStore>,
 }
 
 #[derive(Debug)]
@@ -84,12 +86,17 @@ async fn main() -> anyhow::Result<()> {
         PluginRegistry::empty()
     });
 
+    let storage: Arc<LocalFsStorage> = Arc::new(LocalFsStorage::from_env());
+    let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
+    let memory = MemoryStore::load(storage.clone(), memory_key).await;
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
         tasks: Arc::new(Mutex::new(Vec::new())),
-        storage: Arc::new(LocalFsStorage::from_env()),
+        storage,
         plugins: Arc::new(plugins),
+        memory: Arc::new(memory),
     };
 
     let listener = TcpListener::bind(&bind).await?;
@@ -234,6 +241,9 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         ("DELETE", path) if path.starts_with("/storage/") => {
             storage_delete(&state, storage_key(path)).await
         }
+        ("GET", "/memory") => memory_list(&state).await,
+        ("POST", "/memory") => memory_remember(&state, request.body).await,
+        ("POST", "/memory/search") => memory_search(&state, request.body).await,
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
     }
 }
@@ -272,6 +282,70 @@ async fn storage_delete(state: &AppState, key: &str) -> Vec<u8> {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct RememberInput {
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct SearchInput {
+    query: String,
+    #[serde(default = "default_top_k", rename = "topK")]
+    top_k: usize,
+}
+
+fn default_top_k() -> usize {
+    5
+}
+
+async fn memory_list(state: &AppState) -> Vec<u8> {
+    let records = state.memory.list().await;
+    json_response(200, json!({ "status": "online", "records": records }))
+}
+
+async fn memory_remember(state: &AppState, body: Vec<u8>) -> Vec<u8> {
+    let input: RememberInput = match serde_json::from_slice(&body) {
+        Ok(input) => input,
+        Err(error) => {
+            return json_response(
+                400,
+                json!({ "status": "invalid_request", "reason": error.to_string() }),
+            );
+        }
+    };
+    if input.text.trim().is_empty() {
+        return json_response(
+            400,
+            json!({ "status": "invalid_request", "reason": "text must not be empty" }),
+        );
+    }
+    match state.memory.remember(input.text).await {
+        Ok(record) => json_response(201, json!({ "status": "stored", "record": record })),
+        Err(error) => json_response(
+            500,
+            json!({ "status": "memory_error", "reason": error.to_string() }),
+        ),
+    }
+}
+
+async fn memory_search(state: &AppState, body: Vec<u8>) -> Vec<u8> {
+    let input: SearchInput = match serde_json::from_slice(&body) {
+        Ok(input) => input,
+        Err(error) => {
+            return json_response(
+                400,
+                json!({ "status": "invalid_request", "reason": error.to_string() }),
+            );
+        }
+    };
+    let hits = state.memory.recall(&input.query, input.top_k).await;
+    let results: Vec<Value> = hits
+        .into_iter()
+        .map(|(record, score)| json!({ "record": record, "score": score }))
+        .collect();
+    json_response(200, json!({ "status": "online", "results": results }))
+}
+
 async fn gateway_info(state: &AppState) -> Value {
     json!({
         "service": "hm-gateway",
@@ -280,7 +354,8 @@ async fn gateway_info(state: &AppState) -> Value {
         "routes": [
             "GET /health", "GET /api/health", "GET /gateway/health",
             "POST /tasks", "POST /api/tasks", "POST /gateway/tasks", "GET /tasks",
-            "PUT /storage/{key}", "GET /storage/{key}", "DELETE /storage/{key}"
+            "PUT /storage/{key}", "GET /storage/{key}", "DELETE /storage/{key}",
+            "GET /memory", "POST /memory", "POST /memory/search"
         ],
         "uptime_seconds": uptime_seconds(state.started_at)
     })
@@ -442,11 +517,13 @@ fn common_headers(content_type: &str) -> String {
 fn reason_phrase(status: u16) -> &'static str {
     match status {
         200 => "OK",
+        201 => "Created",
         202 => "Accepted",
         204 => "No Content",
         400 => "Bad Request",
         404 => "Not Found",
         413 => "Payload Too Large",
+        500 => "Internal Server Error",
         503 => "Service Unavailable",
         _ => "OK",
     }
