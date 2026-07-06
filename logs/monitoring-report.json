@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-06T22:08:12.222578+00:00",
+  "generated_at": "2026-07-06T22:11:58.171160+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -62,7 +62,7 @@
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 23089
+      "size_bytes": 24278
     },
     {
       "exists": true,
