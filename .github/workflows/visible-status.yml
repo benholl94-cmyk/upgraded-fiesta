@@ -37,7 +37,15 @@ jobs:
             echo "visible status unchanged"
           else
             git commit -m "Update visible platform status [skip ci]"
-            git push
+            for attempt in 1 2 3 4 5; do
+              if git push; then
+                break
+              fi
+              echo "push rejected, rebasing onto latest ${GITHUB_REF_NAME} (attempt ${attempt})"
+              git fetch origin "${GITHUB_REF_NAME}"
+              git rebase "origin/${GITHUB_REF_NAME}"
+              sleep $((attempt * 2))
+            done
           fi
       - name: Upload visible status artifact
         if: always()

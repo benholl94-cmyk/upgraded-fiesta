@@ -56,7 +56,15 @@ jobs:
           git add -f logs/visible-monitoring-report.json logs/monitoring-report.json logs/monitoring-stdout.txt
           git diff --cached --quiet && exit 0
           git commit -m "Update visible monitoring report"
-          git push
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              break
+            fi
+            echo "push rejected, rebasing onto latest ${GITHUB_REF_NAME} (attempt ${attempt})"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            sleep $((attempt * 2))
+          done
 
       - name: Fail after report commit if checks failed
         if: always()
