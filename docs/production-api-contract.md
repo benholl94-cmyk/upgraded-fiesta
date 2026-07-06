@@ -162,6 +162,20 @@ $ curl http://localhost:8080/memory
 {"status":"online","records":[...]}
 ```
 
+## UI integration
+
+`ui/src/main.ts` has a "Memory" panel calling the endpoints above through the same
+priority-ordered endpoint rotation as task dispatch (`ui/src/endpoint-rotation.ts`).
+
+**Known gap**: the `primary` (`/api`) and `gateway-fallback` (`/gateway`) endpoints in
+`ui/public/platform-config.json` assume a reverse proxy stripping that prefix before
+forwarding to `hm-gateway` -- no such proxy exists in `ui/Dockerfile` (plain nginx,
+static files only) or anywhere else in this repo, so in the `docker-compose` deployment
+those two always fail and every request falls through to `gateway-local`
+(`http://127.0.0.1:8080`, a direct URL). This was true before the memory panel existed
+and is unrelated to it; not fixed here since there's no Docker daemon available in this
+environment to verify an nginx proxy config end-to-end.
+
 ## Channel bot tokens (hm-auth)
 
 Each `hm-channel-*` crate exposes `bot_token()`, which loads and validates

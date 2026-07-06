@@ -485,8 +485,8 @@
 
     <div class="stat-row">
       <div class="stat-tile"><span class="n">20</span><span class="l">Workspace members</span></div>
-      <div class="stat-tile"><span class="n">583</span><span class="l">Rust LOC (workspace)</span></div>
-      <div class="stat-tile"><span class="n">3</span><span class="l">Storage routes</span></div>
+      <div class="stat-tile"><span class="n">1,232</span><span class="l">Rust LOC (workspace)</span></div>
+      <div class="stat-tile"><span class="n">11</span><span class="l">Live API routes</span></div>
       <div class="stat-tile"><span class="n">8</span><span class="l">CI workflows</span></div>
       <div class="stat-tile"><span class="n">1 MiB</span><span class="l">Request ceiling</span></div>
     </div>
@@ -622,9 +622,18 @@
         <tr><td><span class="route">PUT /storage/{key}</span></td><td>Write bytes to local disk under <code>HM_STORAGE_ROOT</code></td></tr>
         <tr><td><span class="route">GET /storage/{key}</span></td><td>Read bytes back, raw — no lossy re-encoding</td></tr>
         <tr><td><span class="route">DELETE /storage/{key}</span></td><td>Remove a key; idempotent if already gone</td></tr>
+        <tr><td><span class="route">GET /memory</span> <span class="route">POST /memory</span> <span class="route">POST /memory/search</span></td><td>Persistent semantic memory (<code>hm-memory</code> + <code>hm-vector</code>) — offline embeddings, cosine search, survives restarts</td></tr>
       </tbody>
     </table>
     </div>
+
+    <p style="margin-top:14px; font-size:13px;">
+      <code>POST /tasks</code> additionally dispatches to a matching plugin process
+      (<code>hm-plugins</code> + <code>hm-sdk</code>) when the request's <code>taskType</code>
+      is registered in <code>config/plugins.json</code>, and includes its result under
+      <code>plugin_result</code> — see <code>docs/production-api-contract.md</code> for the
+      stdio JSON protocol.
+    </p>
 
     <div class="grid-2" style="margin-top:20px;">
       <div class="panel">

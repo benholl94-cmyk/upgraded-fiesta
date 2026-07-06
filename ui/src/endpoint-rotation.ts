@@ -48,7 +48,8 @@ const defaultConfig: PlatformConfig = {
   zeroStakedStatus: "zero_staked",
   endpoints: [
     { id: "primary", label: "Primary Gateway", baseUrl: "/api", healthPath: "/health", taskPath: "/tasks", priority: 1 },
-    { id: "gateway-fallback", label: "Fallback Gateway", baseUrl: "/gateway", healthPath: "/health", taskPath: "/tasks", priority: 2 }
+    { id: "gateway-local", label: "Local Gateway", baseUrl: "http://127.0.0.1:8080", healthPath: "/health", taskPath: "/tasks", priority: 2 },
+    { id: "gateway-fallback", label: "Fallback Gateway", baseUrl: "/gateway", healthPath: "/health", taskPath: "/tasks", priority: 3 }
   ]
 };
 
@@ -118,6 +119,82 @@ export async function checkEndpoint(config: PlatformConfig, endpoint: EndpointCo
   } catch (error) {
     return { endpoint, state: "offline", latencyMs: Math.round(performance.now() - started), reason: error instanceof Error ? error.name : "request_failed", checkedAt };
   }
+}
+
+export interface MemoryRecord {
+  id: string;
+  text: string;
+  created_at_unix: number;
+}
+
+export interface MemorySearchHit {
+  record: MemoryRecord;
+  score: number;
+}
+
+export async function rememberMemory(config: PlatformConfig, endpoint: EndpointConfig, text: string): Promise<MemoryRecord> {
+  const result = await fetchJsonWithTimeout(
+    joinUrl(endpoint.baseUrl, "/memory"),
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) },
+    config.requestTimeoutMs
+  );
+  const body = (result.body ?? {}) as { record?: MemoryRecord; reason?: string };
+  if (result.status < 200 || result.status >= 300 || !body.record) {
+    throw new Error(body.reason ?? `memory_store_failed_${result.status}`);
+  }
+  return body.record;
+}
+
+export async function searchMemory(config: PlatformConfig, endpoint: EndpointConfig, query: string, topK = 5): Promise<MemorySearchHit[]> {
+  const result = await fetchJsonWithTimeout(
+    joinUrl(endpoint.baseUrl, "/memory/search"),
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, topK }) },
+    config.requestTimeoutMs
+  );
+  const body = (result.body ?? {}) as { results?: MemorySearchHit[]; reason?: string };
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(body.reason ?? `memory_search_failed_${result.status}`);
+  }
+  return body.results ?? [];
+}
+
+export async function listMemory(config: PlatformConfig, endpoint: EndpointConfig): Promise<MemoryRecord[]> {
+  const result = await fetchJsonWithTimeout(joinUrl(endpoint.baseUrl, "/memory"), { method: "GET" }, config.requestTimeoutMs);
+  const body = (result.body ?? {}) as { records?: MemoryRecord[]; reason?: string };
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(body.reason ?? `memory_list_failed_${result.status}`);
+  }
+  return body.records ?? [];
+}
+
+async function withEndpointRotation<T>(config: PlatformConfig, fn: (endpoint: EndpointConfig) => Promise<T>): Promise<T> {
+  const endpoints = [...config.endpoints].sort((a, b) => a.priority - b.priority);
+  let lastError: unknown = new Error("no_healthy_endpoint_available");
+  for (const endpoint of endpoints) {
+    const health = await checkEndpoint(config, endpoint);
+    if (health.state !== "online") {
+      lastError = new Error(health.reason);
+      continue;
+    }
+    try {
+      return await fn(endpoint);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("no_healthy_endpoint_available");
+}
+
+export function rememberMemoryWithRotation(config: PlatformConfig, text: string): Promise<MemoryRecord> {
+  return withEndpointRotation(config, (endpoint) => rememberMemory(config, endpoint, text));
+}
+
+export function searchMemoryWithRotation(config: PlatformConfig, query: string, topK = 5): Promise<MemorySearchHit[]> {
+  return withEndpointRotation(config, (endpoint) => searchMemory(config, endpoint, query, topK));
+}
+
+export function listMemoryWithRotation(config: PlatformConfig): Promise<MemoryRecord[]> {
+  return withEndpointRotation(config, (endpoint) => listMemory(config, endpoint));
 }
 
 export async function dispatchWithRotation(config: PlatformConfig, request: DispatchRequest): Promise<DispatchResult> {
