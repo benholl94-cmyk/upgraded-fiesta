@@ -1,3 +1,4 @@
+use hm_plugins::PluginRegistry;
 use hm_storage::{FileStorage, LocalFsStorage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -32,6 +33,7 @@ struct AppState {
     zero_staked: bool,
     tasks: Arc<Mutex<Vec<TaskRecord>>>,
     storage: Arc<LocalFsStorage>,
+    plugins: Arc<PluginRegistry>,
 }
 
 #[derive(Debug)]
@@ -63,7 +65,9 @@ struct TaskInput {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let bind = env::var("HM_GATEWAY_BIND").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+    let bind = env::var("HM_GATEWAY_BIND")
+        .ok()
+        .unwrap_or_else(resolve_configured_bind);
     let zero_staked = env::var("HM_ZERO_STAKED")
         .map(|value| {
             matches!(
@@ -73,11 +77,19 @@ async fn main() -> anyhow::Result<()> {
         })
         .unwrap_or(false);
 
+    let plugin_manifest =
+        env::var("HM_PLUGIN_MANIFEST").unwrap_or_else(|_| "config/plugins.json".to_string());
+    let plugins = PluginRegistry::from_manifest_file(&plugin_manifest).unwrap_or_else(|error| {
+        eprintln!("hm-gateway: ignoring unreadable plugin manifest {plugin_manifest}: {error}");
+        PluginRegistry::empty()
+    });
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
         tasks: Arc::new(Mutex::new(Vec::new())),
         storage: Arc::new(LocalFsStorage::from_env()),
+        plugins: Arc::new(plugins),
     };
 
     let listener = TcpListener::bind(&bind).await?;
@@ -329,16 +341,49 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
 
     state.tasks.lock().await.push(task.clone());
 
-    json_response(
-        202,
-        json!({
-            "status": "online",
-            "accepted": true,
-            "task_id": task.task_id,
-            "task_type": task.task_type,
-            "agent_managed": true
-        }),
-    )
+    let mut response = json!({
+        "status": "online",
+        "accepted": true,
+        "task_id": task.task_id,
+        "task_type": task.task_type,
+        "agent_managed": true
+    });
+
+    if state.plugins.has(&task.task_type) {
+        let plugin_result = match state
+            .plugins
+            .invoke(&task.task_type, &task.objective, task.payload.clone())
+            .await
+        {
+            Ok(plugin_response) => json!({
+                "ok": plugin_response.ok,
+                "result": plugin_response.result,
+                "message": plugin_response.message
+            }),
+            Err(error) => json!({ "ok": false, "message": error.to_string() }),
+        };
+        response["plugin_result"] = plugin_result;
+    }
+
+    json_response(202, response)
+}
+
+/// Falls back to `server.bind` in `config/heavy-metal.json` (relative to the
+/// process working directory) when `HM_GATEWAY_BIND` is unset, so the
+/// checked-in config isn't silently ignored. Falls back to the hardcoded
+/// default if the file is missing, unparseable, or lacks that field.
+fn resolve_configured_bind() -> String {
+    std::fs::read_to_string("config/heavy-metal.json")
+        .ok()
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .and_then(|value| {
+            value
+                .get("server")?
+                .get("bind")?
+                .as_str()
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| "0.0.0.0:8080".to_string())
 }
 
 fn status_text(zero_staked: bool) -> &'static str {
