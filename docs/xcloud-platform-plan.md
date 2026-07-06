@@ -122,26 +122,40 @@ accidentally coupled to this dev sandbox.
 at least different environments) both run a working `hm-gateway` from the
 same checked-in artifacts, with no host-specific patches.
 
-## Phase 3 — Graph-enhanced memory (build on today's seed, not a rewrite)
+## Phase 3 — Graph-enhanced memory — **done**
 
-**Goal**: let `/memory/search` answer structural questions ("what depends
-on hm-gateway", "which plugins does hm-tool-exec back") alongside its
-existing text-similarity search, using the knowledge-graph seed already
-built in Phase 0.
+**Goal**: let a gateway answer structural questions ("what depends on
+hm-gateway", "which plugins does hm-tool-exec back") over HTTP, using the
+knowledge-graph seed already built in Phase 0, alongside `hm-memory`'s
+existing text-similarity search.
 
-**Worksteps**:
-1. Add an optional `graph_seed_path` to `MemoryStore::load` that ingests
-   `generate_knowledge_graph_seed.py`'s JSON output as additional, distinctly-
-   typed records (tag them, don't blend them silently with free-text memory).
-2. Add a narrow `GET /memory/graph` route returning the ingested graph as-is
-   (nodes/edges), separate from the existing free-text `/memory` — don't
-   overload one endpoint with two different data shapes.
-3. Regenerate the seed on a schedule (a cron-like job, or on gateway start)
-   so the ingested graph doesn't silently go stale as the repo evolves.
+**What shipped**: `MemoryStore` (`crates/hm-memory/src/lib.rs`) gained a
+`graph: Option<Value>` field on its persisted state, kept structurally
+separate from `records`/`index` — never blended into free-text
+`remember`/`recall`. Two new methods: `ingest_graph_seed(&self, graph_json:
+&[u8])` (validates the `{"nodes":[...],"edges":[...]}` shape, replaces any
+previously-ingested graph rather than accumulating) and `graph(&self) ->
+Option<Value>`. `hm-gateway` reads an optional `HM_MEMORY_GRAPH_SEED_PATH`
+env var at startup and ingests that file if set — a missing or malformed
+seed logs a warning and does not block startup, matching this codebase's
+"never crash on an optional nice-to-have" convention. A new `GET
+/memory/graph` route returns the ingested graph as-is, or `404` if none was
+ingested. 6 new `hm-memory` unit tests (including one asserting graph
+ingestion never pollutes free-text recall, and one asserting re-ingestion
+replaces rather than accumulates).
 
-**Done when**: `GET /memory/graph` on a live gateway returns the same graph
-`generate_knowledge_graph_seed.py` would produce standalone, fetched over
-HTTP instead of run as a script.
+**Verified live, not simulated**: generated a real seed via
+`scripts/generate_knowledge_graph_seed.py` (37 nodes, 65 edges from this
+actual repo), started a real `hm-gateway` process with
+`HM_MEMORY_GRAPH_SEED_PATH` pointed at it, and confirmed `GET /memory/graph`
+returned that exact graph over HTTP (401 without the owner bearer token, 200
+with it), the graph was persisted verbatim on disk in the storage-backed
+index file, and `GET /memory` stayed empty throughout — no cross-
+contamination between the two data shapes.
+
+Regenerating the seed on a schedule (rather than once at process start) is
+left as a follow-up — see `docs/production-api-contract.md`'s "Graph-
+enhanced memory" section for the exact route/env var contract.
 
 ## Phase 4 — Close the "AI" loop (currently the biggest real gap)
 

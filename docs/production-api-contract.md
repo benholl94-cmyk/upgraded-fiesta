@@ -19,6 +19,7 @@
 | `HM_STORAGE_BACKEND` | `local` | `local` (uses `HM_STORAGE_ROOT`) or `remote` (uses `HM_REMOTE_STORAGE_URL`/`HM_REMOTE_STORAGE_TOKEN`) -- see "External memory place" below |
 | `HM_REMOTE_STORAGE_URL` | *(unset)* | Required when `HM_STORAGE_BACKEND=remote`: a plain `http://host:port` URL of another `hm-gateway`-compatible `/storage` endpoint |
 | `HM_REMOTE_STORAGE_TOKEN` | *(unset)* | Bearer token sent with every request to `HM_REMOTE_STORAGE_URL`, if that endpoint requires auth (it should) |
+| `HM_MEMORY_GRAPH_SEED_PATH` | *(unset)* | Path to a `scripts/generate_knowledge_graph_seed.py`-shaped JSON file (`{"nodes":[...],"edges":[...]}`), ingested into `hm-memory` at startup -- see "Graph-enhanced memory" below. A missing or malformed file logs a warning and does not block startup. |
 
 ## External memory place (`hm-storage::RemoteHttpStorage`)
 
@@ -29,6 +30,20 @@ Deliberately a hand-rolled plain-HTTP client (no TLS, no external HTTP crate dep
 `HM_STORAGE_BACKEND=remote` without a valid `HM_REMOTE_STORAGE_URL` fails the gateway at startup rather than silently falling back to local disk -- an operator who asked for external storage and got local storage instead, without being told, would be a correctness bug.
 
 **Verified live** (two real `hm-gateway` processes, not simulated): a `POST /memory` on a "primary" instance configured with `HM_STORAGE_BACKEND=remote` pointed at a second "storage node" instance produced zero files on the primary's own disk (its `HM_STORAGE_ROOT` directory was never even created) and the real, complete memory index (including embedding vectors) landed on the storage node, retrievable independently via that node's own `/storage/memory/index.json`.
+
+## Graph-enhanced memory (`GET /memory/graph`)
+
+`hm-memory`'s `MemoryStore` can hold, alongside its free-text records, exactly one structural knowledge-graph seed -- the `{"nodes":[...],"edges":[...]}` shape `scripts/generate_knowledge_graph_seed.py` produces. It is stored and served distinctly from free-text memory: ingesting a graph seed never appears in `GET /memory`'s records, and free-text `remember`/`recall` never touch the graph.
+
+Ingestion happens once, at gateway startup, from `HM_MEMORY_GRAPH_SEED_PATH` if set (there is no route to upload a graph at runtime). Re-ingesting on a later restart with a different file replaces the previous graph rather than accumulating.
+
+```
+GET /memory/graph
+```
+
+Returns `200 {"status": "online", "graph": {...}}` with the ingested graph as-is, or `404 {"status": "not_found", "reason": "no graph seed has been ingested"}` if `HM_MEMORY_GRAPH_SEED_PATH` was never set or ingestion failed.
+
+**Verified live**: ran a real `hm-gateway` process with `HM_MEMORY_GRAPH_SEED_PATH` pointed at a freshly generated `scripts/generate_knowledge_graph_seed.py` seed (37 nodes, 65 edges); `GET /memory/graph` returned that exact graph over HTTP (401 without the owner bearer token, 200 with it), the seed was confirmed persisted verbatim in the storage-backed index file on disk, and `GET /memory` remained empty throughout, confirming no cross-contamination.
 
 ## Observability and abuse protection
 
@@ -239,6 +254,7 @@ image is a separate decision.
 GET  /memory
 POST /memory
 POST /memory/search
+GET  /memory/graph
 ```
 
 A persistent, semantically-searchable text memory, backed by `hm-storage` (so it

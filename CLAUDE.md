@@ -62,6 +62,7 @@ Routes (all gated by the same auth check except `OPTIONS`):
 - `POST|GET /tasks` (+ `/api/tasks`, `/gateway/tasks`) — in-memory task registry, no persistence
 - `PUT|GET|DELETE /storage/{key}` — passthrough to `hm-storage`
 - `GET|POST /memory`, `POST /memory/search` — passthrough to `hm-memory`
+- `GET /memory/graph` — the structural knowledge-graph seed ingested at startup from `HM_MEMORY_GRAPH_SEED_PATH`, if any; `404` if none was ingested. Kept structurally separate from free-text `/memory` records — see `hm-memory`'s `MemoryStore::ingest_graph_seed`/`graph`.
 - `GET|POST /diagnostics` — opt-in diagnostics reports (see below)
 
 **Auth model (`hm-auth`)**: every route requires `Authorization: Bearer <HM_OWNER_TOKEN>`. The gateway process **refuses to start** if `HM_OWNER_TOKEN` is unset (fail-closed), unless `HM_GATEWAY_ALLOW_NO_AUTH=true` is explicitly set (local dev only). Token comparison is constant-time (`hm_auth::tokens_match`). Never weaken this without being asked.
@@ -72,7 +73,7 @@ Routes (all gated by the same auth check except `OPTIONS`):
 
 **Agent runtime (`hm-agent`)**: `POST /tasks` routes through `hm_agent::Agent::dispatch`, not directly against `hm-plugins`. `Agent::dispatch` invokes the matching plugin (if any) *and* records a one-line summary of every outcome — dispatched or unhandled — into `hm-memory`, so `GET /memory` shows a durable task history, not just what was explicitly `POST`ed there. This is the real `Gateway -> Agent Runtime -> Memory` link from `docs/architecture.md`.
 
-Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_GATEWAY_BIND`, `HM_ZERO_STAKED`, `HM_STORAGE_ROOT`, `HM_MEMORY_KEY`, `HM_OWNER_TOKEN`, `HM_GATEWAY_ALLOW_NO_AUTH`, `HM_DIAGNOSTICS_KEY`.
+Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_GATEWAY_BIND`, `HM_ZERO_STAKED`, `HM_STORAGE_ROOT`, `HM_MEMORY_KEY`, `HM_OWNER_TOKEN`, `HM_GATEWAY_ALLOW_NO_AUTH`, `HM_DIAGNOSTICS_KEY`, `HM_MEMORY_GRAPH_SEED_PATH`.
 
 **Shutdown/persistence**: the accept loop handles `SIGTERM`/`SIGINT` via `tokio::select!`, drains in-flight connections (10s deadline), and exits 0 — required for `deploy/hm-gateway.service` (a hardened systemd unit: `Restart=on-failure`, dropped capabilities, resource limits, non-root user) to manage it as a persistent service. `scripts/hm_gateway_watchdog.py` + `deploy/hm-gateway-watchdog.timer` cover the gap systemd's own crash-restart doesn't: a process that's alive but hung. Verify any edits to the `.service`/`.timer` files with `systemd-analyze verify`, since that's the only way to actually validate them (no systemd daemon runs in a normal dev sandbox).
 
