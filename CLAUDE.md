@@ -15,6 +15,8 @@ Config lives under `config/`, database bootstrap SQL is in `scripts/init-db.sql`
 
 `.claude/skills/xcode-alternative/` is a Claude Code Skill for scaffolding and building iOS/Swift projects without Xcode.app's GUI (SwiftPM `Package.swift` as the preferred real project format, plus a minimal `.xcodeproj` generator for when one is strictly required). It reproduces no proprietary Apple IDE data — see the skill's own "What this is (and isn't)" section. Its scaffolder is stdlib-only Python, tested in `tests/test_xcode_alternative_scaffold.py`; the actual build/sign/simulate steps it documents require a real macOS host and were not (and cannot be) executed from this Linux environment.
 
+`.claude/skills/pr-bot-triage/` is a Claude Code Skill for triaging automated PR review-bot comments (CodeRabbit rate-limit notices, duplicate walkthrough re-postings, bot-side infrastructure errors, resolution/learning acknowledgments) so real findings don't get lost in repeated noise while babysitting a PR. Its classifier (`scripts/classify_bot_comment.py`) is stdlib-only Python, tested against real comment text observed on this repo's own PRs (`tests/test_pr_bot_triage.py`), not synthetic samples.
+
 ## Operating environment
 
 The primary operator may only have an iPhone/mobile client. Do not assume access to macOS, a desktop IDE, local Docker Desktop, Homebrew, or a long-running local shell. Prefer repository-native automation, Codex cloud, GitHub Actions, and portable shell/Python scripts. Do not replace this mobile-first operating model with desktop-only instructions.
