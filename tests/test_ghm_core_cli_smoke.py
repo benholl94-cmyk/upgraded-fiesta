@@ -62,3 +62,65 @@ def test_report_diagnostics_requires_owner_token_even_with_yes() -> None:
     last_line = proc.stdout.strip().splitlines()[-1]
     payload = json.loads(last_line)
     assert payload == {"ok": False, "sent": False, "reason": "HM_OWNER_TOKEN is not set"}
+
+
+def test_onboard_iphone_refuses_without_consent_when_non_interactive(tmp_path: pathlib.Path) -> None:
+    # Same never-silently-act-without-consent property as report-diagnostics:
+    # a piped (non-TTY) run with no --yes must refuse loudly and never start
+    # the gateway subprocess, even when a real binary is available.
+    repo_root = pathlib.Path(__file__).resolve().parents[1]
+    gateway_bin = repo_root / "target" / "debug" / "hm-gateway"
+    if not gateway_bin.is_file():
+        import pytest
+        pytest.skip("hm-gateway debug binary not built")
+
+    proc = subprocess.run(
+        [
+            sys.executable, "-m", "ghm_core.cli", "onboard-iphone",
+            "--workspace", str(tmp_path / "ws"),
+            "--gateway-bin", str(gateway_bin),
+        ],
+        text=True,
+        input="",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert proc.returncode == 1
+    last_line = proc.stdout.strip().splitlines()[-1]
+    payload = json.loads(last_line)
+    assert payload == {
+        "ok": False,
+        "started": False,
+        "reason": "no_consent_non_interactive_run_with_--yes_to_start",
+    }
+    assert not (tmp_path / "ws" / "runs" / "iphone_onboard.json").exists()
+
+
+def test_onboard_iphone_refuses_when_gateway_binary_missing(tmp_path: pathlib.Path) -> None:
+    proc = subprocess.run(
+        [
+            sys.executable, "-m", "ghm_core.cli", "onboard-iphone",
+            "--workspace", str(tmp_path / "ws"),
+            "--gateway-bin", "/nonexistent/hm-gateway-for-missing-check",
+            "--yes",
+        ],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert proc.returncode == 1
+    payload = json.loads(proc.stdout)
+    assert payload == {
+        "ok": False,
+        "started": False,
+        "reason": "hm-gateway binary not found",
+        "hint": "build it first with 'cargo build --release -p hm-gateway', "
+                "or pass --gateway-bin /path/to/hm-gateway",
+    }
+
+
+def test_lan_ip_returns_a_string() -> None:
+    from ghm_core.cli import _lan_ip
+
+    ip = _lan_ip()
+    assert isinstance(ip, str) and ip

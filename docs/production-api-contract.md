@@ -258,6 +258,42 @@ Destination: http://127.0.0.1:8080/diagnostics
 Send this? [y/N]:
 ```
 
+### `ghm-core onboard-iphone` (pip package)
+
+Ties `hm-gateway` to an iPhone on the same Wi-Fi/LAN. Unlike
+`report-diagnostics`, this command starts a process and binds a port, so it
+discloses more and is gated the same way:
+
+1. Locates the `hm-gateway` binary (`--gateway-bin`, else `PATH`, else
+   `target/release/` or `target/debug/`) and refuses immediately with a clear
+   `hint` if none is found -- it never attempts to build one itself.
+2. Prints exactly what it is about to do -- bind address/port, that this
+   makes the gateway reachable by any device on the local network (not just
+   this machine), and where the owner token will be stored -- before doing
+   anything.
+3. Requires explicit consent, with the same non-interactive-refuses-without-
+   `--yes` property as `report-diagnostics`.
+4. On consent: generates (or reuses) an owner token, writes it to
+   `<workspace>/settings/iphone_owner_token` (`chmod 600`), starts
+   `hm-gateway` with `HM_OWNER_TOKEN` set and `HM_GATEWAY_BIND=0.0.0.0:<port>`,
+   waits for an authenticated health check to succeed, then prints the LAN
+   URL and token to enter on the iPhone. No public-internet tunnel is created.
+
+```console
+$ ghm-core onboard-iphone --workspace ~/Developer/scratch/ghm --yes
+This will:
+  1. Start hm-gateway (...) bound to 0.0.0.0:8080 -- reachable by
+     ANY device on your local network/Wi-Fi, not just this machine.
+  2. Store an owner token at .../settings/iphone_owner_token (chmod 600), generating one if none exists.
+  3. Print a URL and token for you to enter on your iPhone: http://192.168.1.23:8080
+No tunnel to the public internet is created; nothing leaves your local network.
+{ "ok": true, "started": true, "pid": ..., "gateway_url": "http://192.168.1.23:8080", "token_path": "..." }
+
+On your iPhone (same Wi-Fi), open the gateway UI and enter:
+  Gateway URL: http://192.168.1.23:8080
+  Bearer token: ...
+```
+
 ## Channel bot tokens (hm-auth)
 
 Each `hm-channel-*` crate exposes `bot_token()`, which loads and validates
