@@ -63,7 +63,9 @@ struct TaskInput {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let bind = env::var("HM_GATEWAY_BIND").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+    let bind = env::var("HM_GATEWAY_BIND")
+        .ok()
+        .unwrap_or_else(resolve_configured_bind);
     let zero_staked = env::var("HM_ZERO_STAKED")
         .map(|value| {
             matches!(
@@ -339,6 +341,24 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
             "agent_managed": true
         }),
     )
+}
+
+/// Falls back to `server.bind` in `config/heavy-metal.json` (relative to the
+/// process working directory) when `HM_GATEWAY_BIND` is unset, so the
+/// checked-in config isn't silently ignored. Falls back to the hardcoded
+/// default if the file is missing, unparseable, or lacks that field.
+fn resolve_configured_bind() -> String {
+    std::fs::read_to_string("config/heavy-metal.json")
+        .ok()
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .and_then(|value| {
+            value
+                .get("server")?
+                .get("bind")?
+                .as_str()
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| "0.0.0.0:8080".to_string())
 }
 
 fn status_text(zero_staked: bool) -> &'static str {

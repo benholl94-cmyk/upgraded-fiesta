@@ -8,7 +8,7 @@
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `HM_GATEWAY_BIND` | `0.0.0.0:8080` | TCP bind address |
+| `HM_GATEWAY_BIND` | `config/heavy-metal.json`'s `server.bind`, else `0.0.0.0:8080` | TCP bind address |
 | `HM_ZERO_STAKED` | `false` | Forces health and task responses into `zero_staked` failover status when true |
 | `HM_STORAGE_ROOT` | `./data/storage` | Local-disk root for the `/storage` file API (see `hm-storage` crate) |
 
