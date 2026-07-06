@@ -47,3 +47,9 @@ make codex-check
 ```sh
 python3 scripts/validate_repo.py
 ```
+
+## Reference
+
+`docs/master-dossier.html` is a visual dossier of the workspace — architecture,
+per-crate line counts, the `hm-gateway` API (including the local `/storage`
+file endpoints), and CI/self-monitoring status. Open it directly in a browser.

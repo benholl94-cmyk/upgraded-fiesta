@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-06T16:11:28.055031+00:00",
+  "generated_at": "2026-07-06T16:47:21.046867+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -62,7 +62,7 @@
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 1741
+      "size_bytes": 2699
     },
     {
       "exists": true,
@@ -110,13 +110,13 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 11738
+      "size_bytes": 12227
     },
     {
       "exists": true,
       "is_file": true,
       "path": "docker-compose.yml",
-      "size_bytes": 644
+      "size_bytes": 741
     },
     {
       "exists": true,
