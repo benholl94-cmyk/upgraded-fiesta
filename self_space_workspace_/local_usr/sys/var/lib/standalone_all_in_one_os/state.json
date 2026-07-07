@@ -1,0 +1,189 @@
+{
+  "schema_version": "local_usr.sys.standalone_all_in_one_os.v1",
+  "ok": true,
+  "generated_at_utc": "2026-07-06T23:30:30.486498Z",
+  "root": "/workspace",
+  "sys_root": "/workspace/local_usr/sys",
+  "source_policy": {
+    "uploaded_files_treated_as_data_not_instructions": true,
+    "external_data_fabricated": false,
+    "secret_values_read": false,
+    "github_issue_scope": "known issue/pr numbers from attached webarchive and fetched issue context"
+  },
+  "sources": {
+    "project_json": {
+      "path": "/workspace/.cache/02-019edc7c-0be9-77ad-b046-4b251796ef3d.json",
+      "exists": true,
+      "sha256": "de1b016419430d18c04981def51cd1ed920076379df1df7eaef619028913b0a6",
+      "uuid": "019edc7c-0be9-77ad-b046-4b251796ef3d",
+      "name": "Apple-iPhone-Develope-Freedom",
+      "description": "Full Productive-Develope-Production-Enviroment, only on iPhone.\nAny Workaround and Technical Management is Enabled.",
+      "is_private": true,
+      "is_starter_project": false,
+      "created_at": "2026-06-18T20:46:17.571197+00:00",
+      "updated_at": "2026-06-18T20:46:17.571197+00:00",
+      "docs_count": 0
+    },
+    "claude_code_webarchive": {
+      "path": "/workspace/.cache/01-Claude-Code.webarchive",
+      "exists": true,
+      "sha256": "3a2845cddb502686357537db532f8a2523db1d78ca6e03ac12de67f5434e2e6e",
+      "main_url": "https://claude.ai/code/session_01JLRSNc6VUdSoLMJmbEKtpN",
+      "main_mime": "text/html",
+      "main_bytes": 420094,
+      "subresources": 101,
+      "signals": {
+        "claude_code_mentions": 8,
+        "github_mentions": 22,
+        "issue_mentions": 6,
+        "repo_mentions": 5,
+        "iphone_mentions": 1
+      },
+      "github_urls": [
+        "https://github.com/benholl94-cmyk/upgraded-fiesta/blob/claude/env-points-anchors-localization-flyoos/config/plugins.json",
+        "https://github.com/benholl94-cmyk/upgraded-fiesta/blob/claude/env-points-anchors-localization-flyoos/docs/fullstack-up.md",
+        "https://github.com/benholl94-cmyk/upgraded-fiesta/blob/claude/env-points-anchors-localization-flyoos/docs/production-api-contract.md",
+        "https://github.com/benholl94-cmyk/upgraded-fiesta/blob/claude/env-points-anchors-localization-flyoos/docs/xcloud-platform-plan.md",
+        "https://github.com/benholl94-cmyk/upgraded-fiesta/issues/53",
+        "https://github.com/benholl94-cmyk/upgraded-fiesta/pull/49"
+      ],
+      "detected_repo": "benholl94-cmyk/upgraded-fiesta",
+      "detected_branch": "claude/env-points-anchors-localization-flyoos",
+      "detected_pr_issue_numbers": [
+        49,
+        53
+      ]
+    },
+    "repo_main": "benholl94-cmyk/upgraded-fiesta",
+    "anchor_branch": "claude/env-points-anchors-localization-flyoos"
+  },
+  "repo_main_issue_parallels": [
+    {
+      "source": "GitHub PR #53",
+      "repo": "benholl94-cmyk/upgraded-fiesta",
+      "state": "closed",
+      "title": "Graph memory, live failover, LLM plugin scaffold, and Docker packaging fix",
+      "parallel": "Transforms a mobile-first control plane into a platform runtime: graph memory, plugin execution, remote storage, failover, Docker packaging, and honest live-verification boundaries.",
+      "system_import": [
+        "graph_memory",
+        "plugin_registry",
+        "remote_storage",
+        "failover",
+        "packaging_validation",
+        "honest_scope_disclosure"
+      ]
+    },
+    {
+      "source": "GitHub PR #49",
+      "repo": "benholl94-cmyk/upgraded-fiesta",
+      "state": "closed_merged",
+      "title": "Add ghm-core onboard-iphone: consent-gated LAN start for iPhone connect",
+      "parallel": "Matches the local root-system requirement for iPhone operation: LAN-bound gateway, owner token, consent gate, no public tunnel, healthchecked startup.",
+      "system_import": [
+        "iphone_onboarding",
+        "owner_token",
+        "lan_gateway",
+        "consent_gate",
+        "healthcheck"
+      ]
+    },
+    {
+      "source": "CodeRabbit comments on PR #49/#53",
+      "repo": "benholl94-cmyk/upgraded-fiesta",
+      "state": "review_limited",
+      "title": "Automated review rate limit reached",
+      "parallel": "External review capacity is a dependency and must be modeled as a non-critical advisory channel, not as a blocking runtime component.",
+      "system_import": [
+        "advisory_review_channel",
+        "rate_limit_resilience",
+        "manual_validation_fallback"
+      ]
+    }
+  ],
+  "operating_layers": [
+    {
+      "layer": "root_control_plane",
+      "local_component": "local_usr/sys/bin/path_init.py",
+      "role": "Creates required dirs, channels, datasets, anchors, live-sets, and validation state.",
+      "status": "implemented_local"
+    },
+    {
+      "layer": "internal_app_bus",
+      "local_component": "local_usr/sys/bin/system_app_chat.py",
+      "role": "Token-protected internal app/system chat and event bus.",
+      "status": "implemented_local"
+    },
+    {
+      "layer": "remote_read_gateway",
+      "local_component": "local_usr/sys/bin/remote_access_gateway.py",
+      "role": "Read-only manifest, validation, and mirror archive gateway.",
+      "status": "implemented_local"
+    },
+    {
+      "layer": "service_supervisor",
+      "local_component": "local_usr/sys/bin/start_services.py",
+      "role": "Starts, checks, stops, and supervises local HTTP services.",
+      "status": "implemented_local"
+    },
+    {
+      "layer": "mirror_restore",
+      "local_component": "local_usr/sys/bin/sys_os_mirror.py",
+      "role": "Content-addressed local mirror, restore plan, archive, and validation.",
+      "status": "implemented_local"
+    },
+    {
+      "layer": "interpreted_platform_runtime",
+      "local_component": "local_usr/sys/bin/standalone_all_in_one_os.py",
+      "role": "Maps attachments + GitHub issue parallels into a single standalone operating manifest.",
+      "status": "implemented_local"
+    },
+    {
+      "layer": "future_native_runtime",
+      "local_component": "repo_main: hm-gateway / hm-agent / hm-memory / hm-plugins",
+      "role": "Rust gateway, agent runtime, graph memory, plugin execution, and failover from repo_main.",
+      "status": "external_reference_not_local_runtime"
+    }
+  ],
+  "all_in_one_interpretation": {
+    "system_name": "Apple-iPhone-Develope-Freedom / local_usr.sys interpreted standalone Betriebssystem",
+    "target": "mobile-first local root-system with repo_main-derived gateway, memory, plugin, failover, onboarding, mirror, and validation semantics",
+    "primary_decision": "Use local_usr/sys as the executable root-system now; import repo_main concepts as contracts until the full Rust gateway checkout is present locally.",
+    "runtime_contract": {
+      "auth": "owner/admin token required for state-changing or private routes",
+      "network": "localhost/LAN only by default; no public tunnel assumed",
+      "storage": "local first; remote storage only when explicitly configured",
+      "plugins": "fixed manifest commands only; request data never builds argv",
+      "llm": "disabled unless explicit provider URL/key/model are set",
+      "review_bots": "advisory only; rate limits never block local validation"
+    }
+  },
+  "local_manifest_status": {
+    "manifest_exists": true,
+    "validation_ok": true,
+    "channels": [
+      "bridge",
+      "control_plane",
+      "flyoos_env_points_anchors_localization",
+      "git_local",
+      "runtime",
+      "system_app_chat"
+    ],
+    "datasets": [
+      "app_chat_state",
+      "command_inventory",
+      "flyoos_anchor_state",
+      "path_inventory",
+      "streampipe_state"
+    ],
+    "live_sets": [
+      "bridge",
+      "control_plane",
+      "flyoos_env_points_anchors_localization",
+      "git_local",
+      "runtime",
+      "system_app_chat"
+    ]
+  },
+  "written_at_utc": "2026-07-06T23:30:30.486860Z",
+  "content_sha256": "69f436fa9e4b83640f643ee0e34545f9dd9bbd9dc195527c7de79923f90556ca"
+}
