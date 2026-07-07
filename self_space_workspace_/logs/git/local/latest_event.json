@@ -1,0 +1,104 @@
+{
+  "schema_version": "streampipe.local.git.v1",
+  "event_uuid": "e1eea436-6987-47e6-b33a-a4b6c19c3e25",
+  "event_type": "git_snapshot",
+  "captured_at_utc": "2026-07-06T23:30:29.268961Z",
+  "repo_root": "/workspace",
+  "data": {
+    "repo_root": "/workspace",
+    "tool": "git",
+    "fallback": {
+      "available": false,
+      "git_dir": "/workspace/.git",
+      "reason": "Git metadata directory exists but HEAD is missing or unreadable",
+      "branch": null,
+      "head": null
+    },
+    "commands": {
+      "rev_parse_root": {
+        "ok": false,
+        "command": [
+          "git",
+          "rev-parse",
+          "--show-toplevel"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      },
+      "branch": {
+        "ok": false,
+        "command": [
+          "git",
+          "branch",
+          "--show-current"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      },
+      "head": {
+        "ok": false,
+        "command": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      },
+      "status_short": {
+        "ok": false,
+        "command": [
+          "git",
+          "status",
+          "--short"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      },
+      "status_porcelain_v1": {
+        "ok": false,
+        "command": [
+          "git",
+          "status",
+          "--porcelain=v1",
+          "--branch"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      },
+      "log_recent": {
+        "ok": false,
+        "command": [
+          "git",
+          "log",
+          "--oneline",
+          "--decorate",
+          "-n",
+          "12"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      },
+      "remote_verbose": {
+        "ok": false,
+        "command": [
+          "git",
+          "remote",
+          "-v"
+        ],
+        "exit_code": 128,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+      }
+    },
+    "mode": "command_failed_no_valid_repo_metadata"
+  },
+  "errors": [],
+  "event_id": "342d1b319aac5b9914b19072ed7c2114a3d789f87cf8dfe8ab796a2148a9464c"
+}
