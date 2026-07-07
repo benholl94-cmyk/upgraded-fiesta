@@ -1,0 +1,11 @@
+{
+  "schema_version": "local_usr.sys.channel.v1",
+  "channel_id": "bridge",
+  "purpose": "Bridge readiness channel without assuming provider credentials",
+  "source": "environment and local config presence",
+  "sink": "local_usr/sys/var/lib/channels/bridge.events.jsonl",
+  "validation": "local_usr/sys/var/lib/live_sets/bridge.live.json",
+  "status": "initialized",
+  "written_at_utc": "2026-07-06T11:12:41.658237Z",
+  "content_sha256": "4bff2a41808e15d1172b6504d66c160e27fda979cd498170371857a00f6606c9"
+}
