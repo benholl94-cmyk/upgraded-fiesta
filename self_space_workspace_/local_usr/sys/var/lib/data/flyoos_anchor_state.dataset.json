@@ -1,0 +1,79 @@
+{
+  "schema_version": "local_usr.sys.dataset.v1",
+  "dataset_id": "flyoos_anchor_state",
+  "records": {
+    "anchor_id": "claude/env-points-anchors-localization-flyoos",
+    "normalized_anchor_id": "flyoos_env_points_anchors_localization",
+    "localization_scope": "workspace-local-standalone",
+    "external_data_fabricated": false,
+    "secret_values_read": false,
+    "env_names_present": [
+      "CODEX_CI",
+      "CODEX_HOME",
+      "CODEX_INTERNAL_ORIGINATOR_OVERRIDE",
+      "CODEX_NETWORK_ALLOW_LOCAL_BINDING",
+      "CODEX_NETWORK_PROXY_ACTIVE",
+      "CODEX_PRIMARY_RUNTIME",
+      "CODEX_PRIMARY_RUNTIME_BUNDLE_VERSION",
+      "CODEX_PRIMARY_RUNTIME_NODE",
+      "CODEX_PRIMARY_RUNTIME_NODE_MODULES",
+      "CODEX_PRIMARY_RUNTIME_PYTHON",
+      "CODEX_PRIMARY_RUNTIME_ROOT",
+      "CODEX_PROXY_CERT",
+      "CODEX_SANDBOX_NETWORK_DISABLED",
+      "CODEX_THREAD_ID",
+      "NODE_PATH",
+      "OPENAI_CLUSTER"
+    ],
+    "local_points": {
+      "workspace_root": "/workspace",
+      "sys_root": "/workspace/local_usr/sys",
+      "bin": "/workspace/local_usr/sys/bin",
+      "channels": "/workspace/local_usr/sys/etc/channels",
+      "datasets": "/workspace/local_usr/sys/etc/datasets",
+      "anchors": "/workspace/local_usr/sys/etc/anchors",
+      "live_sets": "/workspace/local_usr/sys/var/lib/live_sets",
+      "anchor_state": "/workspace/local_usr/sys/var/lib/anchors"
+    },
+    "component_status": {
+      "path_init": {
+        "relative_path": "local_usr/sys/bin/path_init.py",
+        "exists": true
+      },
+      "system_app_chat": {
+        "relative_path": "local_usr/sys/bin/system_app_chat.py",
+        "exists": true
+      },
+      "sys_os_mirror": {
+        "relative_path": "local_usr/sys/bin/sys_os_mirror.py",
+        "exists": true
+      },
+      "remote_access_gateway": {
+        "relative_path": "local_usr/sys/bin/remote_access_gateway.py",
+        "exists": true
+      },
+      "streampipe_cli": {
+        "relative_path": "logs/git/local/streampipe.cli",
+        "exists": true
+      }
+    },
+    "required_channels": [
+      "bridge",
+      "control_plane",
+      "flyoos_env_points_anchors_localization",
+      "git_local",
+      "runtime",
+      "system_app_chat"
+    ],
+    "required_datasets": [
+      "app_chat_state",
+      "command_inventory",
+      "flyoos_anchor_state",
+      "path_inventory",
+      "streampipe_state"
+    ]
+  },
+  "purpose": "Materialized local anchor state for claude/env-points-anchors-localization-flyoos",
+  "written_at_utc": "2026-07-06T23:30:29.352997Z",
+  "content_sha256": "f153942424a4b751f95197bd2aa7a2519017829c1462b532b5ac561e60962911"
+}
