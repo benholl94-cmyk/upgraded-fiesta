@@ -1,0 +1,15 @@
+{
+  "schema_version": "local_usr.sys.path_init.v1",
+  "request_interpretation": {
+    "path_root": "local_usr/sys",
+    "generate_missing_data": true,
+    "generate_missing_channels": true,
+    "if_false": "generate standalone checked self-made live-sets",
+    "external_data_fabricated": false
+  },
+  "entrypoint": "local_usr/sys/bin/path_init.py",
+  "required_validation": [
+    "python3 local_usr/sys/bin/path_init.py",
+    "python3 -m py_compile local_usr/sys/bin/path_init.py"
+  ]
+}
