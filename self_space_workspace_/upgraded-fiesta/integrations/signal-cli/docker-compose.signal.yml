@@ -1,0 +1,22 @@
+services:
+  signal-api:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: upgraded-fiesta-signal-api
+    restart: unless-stopped
+    environment:
+      - MODE=${SIGNAL_CLI_MODE:-json-rpc-native}
+      - AUTO_RECEIVE_SCHEDULE=${SIGNAL_AUTO_RECEIVE_SCHEDULE:-}
+    ports:
+      - "${SIGNAL_BIND_HOST:-127.0.0.1}:${SIGNAL_BIND_PORT:-9922}:8080"
+    volumes:
+      - "${SIGNAL_STATE_DIR:-./data/signal-cli}:/home/.local/share/signal-cli"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/v1/about >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+networks:
+  default:
+    name: upgraded-fiesta-signal
