@@ -1,0 +1,15 @@
+{
+  "schema_version": "local_usr.sys.os_mirror.v1",
+  "ok": true,
+  "validated_at_utc": "2026-07-06T23:30:31.143502Z",
+  "manifest_path": "/workspace/local_usr/sys/var/lib/sys_os_mirror/manifest.json",
+  "restore_plan_path": "/workspace/local_usr/sys/var/lib/sys_os_mirror/restore_plan.json",
+  "archive_path": "/workspace/local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T233031085401Z.tar.gz",
+  "errors": [],
+  "warnings": [
+    "source file changed since mirror: local_usr/sys/var/lib/sys_os_mirror/manifest.json",
+    "source file changed since mirror: local_usr/sys/var/lib/sys_os_mirror/restore_plan.json"
+  ],
+  "written_at_utc": "2026-07-06T23:30:31.143533Z",
+  "content_sha256": "385b76ca0fc6294948610aa52e7539d87dbf11093f8ff1d12c2b2b0caf006130"
+}
