@@ -1,0 +1,173 @@
+{
+  "schema_version": "local_usr.sys.ios_restricted_migration.v1",
+  "plan_id": "ios_autonomous_out_of_app_safe_migration",
+  "generated_at_utc": "2026-07-06T23:30:29.694973Z",
+  "ok": true,
+  "root": "/workspace",
+  "sys_root": "/workspace/local_usr/sys",
+  "requirements": [
+    "autonomous periodic repo validation outside the foreground app",
+    "out-of-app task trigger from Shortcuts or share sheet",
+    "local gateway pairing between iPhone and operator service",
+    "safe migration of Apple kernel iOS sets without modifying kernel or bypassing sandbox",
+    "persistent audit trail and issue classification"
+  ],
+  "issues": [
+    {
+      "requirement": "autonomous periodic repo validation outside the foreground app",
+      "classification": "allowed",
+      "reason": "can be mapped to Apple-platform safe app, extension, background-task, or local-gateway behavior",
+      "blocked_patterns_seen": [],
+      "recommended_mechanisms": [
+        "app_extensions",
+        "bg_app_refresh",
+        "bg_processing",
+        "shortcuts_app_intents"
+      ]
+    },
+    {
+      "requirement": "out-of-app task trigger from Shortcuts or share sheet",
+      "classification": "allowed",
+      "reason": "can be mapped to Apple-platform safe app, extension, background-task, or local-gateway behavior",
+      "blocked_patterns_seen": [],
+      "recommended_mechanisms": [
+        "app_extensions",
+        "shortcuts_app_intents"
+      ]
+    },
+    {
+      "requirement": "local gateway pairing between iPhone and operator service",
+      "classification": "allowed",
+      "reason": "can be mapped to Apple-platform safe app, extension, background-task, or local-gateway behavior",
+      "blocked_patterns_seen": [],
+      "recommended_mechanisms": [
+        "local_lan_gateway"
+      ]
+    },
+    {
+      "requirement": "safe migration of Apple kernel iOS sets without modifying kernel or bypassing sandbox",
+      "classification": "allowed_with_boundary",
+      "reason": "mentions restricted Apple-kernel/iOS terms but explicitly constrains migration to non-modifying, non-bypass behavior",
+      "blocked_patterns_seen": [
+        "\\bkernel\\b"
+      ],
+      "recommended_mechanisms": [
+        "policy_boundary",
+        "local_lan_gateway",
+        "app_groups"
+      ]
+    },
+    {
+      "requirement": "persistent audit trail and issue classification",
+      "classification": "allowed",
+      "reason": "can be mapped to Apple-platform safe app, extension, background-task, or local-gateway behavior",
+      "blocked_patterns_seen": [],
+      "recommended_mechanisms": [
+        "manual_operator_task"
+      ]
+    }
+  ],
+  "safe_mechanisms": [
+    {
+      "id": "bg_app_refresh",
+      "name": "BGAppRefreshTask / SwiftUI appRefresh",
+      "use_for": "short refresh and state update jobs that iOS may schedule opportunistically",
+      "limits": "system scheduled; short runtime; not guaranteed at exact time",
+      "requires": [
+        "background modes capability",
+        "registered task identifier"
+      ]
+    },
+    {
+      "id": "bg_processing",
+      "name": "BGProcessingTask",
+      "use_for": "longer maintenance/data-processing jobs while the device is idle",
+      "limits": "interruptible; requires processing background mode; not a permanent daemon",
+      "requires": [
+        "processing UIBackgroundModes capability",
+        "expiration handler"
+      ]
+    },
+    {
+      "id": "continued_processing",
+      "name": "BGContinuedProcessingTask",
+      "use_for": "user-started work that can continue after the app is backgrounded",
+      "limits": "must start from foreground/user action; progress/cancel behavior required",
+      "requires": [
+        "user action",
+        "progress reporting",
+        "cancellation handling"
+      ]
+    },
+    {
+      "id": "background_urlsession",
+      "name": "Background URLSession",
+      "use_for": "system-managed uploads/downloads that continue when the app is suspended",
+      "limits": "network transfer only; completion delivered by system",
+      "requires": [
+        "URLSession background configuration"
+      ]
+    },
+    {
+      "id": "app_extensions",
+      "name": "App Extensions",
+      "use_for": "Share Sheet, File Provider, Widget, Intent/App Intent, Notification Service, Spotlight indexing",
+      "limits": "separate extension bundles with constrained APIs and lifecycle",
+      "requires": [
+        "extension target",
+        "declared extension point"
+      ]
+    },
+    {
+      "id": "app_groups",
+      "name": "App Groups / shared container",
+      "use_for": "safe data exchange between app and its extensions",
+      "limits": "only within same developer team/app group entitlement",
+      "requires": [
+        "App Group entitlement",
+        "containerized data model"
+      ]
+    },
+    {
+      "id": "shortcuts_app_intents",
+      "name": "Shortcuts / App Intents",
+      "use_for": "user-visible automation entry points outside the app UI",
+      "limits": "user-configured or user-approved automation; no hidden daemon behavior",
+      "requires": [
+        "App Intents definitions",
+        "clear parameter validation"
+      ]
+    },
+    {
+      "id": "local_lan_gateway",
+      "name": "Local/LAN Gateway Pairing",
+      "use_for": "iPhone controls a reachable local service with explicit owner token",
+      "limits": "LAN/local only unless separately deployed behind proper auth/TLS",
+      "requires": [
+        "owner token",
+        "consent gate",
+        "healthcheck",
+        "no public tunnel by default"
+      ]
+    }
+  ],
+  "operating_decision": "Build only app-sandbox-compatible automation. Treat Apple kernel/iOS sets as immutable platform boundaries, not as migration targets.",
+  "execution_profiles": [
+    {
+      "profile": "iphone_local_operator",
+      "entry": "Shortcuts/App Intent or foreground app action",
+      "worker": "BGTaskScheduler or Background URLSession where applicable",
+      "state": "App Group container or local_usr/sys mirror via explicit file export/import",
+      "network": "localhost/LAN gateway with owner token; no public tunnel by default"
+    },
+    {
+      "profile": "codex_cloud_or_repo_actions",
+      "entry": "GitHub Action, issue/PR event, or manual operator command",
+      "worker": "repo validation/build/test scripts",
+      "state": "repository artifacts and validation reports",
+      "network": "provider-managed CI only; secrets through official secret store"
+    }
+  ],
+  "written_at_utc": "2026-07-06T23:30:29.695719Z",
+  "content_sha256": "359d20c9dbdc079dbe4a3c9099990107d34b29103f23acdc21e2cba8ca19d6c5"
+}
