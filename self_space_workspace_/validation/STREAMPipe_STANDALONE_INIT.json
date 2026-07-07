@@ -1,0 +1,18 @@
+{
+  "schema_version": "streampipe.local.git.v1",
+  "artifact": "logs/git/local/streampipe.cli",
+  "mode": "standalone_self_made",
+  "network_required": false,
+  "external_python_packages_required": false,
+  "intended_runtime": [
+    "python3",
+    "iPhone a-Shell",
+    "local Linux/macOS shell"
+  ],
+  "initialization_commands": [
+    "python3 logs/git/local/streampipe.cli init",
+    "python3 logs/git/local/streampipe.cli capture",
+    "python3 logs/git/local/streampipe.cli validate"
+  ],
+  "status": "source_initialized"
+}
