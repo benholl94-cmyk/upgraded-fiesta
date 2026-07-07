@@ -1,0 +1,165 @@
+{
+  "schema_version": "local_usr.sys.live_set.v1",
+  "live_set_id": "git_local",
+  "source": "logs/git/local generated state",
+  "facts": {
+    "cli_exists": true,
+    "manifest": {
+      "schema_version": "streampipe.local.git.v1",
+      "initialized_at_utc": "2026-07-06T23:30:29.166590Z",
+      "root": "/workspace",
+      "state_dir": "/workspace/logs/git/local",
+      "events_path": "/workspace/logs/git/local/events.jsonl",
+      "config_path": "/workspace/logs/git/local/config.json",
+      "command_detected": "git",
+      "python": "3.12.13",
+      "platform": "linux",
+      "capabilities": {
+        "jsonl_events": true,
+        "git_command_capture": true,
+        "direct_git_metadata_fallback": true,
+        "stdlib_only": true
+      }
+    },
+    "validation": {
+      "ok": true,
+      "checked_at_utc": "2026-07-06T11:08:06.110631Z",
+      "root": "/workspace",
+      "state_dir": "/workspace/logs/git/local",
+      "git_command": "git",
+      "events": {
+        "path": "/workspace/logs/git/local/events.jsonl",
+        "valid_event_count": 2
+      },
+      "fallback_git_metadata": {
+        "available": false,
+        "git_dir": "/workspace/.git",
+        "reason": "Git metadata directory exists but HEAD is missing or unreadable",
+        "branch": null,
+        "head": null
+      },
+      "errors": [],
+      "warnings": [
+        "No local .git metadata found; capture will still produce environment events",
+        "Git-compatible command exists but root is not a valid working tree for that command"
+      ]
+    },
+    "events": {
+      "exists": true,
+      "valid_lines": 24,
+      "invalid_lines": 0,
+      "bytes": 46490
+    },
+    "latest_event": {
+      "schema_version": "streampipe.local.git.v1",
+      "event_uuid": "e1eea436-6987-47e6-b33a-a4b6c19c3e25",
+      "event_type": "git_snapshot",
+      "captured_at_utc": "2026-07-06T23:30:29.268961Z",
+      "repo_root": "/workspace",
+      "data": {
+        "repo_root": "/workspace",
+        "tool": "git",
+        "fallback": {
+          "available": false,
+          "git_dir": "/workspace/.git",
+          "reason": "Git metadata directory exists but HEAD is missing or unreadable",
+          "branch": null,
+          "head": null
+        },
+        "commands": {
+          "rev_parse_root": {
+            "ok": false,
+            "command": [
+              "git",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          },
+          "branch": {
+            "ok": false,
+            "command": [
+              "git",
+              "branch",
+              "--show-current"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          },
+          "head": {
+            "ok": false,
+            "command": [
+              "git",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          },
+          "status_short": {
+            "ok": false,
+            "command": [
+              "git",
+              "status",
+              "--short"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          },
+          "status_porcelain_v1": {
+            "ok": false,
+            "command": [
+              "git",
+              "status",
+              "--porcelain=v1",
+              "--branch"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          },
+          "log_recent": {
+            "ok": false,
+            "command": [
+              "git",
+              "log",
+              "--oneline",
+              "--decorate",
+              "-n",
+              "12"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          },
+          "remote_verbose": {
+            "ok": false,
+            "command": [
+              "git",
+              "remote",
+              "-v"
+            ],
+            "exit_code": 128,
+            "stdout": "",
+            "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+          }
+        },
+        "mode": "command_failed_no_valid_repo_metadata"
+      },
+      "errors": [],
+      "event_id": "342d1b319aac5b9914b19072ed7c2114a3d789f87cf8dfe8ab796a2148a9464c"
+    }
+  },
+  "generation_policy": {
+    "generated_when_missing_or_false": true,
+    "external_data_fabricated": false,
+    "source_type": "standalone_self_made_local_observation"
+  },
+  "written_at_utc": "2026-07-06T23:30:29.395915Z",
+  "content_sha256": "7371912e72455595488a69e8b25ff5c635237f12519f87786bfc09026303df88"
+}
