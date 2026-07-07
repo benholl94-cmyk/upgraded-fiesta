@@ -1,0 +1,39 @@
+{
+  "schema_version": "local_usr.sys.system_app_chat.v1",
+  "ok": true,
+  "validated_at_utc": "2026-07-06T23:30:30.962631Z",
+  "root": "/workspace",
+  "db_path": "/workspace/local_usr/sys/var/lib/system_app_chat/chat.sqlite3",
+  "config_path": "/workspace/local_usr/sys/etc/system_app_chat.config.json",
+  "routes": {
+    "/health": "public health check",
+    "/regulation": "local summary of WhatsApp/DMA interoperability boundaries",
+    "/apps": "admin: list registered apps",
+    "/apps/heartbeat": "app: update heartbeat",
+    "/messages": "app: post or poll channel messages",
+    "/metrics": "admin: message and app counts"
+  },
+  "errors": [],
+  "warnings": [],
+  "metrics": {
+    "ok": true,
+    "schema_version": "local_usr.sys.system_app_chat.v1",
+    "time_utc": "2026-07-06T23:30:30.963394Z",
+    "enabled_app_count": 1,
+    "message_count": 16,
+    "channels": [
+      {
+        "channel": "progress",
+        "c": 1,
+        "last_id": 3
+      },
+      {
+        "channel": "system",
+        "c": 15,
+        "last_id": 16
+      }
+    ]
+  },
+  "written_at_utc": "2026-07-06T23:30:30.963428Z",
+  "content_sha256": "003fa8b8f125f1cad90c941239123be53b5ea8eb5f44c606699208972ace8487"
+}
