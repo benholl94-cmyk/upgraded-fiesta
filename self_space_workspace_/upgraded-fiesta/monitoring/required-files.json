@@ -1,0 +1,40 @@
+{
+  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
+  "required_files": [
+    ".codex/setup.sh",
+    ".codex/run-trigger.txt",
+    ".github/workflows/codex-setup.yml",
+    ".github/workflows/rust-ci.yml",
+    "scripts/codex_fullstack_setup.sh",
+    "scripts/codex_fullstack_check.sh",
+    "logs/automated-initialization-run.md",
+    "docs/production-api-contract.md",
+    "docs/ui-control-plane-implementation.md",
+    "ui/public/platform-config.json",
+    "ui/src/endpoint-rotation.ts",
+    "ui/src/main.ts",
+    "ui/src/styles.css",
+    "ui/index.html",
+    "ui/Dockerfile",
+    "crates/hm-gateway/src/main.rs",
+    "docker-compose.yml",
+    "Cargo.toml",
+    "Makefile"
+  ],
+  "required_endpoint_states": [
+    "online",
+    "offline",
+    "degraded",
+    "zero_staked",
+    "unknown"
+  ],
+  "expected_routes": [
+    "GET /health",
+    "GET /api/health",
+    "GET /gateway/health",
+    "POST /tasks",
+    "POST /api/tasks",
+    "POST /gateway/tasks",
+    "GET /tasks"
+  ]
+}
