@@ -1,0 +1,11 @@
+{
+  "schema_version": "local_usr.sys.standalone_all_in_one_os.v1",
+  "ok": true,
+  "validated_at_utc": "2026-07-06T23:30:30.602003Z",
+  "state_path": "/workspace/local_usr/sys/var/lib/standalone_all_in_one_os/state.json",
+  "report_path": "/workspace/docs/STANDALONE_ALL_IN_ONE_OS_INTERPRETATION.md",
+  "errors": [],
+  "warnings": [],
+  "written_at_utc": "2026-07-06T23:30:30.602092Z",
+  "content_sha256": "065bb2ffc0fff8fc1cead5091a37022a8b3040625c205c373942ddeeb1cab234"
+}
