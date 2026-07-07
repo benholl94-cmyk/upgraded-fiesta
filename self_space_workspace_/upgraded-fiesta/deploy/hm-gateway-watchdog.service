@@ -1,0 +1,33 @@
+# Runs scripts/hm_gateway_watchdog.py once. Triggered by
+# hm-gateway-watchdog.timer; do not `systemctl enable` this unit directly.
+#
+# Install alongside hm-gateway.service:
+#   sudo install -m 0755 scripts/hm_gateway_watchdog.py /opt/hm-gateway/hm_gateway_watchdog.py
+#   sudo install -m 0644 deploy/hm-gateway-watchdog.service /etc/systemd/system/
+#   sudo install -m 0644 deploy/hm-gateway-watchdog.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hm-gateway-watchdog.timer
+
+[Unit]
+Description=hm-gateway health watchdog (one-shot)
+After=hm-gateway.service
+Requisite=hm-gateway.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/hm-gateway.env
+Environment=HM_WATCHDOG_HEALTH_URL=http://127.0.0.1:8080/health
+Environment=HM_WATCHDOG_UNIT=hm-gateway.service
+ExecStart=/usr/bin/python3 /opt/hm-gateway/hm_gateway_watchdog.py
+
+# The watchdog itself needs permission to restart hm-gateway.service, so it
+# runs as root -- unlike hm-gateway.service, which never should. It makes
+# no network calls except the local health check and has no filesystem
+# writes at all, so it is still tightly sandboxed.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictNamespaces=true
