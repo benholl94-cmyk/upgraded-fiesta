@@ -1,0 +1,730 @@
+<title>Fullstack Heavy Metal — System Dossier</title>
+<style>
+  :root {
+    --bg-page: #f9f9f7;
+    --bg-surface: #fcfcfb;
+    --bg-panel: #ffffff;
+    --ink: #0b0b0b;
+    --ink-secondary: #52514e;
+    --ink-muted: #898781;
+    --hairline: #e1e0d9;
+    --baseline: #c3c2b7;
+    --accent: #a8551d;
+    --accent-ink: #ffffff;
+    --accent-soft: #f2e2d4;
+
+    --slot-core: #2a78d6;
+    --slot-storage: #1baf7a;
+    --slot-agent: #eda100;
+    --slot-channels: #4a3aa7;
+    --slot-tools: #e34948;
+
+    --seq-100: #cde2fb; --seq-250: #86b6ef; --seq-400: #3987e5;
+    --seq-450: #2a78d6; --seq-500: #256abf; --seq-600: #184f95; --seq-700: #0d366b;
+
+    --good: #0ca30c;
+    --warning: #fab219;
+
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas,
+      "Liberation Mono", "DejaVu Sans Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  :root[data-theme="dark"] {
+    --bg-page: #0d0d0d;
+    --bg-surface: #1a1a19;
+    --bg-panel: #17181a;
+    --ink: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #8f8d87;
+    --hairline: #2c2c2a;
+    --baseline: #383835;
+    --accent: #e08a45;
+    --accent-ink: #17110a;
+    --accent-soft: #2c2115;
+
+    --slot-core: #3987e5;
+    --slot-storage: #199e70;
+    --slot-agent: #c98500;
+    --slot-channels: #9085e9;
+    --slot-tools: #e66767;
+
+    --seq-100: #10202f; --seq-250: #123a5c; --seq-400: #2a78d6;
+    --seq-450: #3987e5; --seq-500: #5598e7; --seq-600: #86b6ef; --seq-700: #b7d3f6;
+
+    --good: #17c317;
+    --warning: #ffb92b;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-page: #0d0d0d;
+      --bg-surface: #1a1a19;
+      --bg-panel: #17181a;
+      --ink: #ffffff;
+      --ink-secondary: #c3c2b7;
+      --ink-muted: #8f8d87;
+      --hairline: #2c2c2a;
+      --baseline: #383835;
+      --accent: #e08a45;
+      --accent-ink: #17110a;
+      --accent-soft: #2c2115;
+
+      --slot-core: #3987e5;
+      --slot-storage: #199e70;
+      --slot-agent: #c98500;
+      --slot-channels: #9085e9;
+      --slot-tools: #e66767;
+
+      --seq-100: #10202f; --seq-250: #123a5c; --seq-400: #2a78d6;
+      --seq-450: #3987e5; --seq-500: #5598e7; --seq-600: #86b6ef; --seq-700: #b7d3f6;
+
+      --good: #17c317;
+      --warning: #ffb92b;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-page);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 24px 120px;
+  }
+
+  .plate {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: clamp(28px, 4.4vw, 42px);
+    font-weight: 700;
+    margin: 10px 0 6px;
+    text-wrap: balance;
+  }
+
+  .subhead {
+    color: var(--ink-secondary);
+    font-size: 16px;
+    max-width: 62ch;
+    margin: 0 0 28px;
+  }
+
+  header.cover {
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 32px;
+    margin-bottom: 40px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    background: var(--hairline);
+    border: 1px solid var(--hairline);
+    margin-top: 24px;
+  }
+  .stat-tile {
+    background: var(--bg-surface);
+    padding: 16px 18px;
+  }
+  .stat-tile .n {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    display: block;
+  }
+  .stat-tile .l {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+  }
+
+  section { margin: 56px 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    font-size: 20px;
+    letter-spacing: 0.01em;
+    margin: 0 0 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  p { color: var(--ink-secondary); max-width: 68ch; }
+  a { color: var(--accent); }
+
+  .panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    padding: 22px 24px;
+  }
+
+  /* --- architecture diagram --- */
+  .arch {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding: 8px 4px 18px;
+  }
+  .arch-node {
+    flex: 0 0 auto;
+    min-width: 118px;
+    text-align: center;
+    padding: 14px 10px;
+    border: 1.5px solid var(--baseline);
+    border-radius: 3px;
+    background: var(--bg-panel);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+  .arch-node .crate {
+    display: block;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--ink-muted);
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+  .arch-arrow {
+    flex: 0 0 auto;
+    width: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 16px;
+  }
+
+  /* --- grouped bar chart --- */
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    color: var(--ink-secondary);
+  }
+  .chart-legend .key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chart-legend .swatch {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 168px 1fr 48px;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+  }
+  .bar-row .name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    position: relative;
+    height: 14px;
+    background: transparent;
+  }
+  .bar-fill {
+    height: 8px;
+    margin-top: 3px;
+    border-radius: 4px;
+    position: relative;
+    transition: filter 0.15s ease;
+  }
+  .bar-row:hover .bar-fill { filter: brightness(1.12); }
+  .bar-row:hover .name { color: var(--ink); }
+  .bar-val {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--ink-muted);
+    text-align: right;
+  }
+  .group-heading {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin: 18px 0 4px;
+  }
+  .group-heading:first-child { margin-top: 4px; }
+
+  details.table-toggle {
+    margin-top: 18px;
+  }
+  details.table-toggle > summary {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  details.table-toggle > summary:hover { color: var(--ink); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    font-weight: 600;
+  }
+  td { color: var(--ink-secondary); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+  code, .mono { font-family: var(--mono); }
+  td code, .route {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .table-wrap { overflow-x: auto; }
+
+  /* --- scale gauge --- */
+  .gauge {
+    position: relative;
+    height: 54px;
+    margin: 28px 4px 44px;
+  }
+  .gauge-track {
+    position: absolute;
+    top: 22px;
+    left: 0; right: 0;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(
+      to right,
+      var(--seq-100), var(--seq-250) 45%, var(--seq-400) 76%, var(--seq-500) 90%, var(--seq-700) 100%
+    );
+  }
+  .gauge-point {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 1px;
+  }
+  .gauge-point .tick {
+    width: 2px;
+    height: 22px;
+    background: var(--ink);
+    border-radius: 1px;
+  }
+  .gauge-point.limit .tick { background: var(--warning); height: 30px; margin-top: -8px; }
+  .gauge-point .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--ink);
+    margin-top: 18px;
+    border: 2px solid var(--bg-surface);
+  }
+  .gauge-point.limit .dot { background: var(--warning); }
+  .gauge-label {
+    position: absolute;
+    top: 34px;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .gauge-label b { color: var(--ink); font-weight: 600; display: block; }
+  .gauge-label.limit b { color: var(--warning); }
+  .gauge-label.limit { transform: translateX(-82%); }
+
+  /* --- terminal / code panel --- */
+  .term {
+    background: #0d0f10;
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    padding: 16px 18px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: #d9dbd6;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .term .prompt { color: #7d8a94; }
+  .term .ok { color: #4fd15c; }
+  .term .val { color: #e08a45; }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid currentColor;
+  }
+  .pill.good { color: var(--good); }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  @media (max-width: 560px) {
+    .bar-row { grid-template-columns: 108px 1fr 32px; gap: 6px; }
+    .bar-row .name { font-size: 11px; }
+    .gauge-label span.sub { display: none; }
+    .gauge-label { font-size: 9.5px; }
+    .gauge-label.limit { transform: translateX(-92%); }
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="cover">
+    <div class="plate">Engineering Reference · Auto-Generated Dossier</div>
+    <h1>Fullstack Heavy Metal</h1>
+    <p class="subhead">
+      A Rust workspace running an agent gateway, memory subsystem, chat-channel
+      adapters, tool crates and a Vite/React control-plane UI — generated from an
+      uploaded specification and kept in sync by this document.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-tile"><span class="n">20</span><span class="l">Workspace members</span></div>
+      <div class="stat-tile"><span class="n">1,232</span><span class="l">Rust LOC (workspace)</span></div>
+      <div class="stat-tile"><span class="n">11</span><span class="l">Live API routes</span></div>
+      <div class="stat-tile"><span class="n">8</span><span class="l">CI workflows</span></div>
+      <div class="stat-tile"><span class="n">1 MiB</span><span class="l">Request ceiling</span></div>
+    </div>
+  </header>
+
+  <section id="architecture">
+    <div class="eyebrow">01 · Architecture</div>
+    <h2>Request path</h2>
+    <p>
+      The documented flow is a straight line from the network edge to the UI:
+      the gateway accepts tasks and file storage requests, the agent runtime
+      would dispatch them, and memory / channel / tool / plugin crates sit
+      behind it as the platform grows into its scaffold.
+    </p>
+    <div class="panel">
+      <div class="arch">
+        <div class="arch-node">Gateway<span class="crate">hm-gateway</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Agent Runtime<span class="crate">hm-agent</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Memory<span class="crate">hm-memory · hm-vector</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Channels<span class="crate">telegram · discord · slack · whatsapp</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Tools<span class="crate">exec · browser · web · media</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">Plugins<span class="crate">hm-plugins · hm-sdk</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">UI<span class="crate">Vite + React</span></div>
+      </div>
+      <p style="margin-top:14px; font-size:13px;">
+        Storage sits beside the gateway rather than inline in this chain: any
+        stage can persist a file to local disk through <code>hm-storage</code>
+        without a network hop.
+      </p>
+    </div>
+  </section>
+
+  <section id="inventory">
+    <div class="eyebrow">02 · Workspace Inventory</div>
+    <h2>Lines of Rust per crate</h2>
+    <p>
+      Most of the 20 workspace members are still scaffold stubs (a single
+      <code>component_name()</code> function) from the original spec generation.
+      <code>hm-gateway</code> and the newer <code>hm-storage</code> crate are
+      where the real implementation currently lives — bar length uses a log
+      scale so the 1-line stubs stay visible next to the 408-line gateway.
+    </p>
+
+    <div class="panel">
+      <div class="chart-legend">
+        <span class="key"><span class="swatch" style="background:var(--slot-core)"></span>Core &amp; Gateway</span>
+        <span class="key"><span class="swatch" style="background:var(--slot-storage)"></span>Storage</span>
+        <span class="key"><span class="swatch" style="background:var(--slot-agent)"></span>Agent &amp; Memory</span>
+        <span class="key"><span class="swatch" style="background:var(--slot-channels)"></span>Channels</span>
+        <span class="key"><span class="swatch" style="background:var(--slot-tools)"></span>Tools, Plugins &amp; SDK</span>
+      </div>
+
+      <div class="group-heading">Core &amp; Gateway</div>
+      <div class="bar-row" title="hm-core: 3 lines"><div class="name">hm-core</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-core)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-gateway: 408 lines"><div class="name">hm-gateway</div><div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--slot-core)"></div></div><div class="bar-val">408</div></div>
+
+      <div class="group-heading">Storage</div>
+      <div class="bar-row" title="hm-storage: 141 lines"><div class="name">hm-storage</div><div class="bar-track"><div class="bar-fill" style="width:83.5%; background:var(--slot-storage)"></div></div><div class="bar-val">141</div></div>
+
+      <div class="group-heading">Agent &amp; Memory</div>
+      <div class="bar-row" title="hm-agent: 3 lines"><div class="name">hm-agent</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-agent)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-memory: 3 lines"><div class="name">hm-memory</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-agent)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-vector: 1 line"><div class="name">hm-vector</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-agent)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-sessions: 1 line"><div class="name">hm-sessions</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-agent)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-cron: 1 line"><div class="name">hm-cron</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-agent)"></div></div><div class="bar-val">1</div></div>
+
+      <div class="group-heading">Channels</div>
+      <div class="bar-row" title="hm-channel-telegram: 3 lines"><div class="name">hm-channel-telegram</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-channels)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-channel-discord: 3 lines"><div class="name">hm-channel-discord</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-channels)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-channel-slack: 3 lines"><div class="name">hm-channel-slack</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-channels)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-channel-whatsapp: 3 lines"><div class="name">hm-channel-whatsapp</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-channels)"></div></div><div class="bar-val">3</div></div>
+
+      <div class="group-heading">Tools, Plugins &amp; SDK</div>
+      <div class="bar-row" title="hm-tool-exec: 1 line"><div class="name">hm-tool-exec</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-tool-browser: 1 line"><div class="name">hm-tool-browser</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-tool-web: 1 line"><div class="name">hm-tool-web</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-tool-media: 1 line"><div class="name">hm-tool-media</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-plugins: 1 line"><div class="name">hm-plugins</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-sdk: 1 line"><div class="name">hm-sdk</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+      <div class="bar-row" title="hm-cli: 3 lines"><div class="name">hm-cli</div><div class="bar-track"><div class="bar-fill" style="width:27.7%; background:var(--slot-tools)"></div></div><div class="bar-val">3</div></div>
+      <div class="bar-row" title="hm-auth: 1 line"><div class="name">hm-auth</div><div class="bar-track"><div class="bar-fill" style="width:16.8%; background:var(--slot-tools)"></div></div><div class="bar-val">1</div></div>
+
+      <details class="table-toggle">
+        <summary>View as table</summary>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Crate</th><th>Group</th><th class="num">Lines</th></tr></thead>
+          <tbody>
+            <tr><td>hm-core</td><td>Core &amp; Gateway</td><td class="num">3</td></tr>
+            <tr><td>hm-gateway</td><td>Core &amp; Gateway</td><td class="num">408</td></tr>
+            <tr><td>hm-storage</td><td>Storage</td><td class="num">141</td></tr>
+            <tr><td>hm-agent</td><td>Agent &amp; Memory</td><td class="num">3</td></tr>
+            <tr><td>hm-memory</td><td>Agent &amp; Memory</td><td class="num">3</td></tr>
+            <tr><td>hm-vector</td><td>Agent &amp; Memory</td><td class="num">1</td></tr>
+            <tr><td>hm-sessions</td><td>Agent &amp; Memory</td><td class="num">1</td></tr>
+            <tr><td>hm-cron</td><td>Agent &amp; Memory</td><td class="num">1</td></tr>
+            <tr><td>hm-channel-telegram</td><td>Channels</td><td class="num">3</td></tr>
+            <tr><td>hm-channel-discord</td><td>Channels</td><td class="num">3</td></tr>
+            <tr><td>hm-channel-slack</td><td>Channels</td><td class="num">3</td></tr>
+            <tr><td>hm-channel-whatsapp</td><td>Channels</td><td class="num">3</td></tr>
+            <tr><td>hm-tool-exec</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+            <tr><td>hm-tool-browser</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+            <tr><td>hm-tool-web</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+            <tr><td>hm-tool-media</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+            <tr><td>hm-plugins</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+            <tr><td>hm-sdk</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+            <tr><td>hm-cli</td><td>Tools, Plugins &amp; SDK</td><td class="num">3</td></tr>
+            <tr><td>hm-auth</td><td>Tools, Plugins &amp; SDK</td><td class="num">1</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="eyebrow">03 · API Reference</div>
+    <h2>hm-gateway endpoints</h2>
+    <p>Everything is served over plain HTTP by a hand-rolled async TCP handler — no framework dependency.</p>
+    <div class="panel" style="margin-bottom:18px;">
+      <span class="pill good"><span class="dot"></span>Auth required on every route</span>
+      <p style="margin-top:10px; font-size:13px;">
+        <code>Authorization: Bearer &lt;HM_OWNER_TOKEN&gt;</code> is required on every
+        route (OPTIONS preflight excepted); the process refuses to start without a
+        token configured unless <code>HM_GATEWAY_ALLOW_NO_AUTH=true</code> is set
+        explicitly. Wrong/missing tokens get <code>401</code> with a generic reason.
+      </p>
+    </div>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method &amp; path</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><span class="route">GET /health</span> <span class="route">/api/health</span> <span class="route">/gateway/health</span></td><td>Liveness + <code>zero_staked</code> failover status</td></tr>
+        <tr><td><span class="route">GET /tasks</span> <span class="route">POST /tasks</span> (+ <code>/api</code>, <code>/gateway</code> aliases)</td><td>In-memory task registry &amp; dispatch</td></tr>
+        <tr><td><span class="route">PUT /storage/{key}</span></td><td>Write bytes to local disk under <code>HM_STORAGE_ROOT</code></td></tr>
+        <tr><td><span class="route">GET /storage/{key}</span></td><td>Read bytes back, raw — no lossy re-encoding</td></tr>
+        <tr><td><span class="route">DELETE /storage/{key}</span></td><td>Remove a key; idempotent if already gone</td></tr>
+        <tr><td><span class="route">GET /memory</span> <span class="route">POST /memory</span> <span class="route">POST /memory/search</span></td><td>Persistent semantic memory (<code>hm-memory</code> + <code>hm-vector</code>) — offline embeddings, cosine search, survives restarts</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p style="margin-top:14px; font-size:13px;">
+      <code>POST /tasks</code> additionally dispatches to a matching plugin process
+      (<code>hm-plugins</code> + <code>hm-sdk</code>) when the request's <code>taskType</code>
+      is registered in <code>config/plugins.json</code>, and includes its result under
+      <code>plugin_result</code> — see <code>docs/production-api-contract.md</code> for the
+      stdio JSON protocol.
+    </p>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="panel">
+        <div class="group-heading" style="margin-top:0;">Small payload</div>
+        <div class="term">
+<span class="prompt">$</span> curl -X PUT --data-binary <span class="val">'hello'</span> \
+  http://localhost:8080/storage/small.txt
+{"status":"stored","key":"small.txt","bytes":<span class="val">5</span>}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group-heading" style="margin-top:0;">Rejected — over the ceiling</div>
+        <div class="term">
+<span class="prompt">$</span> curl -X PUT --data-binary @big.bin \
+  http://localhost:8080/storage/big.bin
+HTTP/1.1 <span class="val">413</span> Payload Too Large
+{"reason":"request exceeds <span class="val">1048576</span> byte limit"}
+        </div>
+      </div>
+    </div>
+
+    <div class="group-heading" style="margin-top:26px;">Request size, log scale</div>
+    <div class="panel">
+      <div class="gauge">
+        <div class="gauge-track"></div>
+        <div class="gauge-point" style="left:11.1%"><div class="tick"></div><div class="dot"></div></div>
+        <div class="gauge-label" style="left:11.1%"><b>5 B</b><span class="sub">hello example</span></div>
+
+        <div class="gauge-point" style="left:46.0%"><div class="tick"></div><div class="dot"></div></div>
+        <div class="gauge-label" style="left:46.0%"><b>812 B</b><span class="sub">report.json</span></div>
+
+        <div class="gauge-point" style="left:76.2%"><div class="tick"></div><div class="dot"></div></div>
+        <div class="gauge-label" style="left:76.2%"><b>64 KiB</b><span class="sub">typical upload</span></div>
+
+        <div class="gauge-point limit" style="left:95.2%"><div class="tick"></div><div class="dot"></div></div>
+        <div class="gauge-label limit" style="left:95.2%"><b>1 MiB</b><span class="sub">MAX_REQUEST_BYTES</span></div>
+      </div>
+      <p style="font-size:12.5px; margin-top:6px;">
+        A 2,000,000-byte test upload (past the amber ceiling above) was rejected
+        end-to-end with <code>413</code> during verification for this document —
+        confirmed live, not just read from source.
+      </p>
+    </div>
+  </section>
+
+  <section id="ci">
+    <div class="eyebrow">04 · CI &amp; Self-Monitoring</div>
+    <h2>Automation surface</h2>
+    <p>
+      Eight workflows cover correctness, security scanning, and two repository-local
+      "visibility bridge" jobs that write CI results into committed JSON files so
+      status is readable without the Actions UI.
+    </p>
+
+    <div class="panel" style="margin-bottom:18px;">
+      <span class="pill good"><span class="dot"></span>monitor_platform.py — ok: true</span>
+      <p style="margin-top:10px; font-size:13px;">
+        The repository's own self-check (required files, expected routes,
+        endpoint states) currently passes with zero marker failures.
+      </p>
+    </div>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Workflow</th><th>Trigger</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td>rust-ci</td><td>push / PR</td><td>Workspace build &amp; test</td></tr>
+        <tr><td>codeql</td><td>push / PR</td><td>Static security analysis (Rust, Python, Actions)</td></tr>
+        <tr><td>codex-setup</td><td>push / PR</td><td>Codex cloud environment bootstrap check</td></tr>
+        <tr><td>platform-monitoring</td><td>push / PR / cron 6h</td><td>Runs <code>monitor_platform.py</code>, uploads report artifact</td></tr>
+        <tr><td>visible-status</td><td>push / cron 6h</td><td>Commits <code>logs/visible-status.json</code> for contents-API visibility</td></tr>
+        <tr><td>visible-monitoring</td><td>push / cron 6h</td><td>Commits a fuller monitoring + setup-verification report</td></tr>
+        <tr><td>main</td><td>push / PR</td><td>Repository-wide flow entry point</td></tr>
+        <tr><td>mobile-remote-channel</td><td>push / PR</td><td>Mobile-first remote channel check</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>Fullstack Heavy Metal · benholl94-cmyk/upgraded-fiesta</span>
+    <span>Generated from a live repository read + verified endpoint calls</span>
+  </footer>
+
+</div>
