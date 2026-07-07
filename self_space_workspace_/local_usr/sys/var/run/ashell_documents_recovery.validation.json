@@ -1,0 +1,316 @@
+{
+  "schema_version": "local_usr.sys.ashell_documents_recovery.v1",
+  "ok": true,
+  "diagnosed_at_utc": "2026-07-07T08:15:05.747353Z",
+  "facts": {
+    "current_directory": "/workspace",
+    "python3": {
+      "command": "python3",
+      "available": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "probe": {
+        "command": [
+          "python3",
+          "--version"
+        ],
+        "cwd": "/workspace",
+        "ok": true,
+        "exit_code": 0,
+        "stdout": "Python 3.12.13",
+        "stderr": ""
+      }
+    },
+    "lg2": {
+      "command": "lg2",
+      "available": false,
+      "path": null
+    },
+    "codex": {
+      "command": "codex",
+      "available": false,
+      "path": null
+    },
+    "observed_failure_class": "documents_not_project_root_and_codex_missing"
+  },
+  "location": {
+    "start": "/workspace",
+    "best": {
+      "path": "/workspace",
+      "exists": true,
+      "is_dir": true,
+      "score": 3,
+      "git_present": true,
+      "has_mobile_scripts": false,
+      "markers": {
+        "scripts/mobile_operator.py": false,
+        "scripts/validate_mobile_iphone_platform.py": false,
+        "README.md": false,
+        "README.ashell": false,
+        "README.ashell.md": false,
+        "local_usr/sys/bin/path_init.py": true
+      }
+    },
+    "candidates": [
+      {
+        "path": "/workspace",
+        "exists": true,
+        "is_dir": true,
+        "score": 3,
+        "git_present": true,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": true
+        }
+      },
+      {
+        "path": "/workspace/generated_heavy_metal",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/workspace/generated_heavy_metal.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/workspace/upgraded-fiesta",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/workspace/upgraded-fiesta.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/workspace/Developer/generated_heavy_metal.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/workspace/Developer/upgraded-fiesta.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/root/Documents/Developer/generated_heavy_metal.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/root/Documents/Developer/upgraded-fiesta.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/root/Documents/generated_heavy_metal.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      },
+      {
+        "path": "/root/Documents/upgraded-fiesta.git",
+        "exists": false,
+        "is_dir": false,
+        "score": 0,
+        "git_present": false,
+        "has_mobile_scripts": false,
+        "markers": {
+          "scripts/mobile_operator.py": false,
+          "scripts/validate_mobile_iphone_platform.py": false,
+          "README.md": false,
+          "README.ashell": false,
+          "README.ashell.md": false,
+          "local_usr/sys/bin/path_init.py": false
+        }
+      }
+    ]
+  },
+  "selected_project_root": "/workspace",
+  "shims": {
+    "shim_dir": "/workspace/local_usr/sys/var/lib/ashell_documents_recovery/ashell_cmds",
+    "created": [
+      "/workspace/local_usr/sys/var/lib/ashell_documents_recovery/ashell_cmds/codex"
+    ],
+    "env": {
+      "schema_version": "local_usr.sys.ashell_documents_recovery.v1",
+      "shim_dir": "/workspace/local_usr/sys/var/lib/ashell_documents_recovery/ashell_cmds",
+      "project_root": "/workspace",
+      "path_hint": "export PATH=/workspace/local_usr/sys/var/lib/ashell_documents_recovery/ashell_cmds:$PATH",
+      "codex_fallback_created": true
+    }
+  },
+  "validation": {
+    "ok": false,
+    "steps": [
+      {
+        "command": [
+          "python3",
+          "scripts/validate_mobile_iphone_platform.py"
+        ],
+        "cwd": "/workspace",
+        "ok": false,
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "missing script: scripts/validate_mobile_iphone_platform.py"
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/mobile_operator.py",
+          "self-test"
+        ],
+        "cwd": "/workspace",
+        "ok": false,
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "missing script: scripts/mobile_operator.py"
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/mobile_operator.py",
+          "validate"
+        ],
+        "cwd": "/workspace",
+        "ok": false,
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "missing script: scripts/mobile_operator.py"
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/mobile_operator.py",
+          "audit"
+        ],
+        "cwd": "/workspace",
+        "ok": false,
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "missing script: scripts/mobile_operator.py"
+      },
+      {
+        "command": [
+          "lg2",
+          "status"
+        ],
+        "cwd": "/workspace",
+        "ok": false,
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "command not found"
+      }
+    ]
+  },
+  "next_commands": [
+    "python3 local_usr/sys/bin/ashell_documents_recovery.py diagnose",
+    "python3 local_usr/sys/bin/ashell_documents_recovery.py install-shims",
+    "python3 local_usr/sys/bin/ashell_documents_recovery.py validate"
+  ],
+  "written_at_utc": "2026-07-07T08:15:05.753898Z",
+  "content_sha256": "6e9b7deb2b2ebe0045bf263fc4712e38dee952c0dc8fbf995d5bfecb2ef7354a"
+}
