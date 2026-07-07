@@ -1,7 +1,7 @@
 {
   "actor": "benholl94-cmyk",
   "connector_visibility_workaround": true,
-  "generated_at": "2026-07-07T19:27:10.707732+00:00",
+  "generated_at": "2026-07-07T19:28:24.279607+00:00",
   "marker_failures": [],
   "missing_files": [],
   "monitor_ok": true,
@@ -19,9 +19,9 @@
   },
   "ref": "refs/heads/main",
   "repository": "benholl94-cmyk/upgraded-fiesta",
-  "run_id": "28866984689",
-  "run_number": "428",
-  "sha": "b8c17ac7f463978a4d6fb2de8b7decae3625245e",
+  "run_id": "28866985867",
+  "run_number": "429",
+  "sha": "e633f9fa71d416fb9b412de6d99742c3715a4afe",
   "source": "scripts/write_visible_status.py",
   "status_file_visible_via_contents_api": true,
   "workflow": "visible-status"
