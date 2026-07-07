@@ -1,0 +1,481 @@
+#!/usr/bin/env python3
+"""
+Standalone local git/log stream CLI.
+
+Purpose:
+  - Run on constrained mobile shells such as iPhone a-Shell.
+  - Avoid external Python packages.
+  - Use git or lg2 when available.
+  - Fall back to direct .git metadata for basic identity when no git binary works.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as _dt
+import hashlib
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import uuid
+from typing import Any
+
+
+SCHEMA_VERSION = "streampipe.local.git.v1"
+DEFAULT_STATE_DIR = pathlib.Path("logs/git/local")
+DEFAULT_EVENTS_FILE = "events.jsonl"
+DEFAULT_MANIFEST_FILE = "manifest.json"
+DEFAULT_CONFIG_FILE = "config.json"
+DEFAULT_EXPORT_FILE = "snapshot.json"
+
+
+class CliError(RuntimeError):
+    """Expected operational failure with a clear user-facing message."""
+
+
+def utc_now() -> str:
+    return _dt.datetime.now(_dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def stable_json(data: Any) -> str:
+    return json.dumps(data, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
+def sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def read_text(path: pathlib.Path) -> str | None:
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+
+
+def write_json(path: pathlib.Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def append_jsonl(path: pathlib.Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(data, ensure_ascii=True, sort_keys=True) + "\n")
+
+
+def load_json(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as exc:
+        raise CliError(f"Invalid JSON file: {path}: {exc}") from exc
+
+
+def resolve_state_dir(root: pathlib.Path, state_dir: str | None) -> pathlib.Path:
+    selected = pathlib.Path(state_dir) if state_dir else DEFAULT_STATE_DIR
+    if selected.is_absolute():
+        return selected
+    return root / selected
+
+
+def find_repo_root(start: pathlib.Path) -> pathlib.Path:
+    current = start.resolve()
+    for candidate in (current, *current.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return current
+
+
+def discover_command(preferred: str | None = None) -> str | None:
+    candidates: list[str] = []
+    if preferred:
+        candidates.append(preferred)
+    env_value = os.environ.get("STREAMPipe_GIT") or os.environ.get("STREAMPIPE_GIT")
+    if env_value:
+        candidates.append(env_value)
+    candidates.extend(["git", "lg2"])
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if shutil.which(candidate):
+            return candidate
+    return None
+
+
+def run_command(command: str, args: list[str], cwd: pathlib.Path, timeout: int) -> dict[str, Any]:
+    invocation = [command, *args]
+    try:
+        completed = subprocess.run(
+            invocation,
+            cwd=str(cwd),
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+            env={**os.environ, "LC_ALL": "C", "LANG": "C"},
+        )
+    except FileNotFoundError:
+        return {
+            "ok": False,
+            "command": invocation,
+            "exit_code": None,
+            "stdout": "",
+            "stderr": f"Command not found: {command}",
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "ok": False,
+            "command": invocation,
+            "exit_code": None,
+            "stdout": exc.stdout or "",
+            "stderr": f"Command timed out after {timeout}s",
+        }
+
+    return {
+        "ok": completed.returncode == 0,
+        "command": invocation,
+        "exit_code": completed.returncode,
+        "stdout": completed.stdout.strip(),
+        "stderr": completed.stderr.strip(),
+    }
+
+
+def parse_gitdir(root: pathlib.Path) -> pathlib.Path | None:
+    git_path = root / ".git"
+    if git_path.is_dir():
+        return git_path
+    content = read_text(git_path)
+    if content and content.startswith("gitdir:"):
+        value = content.split(":", 1)[1].strip()
+        candidate = pathlib.Path(value)
+        if not candidate.is_absolute():
+            candidate = root / candidate
+        return candidate
+    return None
+
+
+def fallback_git_metadata(root: pathlib.Path) -> dict[str, Any]:
+    git_dir = parse_gitdir(root)
+    if not git_dir:
+        return {
+            "available": False,
+            "reason": "No .git directory or gitdir pointer found",
+            "branch": None,
+            "head": None,
+        }
+
+    head_text = read_text(git_dir / "HEAD")
+    if not head_text:
+        return {
+            "available": False,
+            "git_dir": str(git_dir),
+            "reason": "Git metadata directory exists but HEAD is missing or unreadable",
+            "branch": None,
+            "head": None,
+        }
+
+    branch = None
+    head = head_text
+
+    if head_text and head_text.startswith("ref:"):
+        ref_name = head_text.split(":", 1)[1].strip()
+        branch = ref_name.removeprefix("refs/heads/")
+        ref_value = read_text(git_dir / ref_name)
+        if ref_value:
+            head = ref_value
+        elif (git_dir / "packed-refs").exists():
+            packed = read_text(git_dir / "packed-refs") or ""
+            for line in packed.splitlines():
+                if line.startswith("#") or line.startswith("^") or not line.strip():
+                    continue
+                parts = line.split(" ", 1)
+                if len(parts) == 2 and parts[1] == ref_name:
+                    head = parts[0]
+                    break
+
+    return {
+        "available": True,
+        "git_dir": str(git_dir),
+        "branch": branch,
+        "head": head,
+    }
+
+
+def collect_git_snapshot(root: pathlib.Path, command: str | None, timeout: int) -> dict[str, Any]:
+    fallback = fallback_git_metadata(root)
+    snapshot: dict[str, Any] = {
+        "repo_root": str(root),
+        "tool": command,
+        "fallback": fallback,
+        "commands": {},
+    }
+
+    if not command:
+        snapshot["mode"] = "fallback_metadata_only"
+        return snapshot
+
+    command_specs = {
+        "rev_parse_root": ["rev-parse", "--show-toplevel"],
+        "branch": ["branch", "--show-current"],
+        "head": ["rev-parse", "HEAD"],
+        "status_short": ["status", "--short"],
+        "status_porcelain_v1": ["status", "--porcelain=v1", "--branch"],
+        "log_recent": ["log", "--oneline", "--decorate", "-n", "12"],
+        "remote_verbose": ["remote", "-v"],
+    }
+
+    for name, args in command_specs.items():
+        snapshot["commands"][name] = run_command(command, args, root, timeout)
+
+    rev_parse_ok = snapshot["commands"]["rev_parse_root"]["ok"]
+    if rev_parse_ok:
+        snapshot["mode"] = "command_verified_repo"
+    elif fallback.get("available"):
+        snapshot["mode"] = "command_failed_metadata_fallback"
+    else:
+        snapshot["mode"] = "command_failed_no_valid_repo_metadata"
+    return snapshot
+
+
+def build_event(event_type: str, root: pathlib.Path, data: dict[str, Any], errors: list[str] | None = None) -> dict[str, Any]:
+    base = {
+        "schema_version": SCHEMA_VERSION,
+        "event_uuid": str(uuid.uuid4()),
+        "event_type": event_type,
+        "captured_at_utc": utc_now(),
+        "repo_root": str(root),
+        "data": data,
+        "errors": errors or [],
+    }
+    base["event_id"] = sha256_text(stable_json(base))
+    return base
+
+
+def init_workspace(root: pathlib.Path, state_dir: pathlib.Path, command: str | None) -> dict[str, Any]:
+    state_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = state_dir / DEFAULT_MANIFEST_FILE
+    config_path = state_dir / DEFAULT_CONFIG_FILE
+    events_path = state_dir / DEFAULT_EVENTS_FILE
+
+    if not config_path.exists():
+        write_json(
+            config_path,
+            {
+                "schema_version": SCHEMA_VERSION,
+                "state_dir": str(state_dir),
+                "events_file": DEFAULT_EVENTS_FILE,
+                "preferred_git_command": command,
+                "created_at_utc": utc_now(),
+                "policy": {
+                    "network": "disabled",
+                    "external_python_packages": "disabled",
+                    "append_only_events": True,
+                },
+            },
+        )
+
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "initialized_at_utc": utc_now(),
+        "root": str(root),
+        "state_dir": str(state_dir),
+        "events_path": str(events_path),
+        "config_path": str(config_path),
+        "command_detected": command,
+        "python": sys.version.split()[0],
+        "platform": sys.platform,
+        "capabilities": {
+            "jsonl_events": True,
+            "git_command_capture": command is not None,
+            "direct_git_metadata_fallback": True,
+            "stdlib_only": True,
+        },
+    }
+    write_json(manifest_path, manifest)
+
+    if not events_path.exists():
+        events_path.write_text("", encoding="utf-8")
+
+    return manifest
+
+
+def validate_workspace(root: pathlib.Path, state_dir: pathlib.Path, command: str | None) -> dict[str, Any]:
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    if not state_dir.exists():
+        errors.append(f"State directory missing: {state_dir}")
+
+    manifest = load_json(state_dir / DEFAULT_MANIFEST_FILE)
+    config = load_json(state_dir / DEFAULT_CONFIG_FILE)
+    events_path = state_dir / DEFAULT_EVENTS_FILE
+
+    if manifest.get("schema_version") not in (None, SCHEMA_VERSION):
+        errors.append("Manifest schema_version mismatch")
+    if config.get("schema_version") not in (None, SCHEMA_VERSION):
+        errors.append("Config schema_version mismatch")
+    if not events_path.exists():
+        errors.append(f"Events file missing: {events_path}")
+
+    fallback = fallback_git_metadata(root)
+    if not fallback.get("available"):
+        warnings.append("No local .git metadata found; capture will still produce environment events")
+    if not command:
+        warnings.append("No git/lg2 command found; capture uses metadata fallback only")
+    else:
+        rev_parse = run_command(command, ["rev-parse", "--show-toplevel"], root, 10)
+        if not rev_parse["ok"]:
+            warnings.append("Git-compatible command exists but root is not a valid working tree for that command")
+
+    line_count = 0
+    invalid_lines: list[int] = []
+    if events_path.exists():
+        with events_path.open("r", encoding="utf-8") as handle:
+            for idx, line in enumerate(handle, start=1):
+                if not line.strip():
+                    continue
+                line_count += 1
+                try:
+                    parsed = json.loads(line)
+                except json.JSONDecodeError:
+                    invalid_lines.append(idx)
+                    continue
+                if parsed.get("schema_version") != SCHEMA_VERSION:
+                    invalid_lines.append(idx)
+    if invalid_lines:
+        errors.append(f"Invalid event lines: {invalid_lines[:20]}")
+
+    result = {
+        "ok": not errors,
+        "checked_at_utc": utc_now(),
+        "root": str(root),
+        "state_dir": str(state_dir),
+        "git_command": command,
+        "events": {
+            "path": str(events_path),
+            "valid_event_count": line_count,
+        },
+        "fallback_git_metadata": fallback,
+        "errors": errors,
+        "warnings": warnings,
+    }
+    write_json(state_dir / "validation.json", result)
+    return result
+
+
+def read_tail(path: pathlib.Path, limit: int) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    selected = lines[-limit:]
+    output: list[dict[str, Any]] = []
+    for line in selected:
+        try:
+            output.append(json.loads(line))
+        except json.JSONDecodeError:
+            output.append({"invalid_json_line": line})
+    return output
+
+
+def print_json(data: Any) -> None:
+    print(json.dumps(data, ensure_ascii=True, indent=2))
+
+
+def make_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="streampipe.cli",
+        description="Standalone local git/log stream CLI for mobile-friendly control-plane workflows.",
+    )
+    parser.add_argument("--root", default=".", help="Repository/workspace root. Defaults to current directory.")
+    parser.add_argument("--state-dir", default=None, help="State directory. Defaults to logs/git/local below root.")
+    parser.add_argument("--git-cmd", default=None, help="Preferred git-compatible command, for example git or lg2.")
+    parser.add_argument("--timeout", type=int, default=15, help="Per-command timeout in seconds.")
+
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("init", help="Initialize state files.")
+    sub.add_parser("capture", help="Capture current git/log state and append an event.")
+    sub.add_parser("validate", help="Validate state files and event stream.")
+    sub.add_parser("status", help="Print current manifest, validation, and recent event summary.")
+
+    tail = sub.add_parser("tail", help="Print recent events.")
+    tail.add_argument("-n", "--limit", type=int, default=5, help="Number of events to print.")
+
+    export = sub.add_parser("export", help="Export a consolidated snapshot JSON.")
+    export.add_argument("--output", default=DEFAULT_EXPORT_FILE, help="Output file relative to state-dir unless absolute.")
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = make_parser().parse_args(argv)
+    root_input = pathlib.Path(args.root).expanduser()
+    root = find_repo_root(root_input)
+    state_dir = resolve_state_dir(root, args.state_dir)
+    command = discover_command(args.git_cmd)
+
+    try:
+        if args.command == "init":
+            print_json(init_workspace(root, state_dir, command))
+            return 0
+
+        if args.command == "capture":
+            init_workspace(root, state_dir, command)
+            snapshot = collect_git_snapshot(root, command, args.timeout)
+            event = build_event("git_snapshot", root, snapshot)
+            append_jsonl(state_dir / DEFAULT_EVENTS_FILE, event)
+            write_json(state_dir / "latest_event.json", event)
+            print_json(event)
+            return 0
+
+        if args.command == "validate":
+            result = validate_workspace(root, state_dir, command)
+            print_json(result)
+            return 0 if result["ok"] else 2
+
+        if args.command == "tail":
+            print_json(read_tail(state_dir / DEFAULT_EVENTS_FILE, max(args.limit, 0)))
+            return 0
+
+        if args.command == "status":
+            result = {
+                "manifest": load_json(state_dir / DEFAULT_MANIFEST_FILE),
+                "validation": load_json(state_dir / "validation.json"),
+                "recent_events": read_tail(state_dir / DEFAULT_EVENTS_FILE, 3),
+            }
+            print_json(result)
+            return 0
+
+        if args.command == "export":
+            output = pathlib.Path(args.output)
+            if not output.is_absolute():
+                output = state_dir / output
+            payload = {
+                "schema_version": SCHEMA_VERSION,
+                "exported_at_utc": utc_now(),
+                "root": str(root),
+                "state_dir": str(state_dir),
+                "manifest": load_json(state_dir / DEFAULT_MANIFEST_FILE),
+                "validation": validate_workspace(root, state_dir, command),
+                "events": read_tail(state_dir / DEFAULT_EVENTS_FILE, 1000),
+            }
+            write_json(output, payload)
+            print_json({"ok": True, "output": str(output), "event_count": len(payload["events"])})
+            return 0
+
+        raise CliError(f"Unsupported command: {args.command}")
+    except CliError as exc:
+        print_json({"ok": False, "error": str(exc)})
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
