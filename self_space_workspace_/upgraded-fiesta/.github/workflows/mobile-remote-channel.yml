@@ -1,0 +1,37 @@
+name: mobile-remote-channel
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Remote task to run
+        required: true
+        default: validate
+        type: choice
+        options:
+          - validate
+          - cargo-check
+          - node-build
+          - full
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate repository structure
+        run: python3 scripts/validate_repo.py
+      - name: Cargo check workspace
+        if: ${{ github.event.inputs.task == 'cargo-check' || github.event.inputs.task == 'full' }}
+        run: cargo check --workspace
+      - name: Node build
+        if: ${{ github.event.inputs.task == 'node-build' || github.event.inputs.task == 'full' }}
+        run: |
+          if [ -f ui/package.json ]; then
+            cd ui
+            npm install
+            npm run build
+          else
+            echo "ui/package.json not present; skipping"
+          fi
