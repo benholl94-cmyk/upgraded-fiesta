@@ -1,0 +1,7 @@
+triggered_at_utc=2026-06-19T19:56:00Z
+command=bash .codex/setup.sh
+purpose=start-all-repository-flows
+requires_manual_execution=false
+workflow=codex-setup
+run_request=start-all-rep-flows
+expected_push_flows=codex-setup,rust-ci,platform-monitoring,visible-status
