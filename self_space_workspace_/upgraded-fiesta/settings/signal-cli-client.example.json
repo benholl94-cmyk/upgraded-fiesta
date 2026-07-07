@@ -1,0 +1,23 @@
+{
+  "signal_cli": {
+    "enabled": true,
+    "role": "client",
+    "runtime_target": "iphone_a_shell_or_control_plane",
+    "gateway_base_url": "http://127.0.0.1:9922",
+    "account_number_env": "SIGNAL_ACCOUNT_NUMBER",
+    "default_recipient_env": "SIGNAL_TEST_RECIPIENT",
+    "timeout_seconds": 30,
+    "allow_public_gateway": false,
+    "recommended_transport": [
+      "localhost_same_host",
+      "ssh_tunnel",
+      "tailscale_or_private_vpn",
+      "authenticated_https_reverse_proxy"
+    ],
+    "forbidden": [
+      "commit_real_phone_numbers",
+      "commit_signal_state_directory",
+      "expose_gateway_to_public_internet_without_authentication"
+    ]
+  }
+}
