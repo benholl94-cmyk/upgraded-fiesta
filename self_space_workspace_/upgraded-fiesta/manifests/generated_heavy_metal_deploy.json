@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "generated-heavy-metal-workspace-deploy",
+  "version": "0.1.0",
+  "target_command": "python3 -m ghm_core.cli serve --workspace ~/Documents/Developer/generated_heavy_metal --host 127.0.0.1 --port 18789",
+  "default_host": "127.0.0.1",
+  "default_port": 18789,
+  "mobile_target": "iPhone a-Shell",
+  "uploaded_sha256_reference": {
+    "filename": "uniqueclaw-production-grade.zip",
+    "sha256": "e177b542141697d913cee667b90e1e9948b5eb167ad3c4e00a724c9275a7d01c"
+  }
+}
