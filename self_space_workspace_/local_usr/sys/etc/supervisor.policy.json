@@ -1,0 +1,10 @@
+{
+  "schema_version": "ashell.supervisor.deploy_exec.v3",
+  "ok": true,
+  "network_policy": "localhost_only",
+  "credential_policy": "never_print_secret_values",
+  "delete_policy": "never_delete_user_data",
+  "repair_policy": "create_missing_files_and_quarantine_bad_literals",
+  "written_at_utc": "2026-07-07T10:24:21.914263Z",
+  "content_sha256": "f70856e58ee341157de1dacb575ec0eabbb460a081c7ac5c6ef563869c8c793d"
+}
