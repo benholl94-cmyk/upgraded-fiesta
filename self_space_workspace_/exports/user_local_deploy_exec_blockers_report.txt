@@ -1,0 +1,33 @@
+user_local_deploy_exec blocker report
+schema_version: ashell.supervisor.deploy_exec.v3
+ok: True
+generated_at_utc: 2026-07-07T10:24:21.928197Z
+root: /workspace
+
+facts:
+- python3 is mandatory and must compile generated scripts.
+- unzip and lsof are not guaranteed in a-Shell; this installer creates unzip and lsof-lite wrappers.
+- git in a-Shell is an lg2 wrapper; compatibility is partial and validation treats it as optional.
+- destructive cleanup is blocked; suspicious literal/temp folders are moved to local_usr/sys/quarantine.
+
+handled_blockers:
+- missing_unzip: created python zipfile wrapper in the active PATH-visible user bin
+- missing_lsof: created lsof-lite fallback in the active PATH-visible user bin
+- git_wrapper: created git wrapper when lg2 exists
+- path_visibility: prepended the selected writable user bin to PATH for this run
+- zip_slip: blocked unsafe absolute/parent zip paths
+- bad_literal_temp_dirs: quarantined instead of deleting
+
+validation_steps:
+- exit=0 ok=True command=python3 -m py_compile scripts/validate_mobile_iphone_platform.py
+- exit=0 ok=True command=python3 -m py_compile scripts/mobile_operator.py
+- exit=0 ok=True command=python3 -m py_compile local_usr/sys/bin/ashell_supervisor.py
+- exit=0 ok=True command=python3 scripts/validate_mobile_iphone_platform.py
+- exit=0 ok=True command=python3 scripts/mobile_operator.py self-test
+- exit=0 ok=True command=python3 scripts/mobile_operator.py validate
+- exit=0 ok=True command=python3 scripts/mobile_operator.py audit
+
+next_commands:
+python3 scripts/mobile_operator.py validate
+python3 local_usr/sys/bin/ashell_supervisor.py health
+python3 local_usr/sys/bin/ashell_supervisor.py serve
