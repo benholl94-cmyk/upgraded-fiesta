@@ -1,0 +1,32 @@
+{
+  "platformName": "Heavy Metal AI Control Plane",
+  "requestTimeoutMs": 8000,
+  "maxAttemptsPerDispatch": 3,
+  "zeroStakedStatus": "zero_staked",
+  "endpoints": [
+    {
+      "id": "primary",
+      "label": "Primary Gateway",
+      "baseUrl": "/api",
+      "healthPath": "/health",
+      "taskPath": "/tasks",
+      "priority": 1
+    },
+    {
+      "id": "gateway-local",
+      "label": "Local Gateway",
+      "baseUrl": "http://127.0.0.1:8080",
+      "healthPath": "/health",
+      "taskPath": "/tasks",
+      "priority": 2
+    },
+    {
+      "id": "gateway-fallback",
+      "label": "Fallback Gateway",
+      "baseUrl": "/gateway",
+      "healthPath": "/health",
+      "taskPath": "/tasks",
+      "priority": 3
+    }
+  ]
+}
