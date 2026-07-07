@@ -1,0 +1,36 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - docker-compose-plugin
+  - ufw
+
+write_files:
+  - path: /opt/upgraded-fiesta-signal/.env.signal.local
+    permissions: '0600'
+    content: |
+      SIGNAL_CLI_MODE=json-rpc-native
+      SIGNAL_BIND_HOST=127.0.0.1
+      SIGNAL_BIND_PORT=9922
+      SIGNAL_STATE_DIR=/opt/upgraded-fiesta-signal/data/signal-cli
+      SIGNAL_AUTO_RECEIVE_SCHEDULE=
+      SIGNAL_API_BASE_URL=http://127.0.0.1:9922
+      SIGNAL_ACCOUNT_NUMBER=+4900000000000
+      SIGNAL_TEST_RECIPIENT=+4900000000000
+
+runcmd:
+  - mkdir -p /opt/upgraded-fiesta-signal/data/signal-cli
+  - chmod 700 /opt/upgraded-fiesta-signal/data/signal-cli
+  - curl -fsSL https://raw.githubusercontent.com/benholl94-cmyk/upgraded-fiesta/main/integrations/signal-cli/docker-compose.signal.yml -o /opt/upgraded-fiesta-signal/docker-compose.signal.yml
+  - systemctl enable --now docker
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow OpenSSH
+  - ufw --force enable
+  - docker compose --env-file /opt/upgraded-fiesta-signal/.env.signal.local -f /opt/upgraded-fiesta-signal/docker-compose.signal.yml up -d
+  - docker ps > /opt/upgraded-fiesta-signal/boot-docker-ps.txt
+
+final_message: "upgraded-fiesta Signal gateway bootstrap complete. Edit /opt/upgraded-fiesta-signal/.env.signal.local before real send tests."
