@@ -1,0 +1,50 @@
+{
+  "schema_version": "ashell.mobile_operator.deploy_exec.v3",
+  "ok": true,
+  "checked_at_utc": "2026-07-07T10:24:21.656132Z",
+  "state": {
+    "schema_version": "ashell.mobile_operator.deploy_exec.v3",
+    "root": "/workspace",
+    "python": "3.12.13",
+    "platform": "Linux-6.12.47-x86_64-with-glibc2.39",
+    "commands": {
+      "python3": {
+        "available": true,
+        "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+      },
+      "lg2": {
+        "available": false,
+        "path": null
+      },
+      "git": {
+        "available": true,
+        "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/git"
+      },
+      "codex": {
+        "available": false,
+        "path": null
+      },
+      "unzip": {
+        "available": true,
+        "path": "/workspace/bin/unzip"
+      },
+      "lsof": {
+        "available": true,
+        "path": "/usr/bin/lsof"
+      },
+      "lsof-lite": {
+        "available": true,
+        "path": "/workspace/bin/lsof-lite"
+      }
+    },
+    "repo": {
+      "git_present": true,
+      "lg2_status": {
+        "ok": false,
+        "stderr": "skipped"
+      }
+    }
+  },
+  "written_at_utc": "2026-07-07T10:24:21.661444Z",
+  "content_sha256": "4246c7147cb6c343c2d872fcf06178130827a1f0b05652459f5e0add6e3653d9"
+}
