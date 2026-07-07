@@ -1,0 +1,152 @@
+{
+  "schema_version": "local_usr.sys.live_set.v1",
+  "live_set_id": "control_plane",
+  "source": "local_usr/sys path readiness",
+  "facts": {
+    "required_path_count": 20,
+    "paths": [
+      {
+        "relative_path": "local_usr/sys/bin",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/etc",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/etc/channels",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/etc/datasets",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/etc/anchors",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/etc/policies",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/etc/app_tokens",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/lib",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/lib/anchors",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/lib/channels",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/lib/data",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/lib/live_sets",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/lib/system_app_chat",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/log",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/var/run",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/usr",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/usr/share",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/usr/share/manifests",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      },
+      {
+        "relative_path": "local_usr/sys/tmp",
+        "exists": true,
+        "is_dir": true,
+        "is_file": false
+      }
+    ],
+    "channels_declared": [
+      "bridge",
+      "control_plane",
+      "flyoos_env_points_anchors_localization",
+      "git_local",
+      "runtime",
+      "system_app_chat"
+    ],
+    "datasets_declared": [
+      "app_chat_state",
+      "command_inventory",
+      "flyoos_anchor_state",
+      "path_inventory",
+      "streampipe_state"
+    ]
+  },
+  "generation_policy": {
+    "generated_when_missing_or_false": true,
+    "external_data_fabricated": false,
+    "source_type": "standalone_self_made_local_observation"
+  },
+  "written_at_utc": "2026-07-06T23:30:29.396374Z",
+  "content_sha256": "1d91d6e452c52a25cf0ba09f730bc0630b8e39d8ca4b51673483cd180a6902b1"
+}
