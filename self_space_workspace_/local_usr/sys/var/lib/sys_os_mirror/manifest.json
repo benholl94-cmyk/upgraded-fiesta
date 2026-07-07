@@ -1,0 +1,1388 @@
+{
+  "schema_version": "local_usr.sys.os_mirror.v1",
+  "created_at_utc": "2026-07-06T23:30:31.085401Z",
+  "root": "/workspace",
+  "config_path": "/workspace/local_usr/sys/etc/sys_os_mirror.config.json",
+  "entry_count": 141,
+  "included_file_count": 104,
+  "skipped_count": 28,
+  "error_count": 0,
+  "entries": [
+    {
+      "path": "local_usr/sys/bin",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380356655863103,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/bin/__pycache__",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629005563337,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/bin/api_key_passes.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 11392,
+      "mtime_ns": 1783379853866982882,
+      "sensitive_name": false,
+      "sha256": "7cd4f4760d85efec5276d90951b7de7611b728fd1e37da08b119efa2d8242a79",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/build_sys_os_remote.py",
+      "type": "file",
+      "mode_octal": "0o755",
+      "size_bytes": 5364,
+      "mtime_ns": 1783380371051315851,
+      "sensitive_name": false,
+      "sha256": "67def0808907117d9cf116be9c277092150486dd1894a8c286b5bf7d3d00effa",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/ios_restricted_migration.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 16772,
+      "mtime_ns": 1783379411683756109,
+      "sensitive_name": false,
+      "sha256": "ab147412aa3cc85b17f22306c38eb38169f925ede32c53dfb233fd0d6e01e4b0",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/path_init.py",
+      "type": "file",
+      "mode_octal": "0o755",
+      "size_bytes": 25679,
+      "mtime_ns": 1783380361327685584,
+      "sensitive_name": false,
+      "sha256": "f45895a3fce01b09e66f644a5347cbdb7f48fa5f99dc3b24e9f81e8f257188f7",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/reasoned_installer_export.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 14238,
+      "mtime_ns": 1783380356655863103,
+      "sensitive_name": false,
+      "sha256": "f0196b03ae9d67080c058d041c6996b8622e037201f451df71bbebad4cf4ee33",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/remote_access_gateway.py",
+      "type": "file",
+      "mode_octal": "0o755",
+      "size_bytes": 10157,
+      "mtime_ns": 1783336822763828282,
+      "sensitive_name": false,
+      "sha256": "55a8fe16abf81eb1591cff4aea84e48a146852c777347e8f6d21f77236dffc40",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/standalone_all_in_one_os.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 17127,
+      "mtime_ns": 1783379103979475550,
+      "sensitive_name": false,
+      "sha256": "fb070fbd479127f8d1bca31e7ed4007fe6a2100711cc72e01e731d630bc8b76e",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/start_services.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 8235,
+      "mtime_ns": 1783378529705338622,
+      "sensitive_name": false,
+      "sha256": "d2ba050889032dd9f57241b7b799c09012b8ce34d99ad637f09c997c22ee5842",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/sys_os_mirror.py",
+      "type": "file",
+      "mode_octal": "0o755",
+      "size_bytes": 13397,
+      "mtime_ns": 1783336822687831540,
+      "sensitive_name": false,
+      "sha256": "3bc3b6883fda53f5eb416f9ccda02502101e0331bd35281a757115aad9debd0e",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/bin/system_app_chat.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 28688,
+      "mtime_ns": 1783339214915083614,
+      "sensitive_name": false,
+      "sha256": "82642e9366ad8e664ad5b58632ee37eab2dc3a776d4eab25965b1f4843fbd60f",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629433546939,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/etc/anchors",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/etc/anchors/flyoos_env_points_anchors_localization.anchor.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 773,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false,
+      "sha256": "f69a10cce4d54599785e1ca4f6979209be0d0edcf64119dadf9d0c96ef7da288",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/app_tokens",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783339287835939719,
+      "sensitive_name": true
+    },
+    {
+      "path": "local_usr/sys/etc/app_tokens/system_app_chat_selftest.token",
+      "type": "file",
+      "mode_octal": "0o600",
+      "size_bytes": 44,
+      "mtime_ns": 1783380630845493060,
+      "sensitive_name": true,
+      "sha256": null,
+      "content_included": false
+    },
+    {
+      "path": "local_usr/sys/etc/channels",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630957488812,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/etc/channels/bridge.channel.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 507,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "224c07f9e5066ba4f35dc0b854ccd2811d1b0aa5ed1b58d378e975eefddc97ca",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/channels/control_plane.channel.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 514,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "19d0fadbd027a99f0613261fed55ea5d0f1858d93cccc7a43ae38df4c87cd860",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/channels/flyoos_env_points_anchors_localization.channel.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 640,
+      "mtime_ns": 1783378337828603117,
+      "sensitive_name": false,
+      "sha256": "af638c88a5c55e421cc61666278ef2fdda3204de2f46213b1c1de022d77eecd4",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/channels/git_local.channel.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 458,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "a7d0ec6184dec7418d4540ccaab059b28ef36cdb171c19852099d2c8752c16a2",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/channels/runtime.channel.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 478,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "e645105e9c9be07515a5049ec6d63316cc10d6feb8c585ba8586091598524d93",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/channels/system_app_chat.channel.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 502,
+      "mtime_ns": 1783380630957488812,
+      "sensitive_name": false,
+      "sha256": "9f04aeea48c43cdb25104d9bc8395f82471247070206cb3b1c1cd1f268102131",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/datasets",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/app_chat_state.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 407,
+      "mtime_ns": 1783380629345550310,
+      "sensitive_name": false,
+      "sha256": "cf984316b73c154e421c25f0de089f92795f372b329ea808d68611fafc9ca278",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/command_inventory.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 422,
+      "mtime_ns": 1783380629333550769,
+      "sensitive_name": false,
+      "sha256": "fadad76a01e218a2e05dd346b1fead79bd5e54a89ef4b8e7a736ffd38b2ae0aa",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/flyoos_anchor_state.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 442,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false,
+      "sha256": "2e7f1f23ebb74c8a36e2c975afe65a3d3f7f700bf354d5b20a5f16e558c18482",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/path_inventory.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 405,
+      "mtime_ns": 1783380629293552303,
+      "sensitive_name": false,
+      "sha256": "1e7c09351dba7c4ddd29cfbce12cf40742a9994c46e343eeaddbbc78b0d59800",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/streampipe_state.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 404,
+      "mtime_ns": 1783380629337550617,
+      "sensitive_name": false,
+      "sha256": "490a08f91b203d30c18ad3f6318027a9d4f0ae024c52be9c3336aab4fcd5e321",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/policies",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629689537130,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/etc/policies/ios_restricted_migration.policy.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 4128,
+      "mtime_ns": 1783380629689537130,
+      "sensitive_name": false,
+      "sha256": "196090992469030e8a6864b36494699855782b09d17aeba037e5681e7b66da96",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/remote_access.config.json",
+      "type": "file",
+      "mode_octal": "0o600",
+      "size_bytes": 890,
+      "mtime_ns": 1783336830031514567,
+      "sensitive_name": false,
+      "sha256": "40fc1a15da95e7fc431c0e75d8aef4c3aaa1c77baa0fe421ec34871aa1af31a3",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/remote_access.token",
+      "type": "file",
+      "mode_octal": "0o600",
+      "size_bytes": 44,
+      "mtime_ns": 1783336830031514567,
+      "sensitive_name": true,
+      "sha256": null,
+      "content_included": false
+    },
+    {
+      "path": "local_usr/sys/etc/sys_manifest.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 4000,
+      "mtime_ns": 1783380629429547092,
+      "sensitive_name": false,
+      "sha256": "366a04fa0755aa719fc554b7b91108295bb93ea37fd270ce5f9f00da81661bf0",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/sys_os_mirror.config.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 825,
+      "mtime_ns": 1783336829655530626,
+      "sensitive_name": false,
+      "sha256": "0b82e2dca9d6fc9c39892671941926afb8dc522726bcf803f9b1bec64e4dd7ea",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/etc/system_app_chat.admin.token",
+      "type": "file",
+      "mode_octal": "0o600",
+      "size_bytes": 44,
+      "mtime_ns": 1783339281676205436,
+      "sensitive_name": true,
+      "sha256": null,
+      "content_included": false
+    },
+    {
+      "path": "local_usr/sys/etc/system_app_chat.config.json",
+      "type": "file",
+      "mode_octal": "0o600",
+      "size_bytes": 1177,
+      "mtime_ns": 1783339281680205263,
+      "sensitive_name": false,
+      "sha256": "06b92cb0463c729b85472222b97f15ba513960107248c62d06be11bed8437434",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/tmp",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783336361556430568,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/usr",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783336361556430568,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/usr/share",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783336361556430568,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/usr/share/manifests",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783336361556430568,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783336361556430568,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380378411036278,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/anchors",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/anchors/flyoos_env_points_anchors_localization.anchor.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2999,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false,
+      "sha256": "3697bb13e426f0e8e9830fa31dc9965a5450a1208e4eca86f3e702a813456578",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/api_key_passes",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629577541421,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/api_key_passes/state.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3591,
+      "mtime_ns": 1783380629577541421,
+      "sensitive_name": false,
+      "sha256": "ed11c0c5a10caf421146caa4c1dca0453d8f94e95f7377c64a49bd667daa7950",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783378337828603117,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/bridge.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 266,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "b2e6d7c1b2a1baa9f796bd844d04f1397525ce66e911becc08c170df7017aed3",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/control_plane.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 273,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "d29d44d3cf8ebb626d1a937a7ea1e46d3f94e341742cab16d973eed48d8da10a",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/flyoos_env_points_anchors_localization.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 297,
+      "mtime_ns": 1783378337828603117,
+      "sensitive_name": false,
+      "sha256": "e19eb0684b356db13a34be5d4d5228a01320a0433f3a17231d88b6c085106404",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/git_local.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 268,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "b316b5d0fc5f210b5d92c03efa47db22ade82afccfce22169ae5dceb399df211",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/runtime.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 266,
+      "mtime_ns": 1783336361652423848,
+      "sensitive_name": false,
+      "sha256": "b340242c6270e15db7bc6c268e0d6bfb5435579a26b170491b222c7542fbed21",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/system_app_chat.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 274,
+      "mtime_ns": 1783339287903936789,
+      "sensitive_name": false,
+      "sha256": "779bb386b8be8f3b753d1987ccabebac09be7dde260bd15e18167f5673b9de41",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/data",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/app_chat_state.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3061,
+      "mtime_ns": 1783380629345550310,
+      "sensitive_name": false,
+      "sha256": "d0f0b329a31c431aabde510d0779b0d63e6161aa1c89f42430dafea82d4ef09a",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/command_inventory.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2579,
+      "mtime_ns": 1783380629329550923,
+      "sensitive_name": false,
+      "sha256": "210d80c2c73784f5588b91b5dc1252ecec541e8b3bff7acf4ff0df9957a2ada2",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/flyoos_anchor_state.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2616,
+      "mtime_ns": 1783380629349550156,
+      "sensitive_name": false,
+      "sha256": "1138a473d2893455de87a8a0dd5ba98cf8f8eb755dc57f890153bd2a83c97221",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/path_inventory.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2942,
+      "mtime_ns": 1783380629293552303,
+      "sensitive_name": false,
+      "sha256": "961042a46dab53cc3edab1fb6de0fa2725c4939025bab6bdd5eb1b2d8a3a3d76",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/streampipe_state.dataset.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 4991,
+      "mtime_ns": 1783380629333550769,
+      "sensitive_name": false,
+      "sha256": "1e2d9063e507d1343d3cd197e1df81dc386b49fcb51b348cd8e69cca0a3aa429",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/ios_restricted_migration",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629693536976,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/ios_restricted_migration/migration_plan.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 6609,
+      "mtime_ns": 1783380629689537130,
+      "sensitive_name": false,
+      "sha256": "1cda0c6b661e8b0c65383c537e6ebe725e6bb60fde93d9ddd777172d4978f685",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/ios_restricted_migration/state.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 11708,
+      "mtime_ns": 1783380629693536976,
+      "sensitive_name": false,
+      "sha256": "c0806c81f496c415f0bad24ad238b324302704a9a713e02d6a80567c077ffa24",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380629393548471,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/bridge.live.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 628,
+      "mtime_ns": 1783380629389548625,
+      "sensitive_name": false,
+      "sha256": "f4e0f78c079e1d06a89d33ea0716c6da0f855759c274b631a6d372b23f6fa075",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/control_plane.live.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3724,
+      "mtime_ns": 1783380629389548625,
+      "sensitive_name": false,
+      "sha256": "c2897c44a77f466c7eb836c1a509b144dd0d5d8e287a31c8f350df473043e0ac",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/flyoos_env_points_anchors_localization.live.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2791,
+      "mtime_ns": 1783380629393548471,
+      "sensitive_name": false,
+      "sha256": "749853168d0a77b5bc6b5703d4a12ece4130b43a68c3568cb6fe77fa967a5467",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/git_local.live.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 5138,
+      "mtime_ns": 1783380629389548625,
+      "sensitive_name": false,
+      "sha256": "7eb203d0f6b41057acb7f43d13569814b7162ccc231d2a0cb95f9b508b4060e5",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/index.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 970,
+      "mtime_ns": 1783380629393548471,
+      "sensitive_name": false,
+      "sha256": "58b677d87b67688b564673f5fef205ec17540aa6e100a4fc267d9611fa2a6817",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/runtime.live.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3107,
+      "mtime_ns": 1783380629389548625,
+      "sensitive_name": false,
+      "sha256": "af847409b649eac82f3779e047eafef217cc3be408df002fbbe1a546dbe3f02d",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/system_app_chat.live.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3206,
+      "mtime_ns": 1783380629393548471,
+      "sensitive_name": false,
+      "sha256": "66f590700bfab17b46e5ffd55445b7bbc73012b80a2a4aaa1689335462c2542a",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630201517513,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630173518586,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/config",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630173518586,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/config/api-key-passes.policy.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2794,
+      "mtime_ns": 1783380629577541421,
+      "sensitive_name": false,
+      "sha256": "4d94db3a4a770a60924d46726431615dab8355b14cc2e415b7aa4776479c8004",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630173518586,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/API_KEY_PASSES_HARDENED_POLICY.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1221,
+      "mtime_ns": 1783380629577541421,
+      "sensitive_name": false,
+      "sha256": "b9c887f99f3e9514d9cc040f353c47f6d38dba4628e0348781e9387b464b68c2",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/CODEX_CLAUDE_ACKNOWLEDGE.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2783,
+      "mtime_ns": 1783379881901907253,
+      "sensitive_name": false,
+      "sha256": "aaff9e8650210f7ccb61bdd1866ccbf31867fe6e083becbbe7ff6d16c49b51aa",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/IOS_HARD_RESTRICTED_SAFE_MIGRATION.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2622,
+      "mtime_ns": 1783380629693536976,
+      "sensitive_name": false,
+      "sha256": "ec1d81d3fe6181e439dffee1ae3272c99dbba09822d3efff965abad3db10650e",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/STANDALONE_ALL_IN_ONE_OS_INTERPRETATION.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3502,
+      "mtime_ns": 1783380038424000321,
+      "sensitive_name": false,
+      "sha256": "8e98eb1b4c6111a32636b0ead8216e8694d906ed3a94698f16c3ad6e91d68304",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630169518739,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630169518739,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630173518586,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/api_key_passes.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 11392,
+      "mtime_ns": 1783379853866982882,
+      "sensitive_name": false,
+      "sha256": "7cd4f4760d85efec5276d90951b7de7611b728fd1e37da08b119efa2d8242a79",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/build_sys_os_remote.py",
+      "type": "file",
+      "mode_octal": "0o755",
+      "size_bytes": 5364,
+      "mtime_ns": 1783380371051315851,
+      "sensitive_name": false,
+      "sha256": "67def0808907117d9cf116be9c277092150486dd1894a8c286b5bf7d3d00effa",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/ios_restricted_migration.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 16772,
+      "mtime_ns": 1783379411683756109,
+      "sensitive_name": false,
+      "sha256": "ab147412aa3cc85b17f22306c38eb38169f925ede32c53dfb233fd0d6e01e4b0",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/reasoned_installer_export.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 14238,
+      "mtime_ns": 1783380356655863103,
+      "sensitive_name": false,
+      "sha256": "f0196b03ae9d67080c058d041c6996b8622e037201f451df71bbebad4cf4ee33",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/standalone_all_in_one_os.py",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 17127,
+      "mtime_ns": 1783379103979475550,
+      "sensitive_name": false,
+      "sha256": "fb070fbd479127f8d1bca31e7ed4007fe6a2100711cc72e01e731d630bc8b76e",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/state.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 4325,
+      "mtime_ns": 1783380630197517667,
+      "sensitive_name": false,
+      "sha256": "83b0e5e3024c2aa910a362115d0ed96c886d15883928025333cc5c8d30c8c521",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/standalone_all_in_one_os",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630481506866,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/standalone_all_in_one_os/state.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 7873,
+      "mtime_ns": 1783380630481506866,
+      "sensitive_name": false,
+      "sha256": "574f3115651be390cee03cd9a1415677d6656aee5a4879e730b0397926b7820f",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380388770640340,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380388726642030,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/manifest.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 47268,
+      "mtime_ns": 1783380388726642030,
+      "sensitive_name": false,
+      "sha256": "df619998d97355eb76602af693420a6b7934713de3ec74b85c3d2e59d4d82d9c",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/restore_plan.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1029,
+      "mtime_ns": 1783380388770640340,
+      "sensitive_name": false,
+      "sha256": "36e3afdd869de28d7e9c6b4def255da30904bfc31e8558b5fb69a6efc417dc8f",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/lib/system_app_chat",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630961488661,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/lib/system_app_chat/chat.sqlite3",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 40960,
+      "mtime_ns": 1783380630869492150,
+      "sensitive_name": false,
+      "sha256": "8efcf5625162ad3bd1f5b80869dd5d8df54ebf6913208ee127d5f16ea5ba3aa9",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783378431433067266,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/log/path_init.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 5764,
+      "mtime_ns": 1783380629477545253,
+      "sensitive_name": false,
+      "sha256": "91b648ce94538de14b5a6cacd0e5b46101ab3e4609c091ecb4aa8cb042b543cc",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/remote_access.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 31784,
+      "mtime_ns": 1783380388910634963,
+      "sensitive_name": false,
+      "sha256": "1a166bcea884b80a9585995e8410379d461618cf8625222b36d5293c1a188966",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/remote_access_gateway.service.err.log",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 0,
+      "mtime_ns": 1783378431433067266,
+      "sensitive_name": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/remote_access_gateway.service.log",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1059,
+      "mtime_ns": 1783378542916716559,
+      "sensitive_name": false,
+      "sha256": "153b0824e318627ffac664d11698af8397d9342598cbc1d998e45262967f5252",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/sys_os_mirror.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 11962,
+      "mtime_ns": 1783380388774640187,
+      "sensitive_name": false,
+      "sha256": "90856dc533570bbddf1835805441ef6a63e9e36d6cde18681ac9b7b6cee2d84d",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/system_app_chat.events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 84356,
+      "mtime_ns": 1783380630957488812,
+      "sensitive_name": false,
+      "sha256": "0bf40c25692ba99895f0a7a5ba9c4d5d4cb26517836a12f36e59075c5383b49c",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/system_app_chat.service.err.log",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 0,
+      "mtime_ns": 1783378431225075129,
+      "sensitive_name": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/log/system_app_chat.service.log",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1164,
+      "mtime_ns": 1783378542216743093,
+      "sensitive_name": false,
+      "sha256": "50120f4975439c238f84bf25aa9477247bdebfef7901d5a13d8e32e129921f1e",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783380630957488812,
+      "sensitive_name": false
+    },
+    {
+      "path": "local_usr/sys/var/run/api_key_passes.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 511,
+      "mtime_ns": 1783380629997525329,
+      "sensitive_name": false,
+      "sha256": "50819f475334e4aa01b523619a33937fdab1929f27792b345898f0268454aae6",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/ios_restricted_migration.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 661,
+      "mtime_ns": 1783380630065522724,
+      "sensitive_name": false,
+      "sha256": "03d5f188288209f8b7b95f91589f212a812b46818c69218e779138716ca8245f",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/reasoned_installer_export.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 531,
+      "mtime_ns": 1783380630293513996,
+      "sensitive_name": false,
+      "sha256": "01d0378984bc8bb0dd793e0d67b9d63771d50dfa704f9931b6254b9f6acceee1",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/remote_access.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 831,
+      "mtime_ns": 1783380388910634963,
+      "sensitive_name": false,
+      "sha256": "81c19a1c67f43e3d176c212fa96dab290bd04e9e2f48c12e21db5580cfb2a40a",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/remote_access_gateway.pid",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3,
+      "mtime_ns": 1783378542868718380,
+      "sensitive_name": false,
+      "sha256": "917df3320d778ddbaa5c5c7742bc4046bf803c36ed2b050f30844ed206783469",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/services.state.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2032,
+      "mtime_ns": 1783378894299379418,
+      "sensitive_name": false,
+      "sha256": "6f42520f728b5b8cfdb926ea05bcc2b70a675fad67def69f924c25af9b491f42",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/standalone_all_in_one_os.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 475,
+      "mtime_ns": 1783380630597502466,
+      "sensitive_name": false,
+      "sha256": "e3e857e971ff4dc0a4af5c2794608e12706be93ed88923dc9d5ccb50e5e57f9c",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/state.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 4876,
+      "mtime_ns": 1783380629393548471,
+      "sensitive_name": false,
+      "sha256": "34f31f4456fa095483482e367a14f86bb92e3e4a36f6a41fb0e21a7d460a115b",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/sys_os_mirror.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 776,
+      "mtime_ns": 1783380388774640187,
+      "sensitive_name": false,
+      "sha256": "1303612b9ae5d5f0b4fd447328b764a36e8093a7fb18b0e1ceecff4702166ddf",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/system_app_chat.pid",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2,
+      "mtime_ns": 1783378542160745217,
+      "sensitive_name": false,
+      "sha256": "10159baf262b43a92d95db59dae1f72c645127301661e0a3ce4e38b295a97c58",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/system_app_chat.validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1197,
+      "mtime_ns": 1783380630957488812,
+      "sensitive_name": false,
+      "sha256": "5eb80330c1c451d545575ff5bf6d2089206e07e99eb8126bed3d84a568f1ff56",
+      "content_included": true
+    },
+    {
+      "path": "local_usr/sys/var/run/validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 359,
+      "mtime_ns": 1783380629477545253,
+      "sensitive_name": false,
+      "sha256": "b55a46e1867301cb80b0c1f54ecd05d05a91815379fe73ec751e995b12b4914c",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/__pycache__",
+      "type": "directory",
+      "mode_octal": "0o755",
+      "size_bytes": 4096,
+      "mtime_ns": 1783336064333278255,
+      "sensitive_name": false
+    },
+    {
+      "path": "logs/git/local/config.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 333,
+      "mtime_ns": 1783336041278271409,
+      "sensitive_name": false,
+      "sha256": "0bda6eac12af378429dbd573c52b46bfd932162b6a90f54791b407b7dd3e38a1",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/events.jsonl",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 46490,
+      "mtime_ns": 1783380629265553375,
+      "sensitive_name": false,
+      "sha256": "9467ef452caf86d778afe1cc6ca75186e5bbdb2588fced705ffd3cc211957006",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/latest_event.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2723,
+      "mtime_ns": 1783380629265553375,
+      "sensitive_name": false,
+      "sha256": "a246fb9e0b436dc1efce05874cf84d146fea4c3c853e8d51c34db121232b092b",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/manifest.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 515,
+      "mtime_ns": 1783380629161557359,
+      "sensitive_name": false,
+      "sha256": "2b8bb9fbc32bdc1be8615bfa6dc4281ae7f1ca1e1d54ee08a4f61ba498aa676d",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/snapshot.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 7667,
+      "mtime_ns": 1783336073024901058,
+      "sensitive_name": false,
+      "sha256": "d32665a2b660190d7be3f6f8fe3f10a873a1977d1193d70d7408d73ae36cca4a",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/streampipe.cli",
+      "type": "file",
+      "mode_octal": "0o755",
+      "size_bytes": 16466,
+      "mtime_ns": 1783336057265585033,
+      "sensitive_name": false,
+      "sha256": "313003eb959a4cb26da74fef8fa328ded2bffef7e10675fb4fd61eb269d29830",
+      "content_included": true
+    },
+    {
+      "path": "logs/git/local/validation.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 680,
+      "mtime_ns": 1783336086104337968,
+      "sensitive_name": false,
+      "sha256": "acd1b32007f9d4158f83c079433b71cdc2d039d1a55affdcc4177bf06bfa6f7a",
+      "content_included": true
+    },
+    {
+      "path": "docs/API_KEY_PASSES_HARDENED_POLICY.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1221,
+      "mtime_ns": 1783380629577541421,
+      "sensitive_name": false,
+      "sha256": "b9c887f99f3e9514d9cc040f353c47f6d38dba4628e0348781e9387b464b68c2",
+      "content_included": true
+    },
+    {
+      "path": "docs/CODEX_CLAUDE_ACKNOWLEDGE.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2783,
+      "mtime_ns": 1783379881901907253,
+      "sensitive_name": false,
+      "sha256": "aaff9e8650210f7ccb61bdd1866ccbf31867fe6e083becbbe7ff6d16c49b51aa",
+      "content_included": true
+    },
+    {
+      "path": "docs/IOS_HARD_RESTRICTED_SAFE_MIGRATION.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2622,
+      "mtime_ns": 1783380629693536976,
+      "sensitive_name": false,
+      "sha256": "ec1d81d3fe6181e439dffee1ae3272c99dbba09822d3efff965abad3db10650e",
+      "content_included": true
+    },
+    {
+      "path": "docs/LOCAL_USR_SYS_PATH_INIT.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1531,
+      "mtime_ns": 1783336356448697896,
+      "sensitive_name": false,
+      "sha256": "8e2d0249e0bd95f75db046999d9c5db298d76a5a3d36b1c720187b05ba449c87",
+      "content_included": true
+    },
+    {
+      "path": "docs/REASONED_INSTALLER_EXPORT_REPORT.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1075,
+      "mtime_ns": 1783380630201517513,
+      "sensitive_name": false,
+      "sha256": "6d195f3ad9c687ac9ebf313c721a86203f9137b1fc64565da52beef11031dfa5",
+      "content_included": true
+    },
+    {
+      "path": "docs/STANDALONE_ALL_IN_ONE_OS_INTERPRETATION.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 3502,
+      "mtime_ns": 1783380630485506714,
+      "sensitive_name": false,
+      "sha256": "6a1e1b44297e351e939c64c1118a84ab6639ddcbdb363fe37306ef055cd8b703",
+      "content_included": true
+    },
+    {
+      "path": "docs/STANDALONE_STREAMPipe_CLI.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 1828,
+      "mtime_ns": 1783336031194703420,
+      "sensitive_name": false,
+      "sha256": "6fbf4c46932b519127480c59c40f1013f0c9cbf8631ed8aaa198a3751689f6d6",
+      "content_included": true
+    },
+    {
+      "path": "docs/SYSTEM_APP_CHAT.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2905,
+      "mtime_ns": 1783339275948452386,
+      "sensitive_name": false,
+      "sha256": "d69ffd8d6b100ce2e0e83aa4f0efc22509078043b5cd9894130ff7913f4a5b91",
+      "content_included": true
+    },
+    {
+      "path": "docs/SYS_OS_MIRROR_REMOTE_ACCESS_RUNBOOK.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2627,
+      "mtime_ns": 1783336822923821334,
+      "sensitive_name": false,
+      "sha256": "a048fc05d9a35d04f8954730387d43a544d9751fa0cd780943d9fe98aac7eddc",
+      "content_included": true
+    },
+    {
+      "path": "docs/WHATSAPP_THIRD_PARTY_CHAT_REGULATION.md",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 2170,
+      "mtime_ns": 1783339257869231595,
+      "sensitive_name": false,
+      "sha256": "07382a0aac45839a48933cfeef7d0bda8521ab36fcad1ed8b17c3a5b9597310f",
+      "content_included": true
+    },
+    {
+      "path": "validation/LOCAL_USR_SYS_PATH_INIT_REQUEST.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 488,
+      "mtime_ns": 1783336356532694093,
+      "sensitive_name": false,
+      "sha256": "097da2eabb098047ed7ab36e7c7ba891f00cdf622dd189526c7813c2414f65f1",
+      "content_included": true
+    },
+    {
+      "path": "validation/STREAMPipe_STANDALONE_INIT.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 528,
+      "mtime_ns": 1783336031282699649,
+      "sensitive_name": false,
+      "sha256": "1e80d040e79f66e5300b50c49e07d9719eed07e9ad886697edb8fe7bc26a5a0f",
+      "content_included": true
+    },
+    {
+      "path": "validation/SYS_OS_MIRROR_REMOTE_ACCESS_BUILD.json",
+      "type": "file",
+      "mode_octal": "0o644",
+      "size_bytes": 22283,
+      "mtime_ns": 1783380388926634348,
+      "sensitive_name": false,
+      "sha256": "f8879c6634dfbe5321f15760649fbf045c528c36538537acb53b956b156416bf",
+      "content_included": true
+    }
+  ],
+  "skipped": [
+    "local_usr/sys/bin/__pycache__/api_key_passes.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/build_sys_os_remote.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/ios_restricted_migration.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/path_init.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/reasoned_installer_export.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/remote_access_gateway.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/standalone_all_in_one_os.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/start_services.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/sys_os_mirror.cpython-312.pyc",
+    "local_usr/sys/bin/__pycache__/system_app_chat.cpython-312.pyc",
+    "sensitive-name-content-skipped:local_usr/sys/etc/app_tokens/system_app_chat_selftest.token",
+    "sensitive-name-content-skipped:local_usr/sys/etc/remote_access.token",
+    "sensitive-name-content-skipped:local_usr/sys/etc/system_app_chat.admin.token",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T112029762194Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T120134040668Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T120238004431Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225117920092Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225232575264Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225339021681Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225444747047Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225538970362Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T230457545831Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T230509579823Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T231038206872Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T231815217653Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T232038784479Z.tar.gz",
+    "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T232628728103Z.tar.gz",
+    "logs/git/local/__pycache__/streampipe.cpython-312.pyc"
+  ],
+  "errors": [],
+  "manifest_sha256": "a94923342ec1d29ca791870c272ca3b1250e3d4f98e29b39d618dbe682459113",
+  "written_at_utc": "2026-07-06T23:30:31.085847Z",
+  "content_sha256": "18154d4b68c05ccd1cc0161528f8239a7c9f54a691770c10c7f7baf96ab6c8ab"
+}
