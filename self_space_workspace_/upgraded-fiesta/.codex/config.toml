@@ -1,0 +1,31 @@
+# Repository-scoped Codex configuration for benholl94-cmyk/upgraded-fiesta.
+# User/provider authentication stays in ~/.codex/config.toml and must not be committed here.
+
+model = "gpt-5.5"
+review_model = "gpt-5.5"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false
+exclude_slash_tmp = true
+exclude_tmpdir_env_var = true
+
+[shell_environment_policy]
+inherit = "core"
+exclude = [
+  "*API_KEY*",
+  "*TOKEN*",
+  "*SECRET*",
+  "*PASSWORD*",
+  "*PRIVATE_KEY*"
+]
+
+[shell_environment_policy.set]
+CI = "1"
+RUST_BACKTRACE = "1"
+CARGO_TERM_COLOR = "always"
+DEV_HOST = "127.0.0.1"
+DEV_BIND = "127.0.0.1"
+NO_PROXY = "localhost,127.0.0.1,::1,*.local"
