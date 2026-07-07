@@ -1,0 +1,18 @@
+{
+  "schema_version": "local_usr.sys.live_set.v1",
+  "live_set_id": "bridge",
+  "source": "environment variable name presence only",
+  "facts": {
+    "credential_values_read": false,
+    "credential_like_env_names_present": [],
+    "bridge_configured_by_env_name": false,
+    "network_probe_performed": false
+  },
+  "generation_policy": {
+    "generated_when_missing_or_false": true,
+    "external_data_fabricated": false,
+    "source_type": "standalone_self_made_local_observation"
+  },
+  "written_at_utc": "2026-07-06T23:30:29.396709Z",
+  "content_sha256": "baed878a07314d9a91fe3fa9298854605cd57af2e08e153b133b993a928d1dfb"
+}
