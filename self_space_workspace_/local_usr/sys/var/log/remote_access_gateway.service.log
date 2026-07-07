@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "bind": "127.0.0.1",
+  "port": 8765,
+  "routes": {
+    "/health": "local health status",
+    "/manifest": "sys manifest",
+    "/mirror/manifest": "latest mirror manifest",
+    "/mirror/validation": "mirror validation",
+    "/remote/validation": "remote access validation",
+    "/archive/latest": "latest mirror archive download"
+  }
+}
+{
+  "ok": true,
+  "bind": "127.0.0.1",
+  "port": 8765,
+  "routes": {
+    "/health": "local health status",
+    "/manifest": "sys manifest",
+    "/mirror/manifest": "latest mirror manifest",
+    "/mirror/validation": "mirror validation",
+    "/remote/validation": "remote access validation",
+    "/archive/latest": "latest mirror archive download"
+  }
+}
+{
+  "ok": true,
+  "bind": "127.0.0.1",
+  "port": 8765,
+  "routes": {
+    "/health": "local health status",
+    "/manifest": "sys manifest",
+    "/mirror/manifest": "latest mirror manifest",
+    "/mirror/validation": "mirror validation",
+    "/remote/validation": "remote access validation",
+    "/archive/latest": "latest mirror archive download"
+  }
+}
