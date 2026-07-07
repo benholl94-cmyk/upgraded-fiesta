@@ -1,0 +1,21 @@
+[server]
+bind = "0.0.0.0:8080"
+cors = true
+
+[database]
+postgres = "postgres:5432"
+redis = "redis:6379"
+
+[agent]
+default_runtime = "codex"
+max_context_tokens = 128000
+tool_timeout_ms = 30000
+
+[memory]
+fts = true
+vector = true
+dreaming = true
+
+[security]
+sandbox = true
+audit = true
