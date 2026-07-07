@@ -1,0 +1,11 @@
+{
+  "schema_version": "local_usr.sys.path_init.v1",
+  "ok": true,
+  "validated_at_utc": "2026-07-06T23:30:29.481138Z",
+  "root": "/workspace",
+  "sys_root": "/workspace/local_usr/sys",
+  "errors": [],
+  "warnings": [],
+  "written_at_utc": "2026-07-06T23:30:29.481978Z",
+  "content_sha256": "05f7860db9b8aad716ef1c008bb1772031865e3b6f216b5d1cb423b2eb3131cf"
+}
