@@ -32571,3 +32571,158 @@ Codex fullstack setup complete.
     "ui_dispatch_present": true
   }
 }
+{
+  "generated_at": "2026-07-07T17:41:21.886816+00:00",
+  "marker_failures": [],
+  "missing_files": [],
+  "ok": true,
+  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
+  "platform_config": {
+    "endpoint_count": 3,
+    "endpoint_ids": [
+      "primary",
+      "gateway-local",
+      "gateway-fallback"
+    ],
+    "exists": true,
+    "has_timeout": true,
+    "has_zero_staked_status": true
+  },
+  "required_files": [
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".codex/setup.sh",
+      "size_bytes": 149
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".codex/run-trigger.txt",
+      "size_bytes": 262
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/codex-setup.yml",
+      "size_bytes": 2894
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/rust-ci.yml",
+      "size_bytes": 369
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "scripts/codex_fullstack_setup.sh",
+      "size_bytes": 753
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "scripts/codex_fullstack_check.sh",
+      "size_bytes": 1024
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "logs/automated-initialization-run.md",
+      "size_bytes": 2514
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "docs/production-api-contract.md",
+      "size_bytes": 24959
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "docs/ui-control-plane-implementation.md",
+      "size_bytes": 2227
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/public/platform-config.json",
+      "size_bytes": 727
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/src/endpoint-rotation.ts",
+      "size_bytes": 10618
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/src/main.ts",
+      "size_bytes": 10004
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/src/styles.css",
+      "size_bytes": 3086
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/index.html",
+      "size_bytes": 445
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/Dockerfile",
+      "size_bytes": 271
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "crates/hm-gateway/src/main.rs",
+      "size_bytes": 32949
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "docker-compose.yml",
+      "size_bytes": 1081
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "Cargo.toml",
+      "size_bytes": 1010
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "Makefile",
+      "size_bytes": 330
+    }
+  ],
+  "source_markers": {
+    "endpoint_states_present": {
+      "degraded": true,
+      "offline": true,
+      "online": true,
+      "unknown": true,
+      "zero_staked": true
+    },
+    "gateway_agent_managed_present": true,
+    "gateway_routes_present": {
+      "GET /api/health": true,
+      "GET /gateway/health": true,
+      "GET /health": true,
+      "GET /tasks": true,
+      "POST /api/tasks": true,
+      "POST /gateway/tasks": true,
+      "POST /tasks": true
+    },
+    "gateway_zero_staked_present": true,
+    "ui_dispatch_present": true
+  }
+}
