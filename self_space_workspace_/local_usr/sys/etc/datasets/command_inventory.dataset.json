@@ -1,0 +1,9 @@
+{
+  "schema_version": "local_usr.sys.dataset.v1",
+  "dataset_id": "command_inventory",
+  "purpose": "Detected local command support for mobile control-plane operation",
+  "file": "local_usr/sys/var/lib/data/command_inventory.dataset.json",
+  "generated_from": "local observations",
+  "written_at_utc": "2026-07-06T23:30:29.336584Z",
+  "content_sha256": "bb0a729d8f47f6fa359f9415efe311829b1c529dc6a4e51cc42e1314a134995a"
+}
