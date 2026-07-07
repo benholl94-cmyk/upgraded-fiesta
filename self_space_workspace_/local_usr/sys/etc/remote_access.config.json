@@ -1,0 +1,20 @@
+{
+  "schema_version": "local_usr.sys.remote_access.v1",
+  "bind": "127.0.0.1",
+  "port": 8765,
+  "token_sha256": "bf4475c7f16cc6980b1832fff1f8924111756331367c3ce66e079becedbb24d5",
+  "token_file": "/workspace/local_usr/sys/etc/remote_access.token",
+  "read_only": true,
+  "shell_execution_enabled": false,
+  "routes": {
+    "/health": "local health status",
+    "/manifest": "sys manifest",
+    "/mirror/manifest": "latest mirror manifest",
+    "/mirror/validation": "mirror validation",
+    "/remote/validation": "remote access validation",
+    "/archive/latest": "latest mirror archive download"
+  },
+  "startup_command": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 local_usr/sys/bin/remote_access_gateway.py serve",
+  "written_at_utc": "2026-07-06T11:20:30.031807Z",
+  "content_sha256": "d8ff89a4be172afa326fb48827a27bfd86e76f11599dd0810dd8b6598e45dde1"
+}
