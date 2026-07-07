@@ -1,0 +1,12 @@
+{
+  "schema_version": "local_usr.sys.reasoned_installer_export.v1",
+  "ok": true,
+  "validated_at_utc": "2026-07-06T23:30:30.299475Z",
+  "state_path": "/workspace/local_usr/sys/var/lib/reasoned_installer_export/state.json",
+  "installer_path": "/workspace/install_reasoned_system.py",
+  "report_path": "/workspace/docs/REASONED_INSTALLER_EXPORT_REPORT.md",
+  "errors": [],
+  "warnings": [],
+  "written_at_utc": "2026-07-06T23:30:30.299657Z",
+  "content_sha256": "71c44129d7ef61cd16c96a654171f9e0168a152651ef9f9bef27ab30e4498979"
+}
