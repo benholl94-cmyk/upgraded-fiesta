@@ -1,0 +1,31 @@
+{
+  "schema_version": "local_usr.sys.live_set.v1",
+  "live_sets": [
+    {
+      "live_set_id": "bridge",
+      "file": "local_usr/sys/var/lib/live_sets/bridge.live.json"
+    },
+    {
+      "live_set_id": "control_plane",
+      "file": "local_usr/sys/var/lib/live_sets/control_plane.live.json"
+    },
+    {
+      "live_set_id": "flyoos_env_points_anchors_localization",
+      "file": "local_usr/sys/var/lib/live_sets/flyoos_env_points_anchors_localization.live.json"
+    },
+    {
+      "live_set_id": "git_local",
+      "file": "local_usr/sys/var/lib/live_sets/git_local.live.json"
+    },
+    {
+      "live_set_id": "runtime",
+      "file": "local_usr/sys/var/lib/live_sets/runtime.live.json"
+    },
+    {
+      "live_set_id": "system_app_chat",
+      "file": "local_usr/sys/var/lib/live_sets/system_app_chat.live.json"
+    }
+  ],
+  "written_at_utc": "2026-07-06T23:30:29.399131Z",
+  "content_sha256": "7e3daecfe2e29c207f6f8be36432d2a69e903f3bccb7963c00106df115d79e67"
+}
