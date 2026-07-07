@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+import json, pathlib, sys
+root = pathlib.Path.cwd()
+payload = {
+  "ok": True,
+  "tool": "codex-local-fallback",
+  "version": "local-fallback-1.0",
+  "bridge_configured": False,
+  "mode": "ashell_documents_recovery",
+  "cwd": str(root),
+  "reason": "Real Codex CLI was not found in PATH; this shim only reports local state.",
+}
+if "--version" in sys.argv:
+  print(payload["version"])
+else:
+  print(json.dumps(payload, indent=2))
