@@ -1,0 +1,17 @@
+name: rust-ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate generated repository structure
+        run: python3 scripts/validate_repo.py
+      - name: Cargo check workspace
+        run: cargo check --workspace
