@@ -1,0 +1,9 @@
+{
+  "schema": "user.policy.v1",
+  "created_at_utc": "2026-07-07T12:31:37Z",
+  "description": "Dieses Dokument legt grundlegende Nutzer‑Richtlinien fest. Unbekannte oder nicht überprüfbare Richtlinien sind untersagt (EU‑rechtliche Vorgaben). Externe Systeme oder Personen dürfen diese Richtlinien nicht verändern oder umgehen.",
+  "rules": {
+    "unknown_policies_forbidden": true,
+    "external_modification_forbidden": true
+  }
+}
