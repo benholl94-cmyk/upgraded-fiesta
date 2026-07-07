@@ -1,0 +1,117 @@
+name: codex-setup
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/codex-setup.yml
+      - .codex/**
+      - AGENTS.md
+      - Makefile
+      - README.md
+      - scripts/codex_fullstack_setup.sh
+      - scripts/codex_fullstack_check.sh
+      - Cargo.toml
+      - ui/package.json
+  pull_request:
+    paths:
+      - .github/workflows/codex-setup.yml
+      - .codex/**
+      - AGENTS.md
+      - Makefile
+      - README.md
+      - scripts/codex_fullstack_setup.sh
+      - scripts/codex_fullstack_check.sh
+      - Cargo.toml
+      - ui/package.json
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: codex-setup-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "1"
+      RUST_BACKTRACE: "1"
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache Cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      - name: Cache npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('ui/package.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      - name: Run Codex setup with transcript
+        id: codex_setup
+        run: |
+          mkdir -p codex-results
+          {
+            echo "# Codex setup transcript"
+            echo "repository=${GITHUB_REPOSITORY}"
+            echo "sha=${GITHUB_SHA}"
+            echo "ref=${GITHUB_REF}"
+            echo "runner=${RUNNER_OS}"
+            echo "command=bash .codex/setup.sh"
+            echo
+            bash .codex/setup.sh
+          } 2>&1 | tee codex-results/setup.log
+
+      - name: Write GitHub job summary
+        if: always()
+        run: |
+          {
+            echo "# Codex setup"
+            echo
+            echo "Command: \`bash .codex/setup.sh\`"
+            echo
+            echo "## Last 200 log lines"
+            echo
+            echo '```text'
+            tail -n 200 codex-results/setup.log 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload setup transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-setup-transcript
+          path: codex-results/setup.log
+          if-no-files-found: error
+          retention-days: 14
