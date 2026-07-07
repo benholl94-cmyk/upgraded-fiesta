@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "profile_id": "iphone-unlocked-services-profile",
+  "version": "1.0.0",
+  "generated_for": "iPhone a-Shell control plane",
+  "device_context": {
+    "device_class": "iPhone",
+    "device_model_hint": "iPhone15,3",
+    "platform_hint": "iOS-26.6-iPhone15,3-arm64-64bit",
+    "primary_shell": "a-Shell",
+    "host_limit": "no external Mac or host assumed",
+    "local_project_path": "~/Documents/Developer/upgraded-fiesta.git"
+  },
+  "runtime_capabilities": {
+    "python3": {
+      "enabled": true,
+      "observed_version_hint": "3.13.1+",
+      "role": "primary local automation runtime"
+    },
+    "local_http_client": {
+      "enabled": true,
+      "role": "urllib/curl based endpoint checks"
+    },
+    "local_file_write": {
+      "enabled": true,
+      "role": "generate settings, manifests and local runtime profiles"
+    },
+    "ssh_client": {
+      "enabled": true,
+      "role": "private tunnel to remote gateway when a server exists"
+    }
+  },
+  "blocked_on_iphone": {
+    "docker_daemon": {
+      "enabled": false,
+      "reason": "iPhone/a-Shell does not provide Docker daemon semantics"
+    },
+    "root_path": {
+      "enabled": false,
+      "path": "/root",
+      "reason": "not writable/usable as Linux root home inside a-Shell"
+    },
+    "server_bootstrap_local_execution": {
+      "enabled": false,
+      "reason": "server bootstrap belongs on remote Ubuntu/Debian VPS, not on iPhone"
+    },
+    "public_gateway_exposure": {
+      "enabled": false,
+      "reason": "Signal gateway must stay private behind local bind, SSH tunnel or private VPN"
+    }
+  },
+  "unlocked_project_services": {
+    "signal_gateway_v1_client": {
+      "enabled": true,
+      "workaround_id": "signal-gateway-v1",
+      "workaround_version": "1.0.0",
+      "local_config": "settings/signal-cli-client.local.json",
+      "version_file": "settings/signal-gateway-workaround.version",
+      "gateway_base_url": "http://127.0.0.1:9922",
+      "requires_remote_gateway": true
+    },
+    "mobile_profile_management": {
+      "enabled": true,
+      "profile_file": "settings/iphone-unlocked-services.profile.json"
+    },
+    "repo_file_pull_without_git": {
+      "enabled": true,
+      "method": "python3 urllib.request direct raw GitHub download",
+      "reason": "local folder may not be a valid Git working tree"
+    }
+  },
+  "validation_state": {
+    "iphone_client_bound": true,
+    "gateway_reachable": false,
+    "last_known_gateway_error": "Connection refused on 127.0.0.1:9922 because no remote tunnel/server is active",
+    "next_valid_action": "activate private remote gateway or SSH tunnel before gateway check"
+  },
+  "safety_boundary": {
+    "no_carrier_unlock": true,
+    "no_device_lock_bypass": true,
+    "no_jailbreak_assumption": true,
+    "meaning_of_unlocked_services": "project services enabled by configuration, not bypassing device or third-party restrictions"
+  }
+}
