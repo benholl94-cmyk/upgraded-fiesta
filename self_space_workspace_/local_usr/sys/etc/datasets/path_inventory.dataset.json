@@ -1,0 +1,5 @@
+{
+  "schema_version": "ashell.mobile_operator.deploy_exec.v3",
+  "dataset_id": "path_inventory",
+  "file": "local_usr/sys/var/lib/data/path_inventory.dataset.json"
+}
