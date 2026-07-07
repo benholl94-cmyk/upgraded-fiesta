@@ -1,0 +1,861 @@
+{
+  "schema_version": "ashell.mobile_operator.deploy_exec.v3",
+  "ok": true,
+  "audited_at_utc": "2026-07-07T10:24:21.891798Z",
+  "file_count": 202,
+  "files": [
+    {
+      "path": ".cache/01-Claude-Code.webarchive",
+      "size_bytes": 16528161
+    },
+    {
+      "path": ".cache/01-D3BE1381-07F7-4CF4-9801-71DB1EC0750D.png",
+      "size_bytes": 376216
+    },
+    {
+      "path": ".cache/02-019edc7c-0be9-77ad-b046-4b251796ef3d.json",
+      "size_bytes": 503
+    },
+    {
+      "path": ".cache/02-094B02E9-6FE3-4832-8339-04788BE9117D.png",
+      "size_bytes": 621806
+    },
+    {
+      "path": ".cache/IMG_0148.PNG",
+      "size_bytes": 402592
+    },
+    {
+      "path": ".cache/ashell_patch_fix.sh",
+      "size_bytes": 18994
+    },
+    {
+      "path": ".cache/ashell_supervisor_repair_download.zip",
+      "size_bytes": 28353
+    },
+    {
+      "path": ".cache/chatgpt_share_t_6a4cc14a89cc8191b48953c2f4080308.html",
+      "size_bytes": 528219
+    },
+    {
+      "path": ".cache/shell.sh",
+      "size_bytes": 20041
+    },
+    {
+      "path": "ashell_close_non_existing_issues_fix.sh",
+      "size_bytes": 6542
+    },
+    {
+      "path": "ashell_documents_recovery_toolkit.zip",
+      "size_bytes": 7447
+    },
+    {
+      "path": "ashell_supervisor_plugins_tools_datasets_download.zip",
+      "size_bytes": 65936
+    },
+    {
+      "path": "ashell_supervisor_repair_download.zip",
+      "size_bytes": 28353
+    },
+    {
+      "path": "ashell_supervisor_repair_onebash.sh",
+      "size_bytes": 23198
+    },
+    {
+      "path": "ashell_supervisor_repair_package/ASHELL_SUPERVISOR_REPAIR_REPORT.json",
+      "size_bytes": 9706
+    },
+    {
+      "path": "ashell_supervisor_repair_package/ashell_supervisor_production_runtime.zip",
+      "size_bytes": 20224
+    },
+    {
+      "path": "ashell_supervisor_repair_package/ashell_supervisor_repair_onebash.sh",
+      "size_bytes": 23198
+    },
+    {
+      "path": "bin/lsof-lite",
+      "size_bytes": 331
+    },
+    {
+      "path": "bin/unzip",
+      "size_bytes": 1061
+    },
+    {
+      "path": "build_ashell_plugin_tools_dataset.py",
+      "size_bytes": 18477
+    },
+    {
+      "path": "config/api-key-passes.policy.json",
+      "size_bytes": 2794
+    },
+    {
+      "path": "docs/API_KEY_PASSES_HARDENED_POLICY.md",
+      "size_bytes": 1221
+    },
+    {
+      "path": "docs/ASHELL_DOCUMENTS_RECOVERY.md",
+      "size_bytes": 1019
+    },
+    {
+      "path": "docs/ASHELL_FULL_ENVIRONMENT.md",
+      "size_bytes": 483
+    },
+    {
+      "path": "docs/CODEX_CLAUDE_ACKNOWLEDGE.md",
+      "size_bytes": 2783
+    },
+    {
+      "path": "docs/IOS_HARD_RESTRICTED_SAFE_MIGRATION.md",
+      "size_bytes": 2622
+    },
+    {
+      "path": "docs/LOCAL_USR_SYS_PATH_INIT.md",
+      "size_bytes": 1531
+    },
+    {
+      "path": "docs/REASONED_INSTALLER_EXPORT_REPORT.md",
+      "size_bytes": 1075
+    },
+    {
+      "path": "docs/STANDALONE_ALL_IN_ONE_OS_INTERPRETATION.md",
+      "size_bytes": 3502
+    },
+    {
+      "path": "docs/STANDALONE_STREAMPipe_CLI.md",
+      "size_bytes": 1828
+    },
+    {
+      "path": "docs/SYSTEM_APP_CHAT.md",
+      "size_bytes": 2905
+    },
+    {
+      "path": "docs/SYS_OS_MIRROR_REMOTE_ACCESS_RUNBOOK.md",
+      "size_bytes": 2627
+    },
+    {
+      "path": "docs/WHATSAPP_THIRD_PARTY_CHAT_REGULATION.md",
+      "size_bytes": 2170
+    },
+    {
+      "path": "exports/ashell_full_environment_runtime.zip",
+      "size_bytes": 1737130
+    },
+    {
+      "path": "exports/reasoned_system_payload_20260706T232618Z.tar.gz",
+      "size_bytes": 19799
+    },
+    {
+      "path": "exports/reasoned_system_payload_20260706T232618Z.zip",
+      "size_bytes": 28558
+    },
+    {
+      "path": "exports/reasoned_system_payload_20260706T232628Z.tar.gz",
+      "size_bytes": 19790
+    },
+    {
+      "path": "exports/reasoned_system_payload_20260706T232628Z.zip",
+      "size_bytes": 28558
+    },
+    {
+      "path": "exports/reasoned_system_payload_20260706T233030Z.tar.gz",
+      "size_bytes": 19812
+    },
+    {
+      "path": "exports/reasoned_system_payload_20260706T233030Z.zip",
+      "size_bytes": 28558
+    },
+    {
+      "path": "exports/user_local_deploy_exec_blockers_report.txt",
+      "size_bytes": 1672
+    },
+    {
+      "path": "github-main-claude-acknowledge-sync.zip",
+      "size_bytes": 8963
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132235/ashell_supervisor_repair_package/ASHELL_PLUGIN_TOOLS_DATASETS_BUILD.json",
+      "size_bytes": 8511
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132235/ashell_supervisor_repair_package/ASHELL_SUPERVISOR_REPAIR_REPORT.json",
+      "size_bytes": 9706
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132235/ashell_supervisor_repair_package/ashell_plugins_tools_datasets_onebash.sh",
+      "size_bytes": 613
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132235/ashell_supervisor_repair_package/ashell_supervisor_production_runtime.zip",
+      "size_bytes": 20224
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132235/ashell_supervisor_repair_package/ashell_supervisor_production_runtime_plugins.zip",
+      "size_bytes": 35137
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132235/ashell_supervisor_repair_package/ashell_supervisor_repair_onebash.sh",
+      "size_bytes": 23198
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132302/ashell_supervisor_repair_package/ASHELL_PLUGIN_TOOLS_DATASETS_BUILD.json",
+      "size_bytes": 8511
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132302/ashell_supervisor_repair_package/ASHELL_SUPERVISOR_REPAIR_REPORT.json",
+      "size_bytes": 9706
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132302/ashell_supervisor_repair_package/ashell_plugins_tools_datasets_onebash.sh",
+      "size_bytes": 613
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132302/ashell_supervisor_repair_package/ashell_supervisor_production_runtime.zip",
+      "size_bytes": 20224
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132302/ashell_supervisor_repair_package/ashell_supervisor_production_runtime_plugins.zip",
+      "size_bytes": 35137
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132302/ashell_supervisor_repair_package/ashell_supervisor_repair_onebash.sh",
+      "size_bytes": 23198
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419/ashell_supervisor_repair_package/ASHELL_PLUGIN_TOOLS_DATASETS_BUILD.json",
+      "size_bytes": 8511
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419/ashell_supervisor_repair_package/ASHELL_SUPERVISOR_REPAIR_REPORT.json",
+      "size_bytes": 9706
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419/ashell_supervisor_repair_package/ashell_plugins_tools_datasets_onebash.sh",
+      "size_bytes": 613
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419/ashell_supervisor_repair_package/ashell_supervisor_production_runtime.zip",
+      "size_bytes": 20224
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419/ashell_supervisor_repair_package/ashell_supervisor_production_runtime_plugins.zip",
+      "size_bytes": 35137
+    },
+    {
+      "path": "imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419/ashell_supervisor_repair_package/ashell_supervisor_repair_onebash.sh",
+      "size_bytes": 23198
+    },
+    {
+      "path": "init_full_ashell_environment_patched.sh",
+      "size_bytes": 25336
+    },
+    {
+      "path": "install_reasoned_system.py",
+      "size_bytes": 1308
+    },
+    {
+      "path": "local_usr/sys/bin/api_key_passes.py",
+      "size_bytes": 11392
+    },
+    {
+      "path": "local_usr/sys/bin/ashell_documents_recovery.py",
+      "size_bytes": 11479
+    },
+    {
+      "path": "local_usr/sys/bin/ashell_supervisor.py",
+      "size_bytes": 10375
+    },
+    {
+      "path": "local_usr/sys/bin/build_sys_os_remote.py",
+      "size_bytes": 5364
+    },
+    {
+      "path": "local_usr/sys/bin/ios_restricted_migration.py",
+      "size_bytes": 16772
+    },
+    {
+      "path": "local_usr/sys/bin/path_init.py",
+      "size_bytes": 25679
+    },
+    {
+      "path": "local_usr/sys/bin/reasoned_installer_export.py",
+      "size_bytes": 14238
+    },
+    {
+      "path": "local_usr/sys/bin/remote_access_gateway.py",
+      "size_bytes": 10157
+    },
+    {
+      "path": "local_usr/sys/bin/standalone_all_in_one_os.py",
+      "size_bytes": 17127
+    },
+    {
+      "path": "local_usr/sys/bin/start_services.py",
+      "size_bytes": 8235
+    },
+    {
+      "path": "local_usr/sys/bin/sys_os_mirror.py",
+      "size_bytes": 13397
+    },
+    {
+      "path": "local_usr/sys/bin/system_app_chat.py",
+      "size_bytes": 28688
+    },
+    {
+      "path": "local_usr/sys/etc/anchors/flyoos_env_points_anchors_localization.anchor.json",
+      "size_bytes": 773
+    },
+    {
+      "path": "local_usr/sys/etc/app_tokens/system_app_chat_selftest.token",
+      "size_bytes": 44
+    },
+    {
+      "path": "local_usr/sys/etc/channels/bridge.channel.json",
+      "size_bytes": 507
+    },
+    {
+      "path": "local_usr/sys/etc/channels/control_plane.channel.json",
+      "size_bytes": 514
+    },
+    {
+      "path": "local_usr/sys/etc/channels/flyoos_env_points_anchors_localization.channel.json",
+      "size_bytes": 640
+    },
+    {
+      "path": "local_usr/sys/etc/channels/git_local.channel.json",
+      "size_bytes": 458
+    },
+    {
+      "path": "local_usr/sys/etc/channels/local_supervisor.channel.json",
+      "size_bytes": 223
+    },
+    {
+      "path": "local_usr/sys/etc/channels/runtime.channel.json",
+      "size_bytes": 478
+    },
+    {
+      "path": "local_usr/sys/etc/channels/system_app_chat.channel.json",
+      "size_bytes": 502
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/app_chat_state.dataset.json",
+      "size_bytes": 407
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/command_inventory.dataset.json",
+      "size_bytes": 422
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/flyoos_anchor_state.dataset.json",
+      "size_bytes": 442
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/path_inventory.dataset.json",
+      "size_bytes": 166
+    },
+    {
+      "path": "local_usr/sys/etc/datasets/streampipe_state.dataset.json",
+      "size_bytes": 404
+    },
+    {
+      "path": "local_usr/sys/etc/policies/ios_restricted_migration.policy.json",
+      "size_bytes": 4128
+    },
+    {
+      "path": "local_usr/sys/etc/remote_access.config.json",
+      "size_bytes": 890
+    },
+    {
+      "path": "local_usr/sys/etc/remote_access.token",
+      "size_bytes": 44
+    },
+    {
+      "path": "local_usr/sys/etc/supervisor.policy.json",
+      "size_bytes": 418
+    },
+    {
+      "path": "local_usr/sys/etc/sys_manifest.json",
+      "size_bytes": 413
+    },
+    {
+      "path": "local_usr/sys/etc/sys_os_mirror.config.json",
+      "size_bytes": 825
+    },
+    {
+      "path": "local_usr/sys/etc/system_app_chat.admin.token",
+      "size_bytes": 44
+    },
+    {
+      "path": "local_usr/sys/etc/system_app_chat.config.json",
+      "size_bytes": 1177
+    },
+    {
+      "path": "local_usr/sys/var/lib/anchors/flyoos_env_points_anchors_localization.anchor.json",
+      "size_bytes": 2999
+    },
+    {
+      "path": "local_usr/sys/var/lib/api_key_passes/state.json",
+      "size_bytes": 3591
+    },
+    {
+      "path": "local_usr/sys/var/lib/ashell_documents_recovery/ashell_cmds/codex",
+      "size_bytes": 451
+    },
+    {
+      "path": "local_usr/sys/var/lib/ashell_documents_recovery/ashell_workspace.env.json",
+      "size_bytes": 469
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/bridge.events.jsonl",
+      "size_bytes": 266
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/control_plane.events.jsonl",
+      "size_bytes": 273
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/flyoos_env_points_anchors_localization.events.jsonl",
+      "size_bytes": 297
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/git_local.events.jsonl",
+      "size_bytes": 268
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/runtime.events.jsonl",
+      "size_bytes": 266
+    },
+    {
+      "path": "local_usr/sys/var/lib/channels/system_app_chat.events.jsonl",
+      "size_bytes": 274
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/app_chat_state.dataset.json",
+      "size_bytes": 3061
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/command_inventory.dataset.json",
+      "size_bytes": 2579
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/flyoos_anchor_state.dataset.json",
+      "size_bytes": 2616
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/path_inventory.dataset.json",
+      "size_bytes": 24137
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/streampipe_state.dataset.json",
+      "size_bytes": 4991
+    },
+    {
+      "path": "local_usr/sys/var/lib/data/supervisor_inventory.dataset.json",
+      "size_bytes": 24138
+    },
+    {
+      "path": "local_usr/sys/var/lib/ios_restricted_migration/migration_plan.json",
+      "size_bytes": 6609
+    },
+    {
+      "path": "local_usr/sys/var/lib/ios_restricted_migration/state.json",
+      "size_bytes": 11708
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/bridge.live.json",
+      "size_bytes": 628
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/control_plane.live.json",
+      "size_bytes": 3724
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/flyoos_env_points_anchors_localization.live.json",
+      "size_bytes": 2791
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/git_local.live.json",
+      "size_bytes": 5138
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/index.json",
+      "size_bytes": 970
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/runtime.live.json",
+      "size_bytes": 3107
+    },
+    {
+      "path": "local_usr/sys/var/lib/live_sets/system_app_chat.live.json",
+      "size_bytes": 3206
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/config/api-key-passes.policy.json",
+      "size_bytes": 2794
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/API_KEY_PASSES_HARDENED_POLICY.md",
+      "size_bytes": 1221
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/CODEX_CLAUDE_ACKNOWLEDGE.md",
+      "size_bytes": 2783
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/IOS_HARD_RESTRICTED_SAFE_MIGRATION.md",
+      "size_bytes": 2622
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/docs/STANDALONE_ALL_IN_ONE_OS_INTERPRETATION.md",
+      "size_bytes": 3502
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/api_key_passes.py",
+      "size_bytes": 11392
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/build_sys_os_remote.py",
+      "size_bytes": 5364
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/ios_restricted_migration.py",
+      "size_bytes": 16772
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/reasoned_installer_export.py",
+      "size_bytes": 14238
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/reasoned_system_payload/local_usr/sys/bin/standalone_all_in_one_os.py",
+      "size_bytes": 17127
+    },
+    {
+      "path": "local_usr/sys/var/lib/reasoned_installer_export/state.json",
+      "size_bytes": 4325
+    },
+    {
+      "path": "local_usr/sys/var/lib/standalone_all_in_one_os/state.json",
+      "size_bytes": 7873
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T112029762194Z.tar.gz",
+      "size_bytes": 29945
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T120134040668Z.tar.gz",
+      "size_bytes": 53977
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T120238004431Z.tar.gz",
+      "size_bytes": 56964
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225117920092Z.tar.gz",
+      "size_bytes": 58394
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225232575264Z.tar.gz",
+      "size_bytes": 63658
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225339021681Z.tar.gz",
+      "size_bytes": 66620
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225444747047Z.tar.gz",
+      "size_bytes": 70416
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T225538970362Z.tar.gz",
+      "size_bytes": 72958
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T230457545831Z.tar.gz",
+      "size_bytes": 90686
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T230509579823Z.tar.gz",
+      "size_bytes": 91896
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T231038206872Z.tar.gz",
+      "size_bytes": 105026
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T231815217653Z.tar.gz",
+      "size_bytes": 112234
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T232038784479Z.tar.gz",
+      "size_bytes": 113483
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T232628728103Z.tar.gz",
+      "size_bytes": 138978
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/archives/sys_os_mirror_20260706T233031085401Z.tar.gz",
+      "size_bytes": 141028
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/manifest.json",
+      "size_bytes": 47364
+    },
+    {
+      "path": "local_usr/sys/var/lib/sys_os_mirror/restore_plan.json",
+      "size_bytes": 1029
+    },
+    {
+      "path": "local_usr/sys/var/lib/system_app_chat/chat.sqlite3",
+      "size_bytes": 40960
+    },
+    {
+      "path": "local_usr/sys/var/log/mobile_operator.events.jsonl",
+      "size_bytes": 10404
+    },
+    {
+      "path": "local_usr/sys/var/log/path_init.events.jsonl",
+      "size_bytes": 5764
+    },
+    {
+      "path": "local_usr/sys/var/log/remote_access.events.jsonl",
+      "size_bytes": 32054
+    },
+    {
+      "path": "local_usr/sys/var/log/remote_access_gateway.service.err.log",
+      "size_bytes": 0
+    },
+    {
+      "path": "local_usr/sys/var/log/remote_access_gateway.service.log",
+      "size_bytes": 1059
+    },
+    {
+      "path": "local_usr/sys/var/log/sys_os_mirror.events.jsonl",
+      "size_bytes": 12829
+    },
+    {
+      "path": "local_usr/sys/var/log/system_app_chat.events.jsonl",
+      "size_bytes": 84356
+    },
+    {
+      "path": "local_usr/sys/var/log/system_app_chat.service.err.log",
+      "size_bytes": 0
+    },
+    {
+      "path": "local_usr/sys/var/log/system_app_chat.service.log",
+      "size_bytes": 1164
+    },
+    {
+      "path": "local_usr/sys/var/run/api_key_passes.validation.json",
+      "size_bytes": 511
+    },
+    {
+      "path": "local_usr/sys/var/run/ashell_documents_recovery.validation.json",
+      "size_bytes": 9352
+    },
+    {
+      "path": "local_usr/sys/var/run/ios_restricted_migration.validation.json",
+      "size_bytes": 661
+    },
+    {
+      "path": "local_usr/sys/var/run/mobile_operator.audit.json",
+      "size_bytes": 25227
+    },
+    {
+      "path": "local_usr/sys/var/run/mobile_operator.self_test.json",
+      "size_bytes": 1308
+    },
+    {
+      "path": "local_usr/sys/var/run/mobile_operator.validation.json",
+      "size_bytes": 1393
+    },
+    {
+      "path": "local_usr/sys/var/run/reasoned_installer_export.validation.json",
+      "size_bytes": 531
+    },
+    {
+      "path": "local_usr/sys/var/run/remote_access.validation.json",
+      "size_bytes": 831
+    },
+    {
+      "path": "local_usr/sys/var/run/remote_access_gateway.pid",
+      "size_bytes": 3
+    },
+    {
+      "path": "local_usr/sys/var/run/services.state.json",
+      "size_bytes": 2032
+    },
+    {
+      "path": "local_usr/sys/var/run/standalone_all_in_one_os.validation.json",
+      "size_bytes": 475
+    },
+    {
+      "path": "local_usr/sys/var/run/state.json",
+      "size_bytes": 4876
+    },
+    {
+      "path": "local_usr/sys/var/run/supervisor.export.json",
+      "size_bytes": 491
+    },
+    {
+      "path": "local_usr/sys/var/run/supervisor.state.json",
+      "size_bytes": 1097
+    },
+    {
+      "path": "local_usr/sys/var/run/sys_os_mirror.validation.json",
+      "size_bytes": 776
+    },
+    {
+      "path": "local_usr/sys/var/run/system_app_chat.pid",
+      "size_bytes": 2
+    },
+    {
+      "path": "local_usr/sys/var/run/system_app_chat.validation.json",
+      "size_bytes": 1197
+    },
+    {
+      "path": "local_usr/sys/var/run/validation.json",
+      "size_bytes": 359
+    },
+    {
+      "path": "local_usr_sys_path_init_live_sets.zip",
+      "size_bytes": 36985
+    },
+    {
+      "path": "logs/git/local/config.json",
+      "size_bytes": 333
+    },
+    {
+      "path": "logs/git/local/events.jsonl",
+      "size_bytes": 46490
+    },
+    {
+      "path": "logs/git/local/latest_event.json",
+      "size_bytes": 2723
+    },
+    {
+      "path": "logs/git/local/manifest.json",
+      "size_bytes": 515
+    },
+    {
+      "path": "logs/git/local/snapshot.json",
+      "size_bytes": 7667
+    },
+    {
+      "path": "logs/git/local/streampipe.cli",
+      "size_bytes": 16466
+    },
+    {
+      "path": "logs/git/local/validation.json",
+      "size_bytes": 680
+    },
+    {
+      "path": "scripts/mobile_operator.py",
+      "size_bytes": 6867
+    },
+    {
+      "path": "scripts/validate_mobile_iphone_platform.py",
+      "size_bytes": 1235
+    },
+    {
+      "path": "shell.sh",
+      "size_bytes": 25315
+    },
+    {
+      "path": "streampipe_standalone_self_made.zip",
+      "size_bytes": 11392
+    },
+    {
+      "path": "sync_payload/github_main/CLAUDE_ACKNOWLEDGE.md",
+      "size_bytes": 2783
+    },
+    {
+      "path": "sync_payload/github_main/config/api-key-passes.policy.json",
+      "size_bytes": 2794
+    },
+    {
+      "path": "sync_payload/github_main/docs/API_KEY_PASSES_HARDENED_POLICY.md",
+      "size_bytes": 1221
+    },
+    {
+      "path": "sync_payload/github_main/docs/CODEX_CLAUDE_ACKNOWLEDGE.md",
+      "size_bytes": 2783
+    },
+    {
+      "path": "sync_payload/github_main/docs/IOS_HARD_RESTRICTED_SAFE_MIGRATION.md",
+      "size_bytes": 2622
+    },
+    {
+      "path": "sync_payload/github_main/docs/STANDALONE_ALL_IN_ONE_OS_INTERPRETATION.md",
+      "size_bytes": 3502
+    },
+    {
+      "path": "sys_os_mirror_remote_access_toolkit.zip",
+      "size_bytes": 87264
+    },
+    {
+      "path": "validation/INIT_FULL_ASHELL_ENVIRONMENT_REPORT.json",
+      "size_bytes": 13665
+    },
+    {
+      "path": "validation/LOCAL_USR_SYS_PATH_INIT_REQUEST.json",
+      "size_bytes": 488
+    },
+    {
+      "path": "validation/STREAMPipe_STANDALONE_INIT.json",
+      "size_bytes": 528
+    },
+    {
+      "path": "validation/SYS_OS_MIRROR_REMOTE_ACCESS_BUILD.json",
+      "size_bytes": 22283
+    },
+    {
+      "path": "validation/zip_import_report.json",
+      "size_bytes": 390
+    }
+  ],
+  "state": {
+    "schema_version": "ashell.mobile_operator.deploy_exec.v3",
+    "root": "/workspace",
+    "python": "3.12.13",
+    "platform": "Linux-6.12.47-x86_64-with-glibc2.39",
+    "commands": {
+      "python3": {
+        "available": true,
+        "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+      },
+      "lg2": {
+        "available": false,
+        "path": null
+      },
+      "git": {
+        "available": true,
+        "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/git"
+      },
+      "codex": {
+        "available": false,
+        "path": null
+      },
+      "unzip": {
+        "available": true,
+        "path": "/workspace/bin/unzip"
+      },
+      "lsof": {
+        "available": true,
+        "path": "/usr/bin/lsof"
+      },
+      "lsof-lite": {
+        "available": true,
+        "path": "/workspace/bin/lsof-lite"
+      }
+    },
+    "repo": {
+      "git_present": true,
+      "lg2_status": {
+        "ok": false,
+        "stderr": "skipped"
+      }
+    }
+  },
+  "written_at_utc": "2026-07-07T10:24:21.899636Z",
+  "content_sha256": "ee84b8896cf279dfa1965b22abdd968c25620dbc7fd23dbe7647d6dfd2bb0a97"
+}
