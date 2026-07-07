@@ -1,0 +1,54 @@
+{
+  "schema_version": "local_usr.sys.dataset.v1",
+  "dataset_id": "command_inventory",
+  "records": [
+    {
+      "command": "python3",
+      "available": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "version_probe_exit_code": 0,
+      "version_stdout": "Python 3.12.13",
+      "version_stderr": ""
+    },
+    {
+      "command": "python",
+      "available": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+      "version_probe_exit_code": 0,
+      "version_stdout": "Python 3.12.13",
+      "version_stderr": ""
+    },
+    {
+      "command": "git",
+      "available": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/git",
+      "version_probe_exit_code": 0,
+      "version_stdout": "git version 2.53.0",
+      "version_stderr": ""
+    },
+    {
+      "command": "lg2",
+      "available": false,
+      "path": null
+    },
+    {
+      "command": "zip",
+      "available": true,
+      "path": "/usr/bin/zip",
+      "version_probe_exit_code": 0,
+      "version_stdout": "Copyright (c) 1990-2008 Info-ZIP - Type 'zip \"-L\"' for software license.\nThis is Zip 3.0 (July 5th 2008), by Info-ZIP.\nCurrently maintained by E. Gordon.  Please send bug reports to\nthe authors using the web page at www.info-zip.org; see README for details.\n\nLatest sources and executables are at ftp://ftp.info-zip.org/pub/infozip,\nas of above date; see http://www.info-zip.org/ for other sites.\n\nCompiled with gcc 13.3.0 for Unix (Linux ELF).\n\nZip special compilation options:\n\tUSE_EF_UT_TIME      ",
+      "version_stderr": ""
+    },
+    {
+      "command": "unzip",
+      "available": true,
+      "path": "/usr/bin/unzip",
+      "version_probe_exit_code": 10,
+      "version_stdout": "",
+      "version_stderr": "caution:  both -n and -o specified; ignoring -o\nUnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.\n\nUsage: unzip [-Z] [-opts[modifiers]] file[.zip] [list] [-x xlist] [-d exdir]\n  Default action is to extract files in list, except those in xlist, to exdir;\n  file[.zip] may be a wildcard.  -Z => ZipInfo mode (\"unzip -Z\" for usage).\n\n  -p  extract files to pipe, no messages     -l  list files (short format)\n  -f  freshen existing files, create none    -t  test compressed archive data\n  -"
+    }
+  ],
+  "purpose": "Detected local command support for mobile control-plane operation",
+  "written_at_utc": "2026-07-06T23:30:29.335519Z",
+  "content_sha256": "0f979edc719b506a3827c741076e3fcfa50480f55a61ed058e6b4ab2a26560b9"
+}
