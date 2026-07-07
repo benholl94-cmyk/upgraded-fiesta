@@ -1,0 +1,1 @@
+{"name":"fullstack-heavy-metal-ui","version":"0.1.0","private":true,"scripts":{"build":"vite build"},"dependencies":{"vite":"latest","typescript":"latest","react":"latest","react-dom":"latest"},"devDependencies":{}}
