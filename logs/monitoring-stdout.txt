@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-09T15:37:23.286801+00:00",
+  "generated_at": "2026-07-09T20:10:47.436123+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -168,101 +168,101 @@ info: component clippy is up to date
     Updating crates.io index
      Locking 79 packages to latest compatible versions
  Downloading crates ...
-  Downloaded anyhow v1.0.103
-  Downloaded utf8parse v0.2.2
-  Downloaded find-msvc-tools v0.1.9
-  Downloaded itoa v1.0.18
-  Downloaded colorchoice v1.0.5
-  Downloaded tokio-macros v2.7.0
-  Downloaded windows-result v0.4.1
-  Downloaded android_system_properties v0.1.5
-  Downloaded windows-link v0.2.1
-  Downloaded redox_syscall v0.5.18
-  Downloaded anstyle v1.0.14
-  Downloaded scopeguard v1.2.0
-  Downloaded anstyle-wincon v3.0.11
-  Downloaded once_cell_polyfill v1.70.2
-  Downloaded is_terminal_polyfill v1.70.2
-  Downloaded futures-task v0.3.32
-  Downloaded smallvec v1.15.2
-  Downloaded iana-time-zone-haiku v0.1.2
-  Downloaded wasi v0.11.1+wasi-snapshot-preview1
-  Downloaded zmij v1.0.21
-  Downloaded anstyle-parse v1.0.0
-  Downloaded pin-project-lite v0.2.17
-  Downloaded lock_api v0.4.14
-  Downloaded autocfg v1.5.1
+  Downloaded unicode-ident v1.0.24
   Downloaded wasm-bindgen v0.2.126
   Downloaded signal-hook-registry v1.4.8
-  Downloaded parking_lot_core v0.9.12
-  Downloaded clap_derive v4.6.1
-  Downloaded core-foundation-sys v0.8.7
-  Downloaded iana-time-zone v0.1.65
-  Downloaded serde_derive v1.0.228
-  Downloaded bitflags v2.13.0
-  Downloaded cc v1.2.66
-  Downloaded socket2 v0.6.4
-  Downloaded clap v4.6.1
-  Downloaded bytes v1.12.1
-  Downloaded memchr v2.8.3
-  Downloaded mio v1.2.1
-  Downloaded bumpalo v3.20.3
-  Downloaded r-efi v6.0.0
-  Downloaded wasm-bindgen-macro-support v0.2.126
-  Downloaded log v0.4.33
-  Downloaded clap_builder v4.6.0
-  Downloaded serde_json v1.0.150
-  Downloaded futures-util v0.3.32
-  Downloaded num-traits v0.2.19
-  Downloaded proc-macro2 v1.0.106
-  Downloaded chrono v0.4.45
-  Downloaded windows-core v0.62.2
-  Downloaded syn v2.0.118
-  Downloaded serde v1.0.228
-  Downloaded serde_core v1.0.228
-  Downloaded unicode-ident v1.0.24
-  Downloaded uuid v1.23.4
-  Downloaded once_cell v1.21.4
-  Downloaded getrandom v0.4.3
-  Downloaded rustversion v1.0.23
-  Downloaded anstream v1.0.0
-  Downloaded async-trait v0.1.89
-  Downloaded shlex v2.0.1
-  Downloaded slab v0.4.12
-  Downloaded quote v1.0.46
-  Downloaded parking_lot v0.12.5
-  Downloaded windows-interface v0.59.3
-  Downloaded errno v0.3.14
-  Downloaded anstyle-query v1.1.5
-  Downloaded strsim v0.11.1
-  Downloaded windows-implement v0.60.2
-  Downloaded cfg-if v1.0.4
   Downloaded wasm-bindgen-macro v0.2.126
-  Downloaded clap_lex v1.1.0
-  Downloaded heck v0.5.0
-  Downloaded windows-strings v0.5.1
-  Downloaded futures-core v0.3.32
   Downloaded wasm-bindgen-shared v0.2.126
+  Downloaded redox_syscall v0.5.18
+  Downloaded shlex v2.0.1
+  Downloaded is_terminal_polyfill v1.70.2
+  Downloaded anstyle-query v1.1.5
+  Downloaded smallvec v1.15.2
+  Downloaded proc-macro2 v1.0.106
+  Downloaded clap v4.6.1
+  Downloaded r-efi v6.0.0
+  Downloaded bytes v1.12.1
+  Downloaded anstyle v1.0.14
   Downloaded js-sys v0.3.103
-  Downloaded libc v0.2.186
+  Downloaded log v0.4.33
+  Downloaded pin-project-lite v0.2.17
+  Downloaded scopeguard v1.2.0
+  Downloaded num-traits v0.2.19
+  Downloaded syn v2.0.118
+  Downloaded parking_lot_core v0.9.12
+  Downloaded once_cell_polyfill v1.70.2
+  Downloaded windows-implement v0.60.2
+  Downloaded slab v0.4.12
+  Downloaded once_cell v1.21.4
+  Downloaded android_system_properties v0.1.5
+  Downloaded windows-result v0.4.1
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded autocfg v1.5.1
   Downloaded tokio v1.52.3
+  Downloaded anyhow v1.0.103
+  Downloaded clap_lex v1.1.0
+  Downloaded lock_api v0.4.14
+  Downloaded serde_core v1.0.228
+  Downloaded tokio-macros v2.7.0
+  Downloaded socket2 v0.6.4
+  Downloaded iana-time-zone v0.1.65
+  Downloaded anstyle-wincon v3.0.11
+  Downloaded serde_derive v1.0.228
+  Downloaded bumpalo v3.20.3
+  Downloaded bitflags v2.13.0
+  Downloaded uuid v1.23.4
+  Downloaded anstream v1.0.0
+  Downloaded clap_builder v4.6.0
+  Downloaded windows-interface v0.59.3
+  Downloaded windows-core v0.62.2
+  Downloaded itoa v1.0.18
+  Downloaded futures-core v0.3.32
+  Downloaded serde_json v1.0.150
+  Downloaded strsim v0.11.1
+  Downloaded cfg-if v1.0.4
+  Downloaded zmij v1.0.21
+  Downloaded futures-util v0.3.32
+  Downloaded wasi v0.11.1+wasi-snapshot-preview1
+  Downloaded clap_derive v4.6.1
+  Downloaded iana-time-zone-haiku v0.1.2
+  Downloaded libc v0.2.186
+  Downloaded parking_lot v0.12.5
+  Downloaded errno v0.3.14
+  Downloaded anstyle-parse v1.0.0
+  Downloaded core-foundation-sys v0.8.7
+  Downloaded chrono v0.4.45
+  Downloaded getrandom v0.4.3
+  Downloaded quote v1.0.46
+  Downloaded heck v0.5.0
+  Downloaded utf8parse v0.2.2
+  Downloaded cc v1.2.66
+  Downloaded windows-strings v0.5.1
+  Downloaded windows-link v0.2.1
+  Downloaded rustversion v1.0.23
+  Downloaded wasm-bindgen-macro-support v0.2.126
+  Downloaded serde v1.0.228
+  Downloaded futures-task v0.3.32
+  Downloaded mio v1.2.1
+  Downloaded memchr v2.8.3
+  Downloaded async-trait v0.1.89
+  Downloaded colorchoice v1.0.5
   Downloaded windows-sys v0.61.2
    Compiling proc-macro2 v1.0.106
-   Compiling unicode-ident v1.0.24
-   Compiling libc v0.2.186
    Compiling quote v1.0.46
+   Compiling libc v0.2.186
+   Compiling unicode-ident v1.0.24
     Checking cfg-if v1.0.4
    Compiling serde_core v1.0.228
    Compiling autocfg v1.5.1
    Compiling num-traits v0.2.19
-   Compiling getrandom v0.4.3
-   Compiling serde v1.0.228
-   Compiling syn v2.0.118
    Compiling zmij v1.0.21
+   Compiling getrandom v0.4.3
+   Compiling syn v2.0.118
+   Compiling serde v1.0.228
    Compiling serde_json v1.0.150
+    Checking memchr v2.8.3
     Checking iana-time-zone v0.1.65
     Checking itoa v1.0.18
-    Checking memchr v2.8.3
     Checking uuid v1.23.4
    Compiling anyhow v1.0.103
    Compiling parking_lot_core v0.9.12
@@ -270,28 +270,28 @@ info: component clippy is up to date
     Checking scopeguard v1.2.0
     Checking lock_api v0.4.14
     Checking errno v0.3.14
-    Checking signal-hook-registry v1.4.8
     Checking parking_lot v0.12.5
-    Checking mio v1.2.1
+    Checking signal-hook-registry v1.4.8
     Checking socket2 v0.6.4
+    Checking mio v1.2.1
     Checking pin-project-lite v0.2.17
     Checking bytes v1.12.1
     Checking utf8parse v0.2.2
     Checking anstyle-parse v1.0.0
-    Checking is_terminal_polyfill v1.70.2
     Checking anstyle v1.0.14
-    Checking colorchoice v1.0.5
     Checking anstyle-query v1.1.5
-    Checking clap_lex v1.1.0
-    Checking anstream v1.0.0
+    Checking is_terminal_polyfill v1.70.2
+    Checking colorchoice v1.0.5
     Checking strsim v0.11.1
+    Checking anstream v1.0.0
+    Checking clap_lex v1.1.0
    Compiling heck v0.5.0
     Checking clap_builder v4.6.0
    Compiling serde_derive v1.0.228
    Compiling async-trait v0.1.89
    Compiling tokio-macros v2.7.0
-   Compiling clap_derive v4.6.1
     Checking tokio v1.52.3
+   Compiling clap_derive v4.6.1
     Checking clap v4.6.1
     Checking chrono v0.4.45
     Checking hm-core v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-core)
@@ -299,24 +299,24 @@ info: component clippy is up to date
     Checking hm-vector v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-vector)
     Checking hm-sdk v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-sdk)
     Checking hm-tool-exec v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-exec)
-    Checking hm-channel-telegram v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-telegram)
-    Checking hm-channel-discord v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-discord)
-    Checking hm-channel-whatsapp v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-whatsapp)
     Checking hm-channel-slack v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-slack)
+    Checking hm-channel-discord v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-discord)
+    Checking hm-channel-telegram v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-telegram)
+    Checking hm-channel-whatsapp v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-whatsapp)
     Checking hm-sessions v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-sessions)
-    Checking hm-cron v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cron)
-    Checking hm-tool-browser v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-browser)
-    Checking hm-cli v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cli)
     Checking hm-tool-web v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-web)
     Checking hm-tool-media v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-media)
+    Checking hm-cli v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cli)
+    Checking hm-cron v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cron)
+    Checking hm-tool-browser v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-browser)
     Checking hm-storage v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-storage)
     Checking hm-plugins v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-plugins)
     Checking hm-memory v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-memory)
     Checking hm-agent v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-agent)
     Checking hm-gateway v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-gateway)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.88s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.99s
 
-added 20 packages in 6s
+added 20 packages in 8s
 
 > fullstack-heavy-metal-ui@0.1.0 build
 > vite build
@@ -329,5 +329,5 @@ dist/index.html                   0.54 kB │ gzip:  0.33 kB
 dist/assets/index-BHTA4Dg9.css    2.33 kB │ gzip:  1.03 kB
 dist/assets/index-Cm2UrYir.js   200.76 kB │ gzip: 63.16 kB
 
-[32m✓ built in 149ms[39m
+[32m✓ built in 129ms[39m
 Codex fullstack setup complete.
