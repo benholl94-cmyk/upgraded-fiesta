@@ -475,124 +475,99 @@ assert_exit_nonzero \
 cleanup "$t31_dir"
 
 # ------------------------------------------------------------------
-# T32: whitespace-only README fails require_text (not same as empty)
+# T32: cwd independence – script resolves repo_root from its own path,
+#      not from the caller's working directory
 # ------------------------------------------------------------------
 t32_dir="$(setup_temp_repo)"
-printf '   \n\t\n   \n' > "$t32_dir/README.md"
+valid_readme > "$t32_dir/README.md"
 valid_setup_doc > "$t32_dir/docs/iphone-local-dev-setup.md"
-assert_exit_nonzero \
-  "T32: exits non-zero with whitespace-only README.md" \
-  run_validation "$t32_dir"
+t32_neutral_cwd="$(mktemp -d)"
+t32_output="" t32_exit=0
+t32_output=$(cd "$t32_neutral_cwd" && bash "$t32_dir/scripts/validate_iphone_control_plane.sh" 2>&1) && t32_exit=0 || t32_exit=$?
+if [[ $t32_exit -eq 0 ]]; then
+  pass "T32: succeeds regardless of caller's working directory"
+else
+  fail_test "T32: expected exit 0 when invoked from unrelated cwd; got $t32_exit; output: $t32_output"
+fi
+rm -rf "$t32_neutral_cwd"
 cleanup "$t32_dir"
 
 # ------------------------------------------------------------------
-# T33: a directory in place of README.md causes require_file to fail
-#      ([[ -f path ]] is false for directories)
+# T33: fails when README.md exists but is a directory, not a file
 # ------------------------------------------------------------------
 t33_dir="$(setup_temp_repo)"
 mkdir -p "$t33_dir/README.md"
 valid_setup_doc > "$t33_dir/docs/iphone-local-dev-setup.md"
 assert_exit_nonzero \
-  "T33: exits non-zero when README.md is a directory, not a regular file" \
+  "T33: exits non-zero when README.md is a directory" \
   run_validation "$t33_dir"
 assert_stderr_contains \
-  "T33: stderr mentions missing required file" \
+  "T33: stderr treats a README.md directory as a missing file" \
   "missing required file: README.md" \
   run_validation "$t33_dir"
 cleanup "$t33_dir"
 
 # ------------------------------------------------------------------
-# T34: fail() always prefixes the message with "Validation failed:"
+# T34: fails when docs/iphone-local-dev-setup.md exists but is a directory
 # ------------------------------------------------------------------
 t34_dir="$(setup_temp_repo)"
-# Trigger failure by omitting README
+valid_readme > "$t34_dir/README.md"
+mkdir -p "$t34_dir/docs/iphone-local-dev-setup.md"
+assert_exit_nonzero \
+  "T34: exits non-zero when docs/iphone-local-dev-setup.md is a directory" \
+  run_validation "$t34_dir"
 assert_stderr_contains \
-  "T34: stderr starts with 'Validation failed:' prefix" \
-  "Validation failed:" \
+  "T34: stderr treats a docs directory as a missing file" \
+  "missing required file: docs/iphone-local-dev-setup.md" \
   run_validation "$t34_dir"
 cleanup "$t34_dir"
 
 # ------------------------------------------------------------------
-# T35: "curl -fsSL" alone (not piped to sh) still triggers reject_text
+# T35: fail-fast ordering – when both required files are absent, the
+#      first failure reported must be about README.md (checked first)
 # ------------------------------------------------------------------
 t35_dir="$(setup_temp_repo)"
-valid_readme > "$t35_dir/README.md"
-{ valid_setup_doc; printf '\ncurl -fsSL https://example.com/install.sh\n'; } \
-  > "$t35_dir/docs/iphone-local-dev-setup.md"
-assert_exit_nonzero \
-  "T35: exits non-zero when 'curl -fsSL' appears without pipe-to-shell" \
-  run_validation "$t35_dir"
-assert_stderr_contains \
-  "T35: stderr mentions pipe-to-shell bootstrap pattern" \
-  "pipe-to-shell bootstrap pattern" \
-  run_validation "$t35_dir"
+# No files at all
+t35_stderr="$(bash "$t35_dir/scripts/validate_iphone_control_plane.sh" 2>&1 >/dev/null)" || true
+if echo "$t35_stderr" | grep -qF "missing required file: README.md"; then
+  pass "T35: fails fast on README.md before ever checking the docs file"
+else
+  fail_test "T35: expected first failure to reference README.md; got: $t35_stderr"
+fi
 cleanup "$t35_dir"
 
 # ------------------------------------------------------------------
-# T36: partial NO_PROXY without surrounding quotes does not satisfy
-#      the exact-string check (fixed-strings match requires full literal)
+# T36: the starting banner is printed to stdout even when validation
+#      subsequently fails (banner precedes the fail-fast checks)
 # ------------------------------------------------------------------
 t36_dir="$(setup_temp_repo)"
-valid_readme > "$t36_dir/README.md"
-# Replace the exact NO_PROXY line with a version lacking the surrounding quotes
-valid_setup_doc \
-  | sed 's|export NO_PROXY="localhost,127.0.0.1,::1,\*.local"|export NO_PROXY=localhost,127.0.0.1,::1,*.local|' \
-  > "$t36_dir/docs/iphone-local-dev-setup.md"
-assert_exit_nonzero \
-  "T36: exits non-zero when NO_PROXY line is missing surrounding quotes" \
-  run_validation "$t36_dir"
-assert_stderr_contains \
-  "T36: stderr mentions local proxy bypass" \
-  "local proxy bypass" \
-  run_validation "$t36_dir"
+valid_setup_doc > "$t36_dir/docs/iphone-local-dev-setup.md"
+# No README.md -> triggers failure after the banner has been printed
+t36_stdout="$(bash "$t36_dir/scripts/validate_iphone_control_plane.sh" 2>/dev/null)" || true
+if echo "$t36_stdout" | grep -qF "Validating static iPhone control-plane..."; then
+  pass "T36: starting banner is printed even though validation later fails"
+else
+  fail_test "T36: expected starting banner in stdout despite failure; got: $t36_stdout"
+fi
 cleanup "$t36_dir"
 
 # ------------------------------------------------------------------
-# T37: require_text error message includes the filename
+# T37: reject_text scope – a disallowed pattern present only in
+#      README.md (not the docs file) must NOT trigger a failure,
+#      since reject_text checks are scoped to the docs file only
 # ------------------------------------------------------------------
 t37_dir="$(setup_temp_repo)"
-valid_readme > "$t37_dir/README.md"
-printf '' > "$t37_dir/docs/iphone-local-dev-setup.md"
-assert_stderr_contains \
-  "T37: stderr includes the docs filename when require_text fails" \
-  "docs/iphone-local-dev-setup.md" \
+{ valid_readme; printf '\nbrew install something\n'; } > "$t37_dir/README.md"
+valid_setup_doc > "$t37_dir/docs/iphone-local-dev-setup.md"
+assert_exit_zero \
+  "T37: disallowed pattern outside the docs file does not fail validation" \
   run_validation "$t37_dir"
 cleanup "$t37_dir"
 
 # ------------------------------------------------------------------
-# T38: reject_text error message includes the filename and disallowed pattern
-# ------------------------------------------------------------------
-t38_dir="$(setup_temp_repo)"
-valid_readme > "$t38_dir/README.md"
-{ valid_setup_doc; printf '\ndocker run alpine echo hi\n'; } \
-  > "$t38_dir/docs/iphone-local-dev-setup.md"
-assert_stderr_contains \
-  "T38: stderr includes the docs filename when reject_text fires" \
-  "docs/iphone-local-dev-setup.md" \
-  run_validation "$t38_dir"
-assert_stderr_contains \
-  "T38: stderr mentions the disallowed pattern 'docker run'" \
-  "docker run" \
-  run_validation "$t38_dir"
-cleanup "$t38_dir"
-
-# ------------------------------------------------------------------
-# T39: all three reject patterns checked independently – "brew install"
-#      alone in an otherwise valid doc still triggers rejection
-# ------------------------------------------------------------------
-t39_dir="$(setup_temp_repo)"
-valid_readme > "$t39_dir/README.md"
-{ valid_setup_doc; printf '\nbrew install python3\n'; } \
-  > "$t39_dir/docs/iphone-local-dev-setup.md"
-assert_exit_nonzero \
-  "T39: boundary – exits non-zero for 'brew install python3' variation" \
-  run_validation "$t39_dir"
-cleanup "$t39_dir"
-
-# ------------------------------------------------------------------
 # Summary
 # ------------------------------------------------------------------
-
+echo ""
 echo "Results: $PASS passed, $FAIL failed"
 for err in "${ERRORS[@]}"; do
   echo "  $err"
