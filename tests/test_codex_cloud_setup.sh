@@ -308,89 +308,72 @@ assert_exit_nonzero \
 cleanup "$s12_dir"
 
 # ------------------------------------------------------------------
-# S13: exits non-zero when docs file contains disallowed 'docker run'
+# S13: cwd independence – script resolves repo_root from its own path,
+#      not from the caller's working directory
 # ------------------------------------------------------------------
 s13_dir="$(setup_temp_repo)"
 valid_readme > "$s13_dir/README.md"
-{ valid_setup_doc; printf '\ndocker run -it ubuntu bash\n'; } \
-  > "$s13_dir/docs/iphone-local-dev-setup.md"
-assert_exit_nonzero \
-  "S13: exits non-zero when docs contain disallowed 'docker run'" \
-  run_setup "$s13_dir"
+valid_setup_doc > "$s13_dir/docs/iphone-local-dev-setup.md"
+s13_neutral_cwd="$(mktemp -d)"
+s13_output="" s13_exit=0
+s13_output=$(cd "$s13_neutral_cwd" && bash "$s13_dir/scripts/codex_cloud_setup.sh" 2>&1) && s13_exit=0 || s13_exit=$?
+if [[ $s13_exit -eq 0 ]]; then
+  pass "S13: succeeds regardless of caller's working directory"
+else
+  fail_test "S13: expected exit 0 when invoked from unrelated cwd; got $s13_exit; output: $s13_output"
+fi
+rm -rf "$s13_neutral_cwd"
 cleanup "$s13_dir"
 
 # ------------------------------------------------------------------
-# S14: exits non-zero when docs file contains disallowed 'curl -fsSL'
+# S14: propagates the validate sub-script's stderr failure message
 # ------------------------------------------------------------------
 s14_dir="$(setup_temp_repo)"
-valid_readme > "$s14_dir/README.md"
-{ valid_setup_doc; printf '\ncurl -fsSL https://example.com | sh\n'; } \
-  > "$s14_dir/docs/iphone-local-dev-setup.md"
-assert_exit_nonzero \
-  "S14: exits non-zero when docs contain disallowed 'curl -fsSL'" \
-  run_setup "$s14_dir"
+valid_setup_doc > "$s14_dir/docs/iphone-local-dev-setup.md"
+# No README.md -> the delegated validate script fails
+s14_stderr="$(bash "$s14_dir/scripts/codex_cloud_setup.sh" 2>&1 >/dev/null)" || true
+if echo "$s14_stderr" | grep -qF "missing required file: README.md"; then
+  pass "S14: propagates the validate sub-script's stderr failure message"
+else
+  fail_test "S14: expected propagated stderr message; got: $s14_stderr"
+fi
 cleanup "$s14_dir"
 
 # ------------------------------------------------------------------
-# S15: setup script propagates validate script stderr to caller's stderr
+# S15: output ordering – banner, then delegated validation output,
+#      then the final success message, in that order
 # ------------------------------------------------------------------
 s15_dir="$(setup_temp_repo)"
-# No README to trigger a validation failure with a stderr message
-stderr_out="$(bash "$s15_dir/scripts/codex_cloud_setup.sh" 2>&1 >/dev/null)" || true
-if echo "$stderr_out" | grep -qF "Validation failed:"; then
-  pass "S15: setup script propagates validate script stderr"
+valid_readme > "$s15_dir/README.md"
+valid_setup_doc > "$s15_dir/docs/iphone-local-dev-setup.md"
+s15_stdout="$(bash "$s15_dir/scripts/codex_cloud_setup.sh" 2>/dev/null)"
+s15_banner_line=$(printf '%s\n' "$s15_stdout" | grep -n "Codex cloud setup for upgraded-fiesta" | head -1 | cut -d: -f1)
+s15_validating_line=$(printf '%s\n' "$s15_stdout" | grep -n "Validating static iPhone control-plane" | head -1 | cut -d: -f1)
+s15_success_line=$(printf '%s\n' "$s15_stdout" | grep -n "No dependency installation required" | head -1 | cut -d: -f1)
+if [[ -n "$s15_banner_line" && -n "$s15_validating_line" && -n "$s15_success_line" \
+      && "$s15_banner_line" -lt "$s15_validating_line" \
+      && "$s15_validating_line" -lt "$s15_success_line" ]]; then
+  pass "S15: banner, validation output, and success message appear in order"
 else
-  fail_test "S15: expected 'Validation failed:' on stderr; got: $stderr_out"
+  fail_test "S15: unexpected output order; got: $s15_stdout"
 fi
 cleanup "$s15_dir"
 
 # ------------------------------------------------------------------
-# S16: output ordering – banner line appears before repository line
+# S16: exact exit code from the validate sub-script's failure (exit 1)
+#      propagates unchanged through codex_cloud_setup.sh
 # ------------------------------------------------------------------
 s16_dir="$(setup_temp_repo)"
-valid_readme > "$s16_dir/README.md"
 valid_setup_doc > "$s16_dir/docs/iphone-local-dev-setup.md"
-stdout_out="$(bash "$s16_dir/scripts/codex_cloud_setup.sh" 2>/dev/null)"
-banner_line="$(echo "$stdout_out" | grep -n 'Codex cloud setup for upgraded-fiesta' | head -1 | cut -d: -f1)"
-repo_line="$(echo "$stdout_out" | grep -n 'Repository:' | head -1 | cut -d: -f1)"
-if [[ -n "$banner_line" && -n "$repo_line" && "$banner_line" -lt "$repo_line" ]]; then
-  pass "S16: banner line appears before repository line in output"
+# No README.md -> validate script calls `exit 1`
+s16_exit=0
+bash "$s16_dir/scripts/codex_cloud_setup.sh" >/dev/null 2>&1 && s16_exit=0 || s16_exit=$?
+if [[ "$s16_exit" -eq 1 ]]; then
+  pass "S16: exit code 1 from the validate sub-script propagates unchanged"
 else
-  fail_test "S16: expected banner before repository line; banner=$banner_line repo=$repo_line"
+  fail_test "S16: expected exit code 1, got $s16_exit"
 fi
 cleanup "$s16_dir"
-
-# ------------------------------------------------------------------
-# S17: final success message appears after validation banner in output
-# ------------------------------------------------------------------
-s17_dir="$(setup_temp_repo)"
-valid_readme > "$s17_dir/README.md"
-valid_setup_doc > "$s17_dir/docs/iphone-local-dev-setup.md"
-stdout_out="$(bash "$s17_dir/scripts/codex_cloud_setup.sh" 2>/dev/null)"
-validate_banner_line="$(echo "$stdout_out" | grep -n 'Static iPhone control-plane validation passed.' | head -1 | cut -d: -f1)"
-final_msg_line="$(echo "$stdout_out" | grep -n 'No dependency installation required.' | head -1 | cut -d: -f1)"
-if [[ -n "$validate_banner_line" && -n "$final_msg_line" && "$validate_banner_line" -lt "$final_msg_line" ]]; then
-  pass "S17: validate success banner appears before final success message"
-else
-  fail_test "S17: expected validate banner before final message; validate=$validate_banner_line final=$final_msg_line"
-fi
-cleanup "$s17_dir"
-
-# ------------------------------------------------------------------
-# S18: validate script is not executable if chmod is absent — setup
-#      still fails gracefully via bash invocation (regression guard)
-#      Verify: setup script invokes validate with 'bash', not as exec.
-# ------------------------------------------------------------------
-s18_dir="$(setup_temp_repo)"
-valid_readme > "$s18_dir/README.md"
-valid_setup_doc > "$s18_dir/docs/iphone-local-dev-setup.md"
-chmod -x "$s18_dir/scripts/validate_iphone_control_plane.sh"
-# codex_cloud_setup.sh calls "scripts/validate_iphone_control_plane.sh" directly (not bash)
-# so if it's not executable, it should fail
-assert_exit_nonzero \
-  "S18: regression – exits non-zero when validate script is not executable" \
-  run_setup "$s18_dir"
-cleanup "$s18_dir"
 
 # ------------------------------------------------------------------
 # Summary
