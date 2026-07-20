@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-19T13:56:47.695060+00:00",
+  "generated_at": "2026-07-20T04:09:34.586436+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -168,85 +168,85 @@ info: component clippy is up to date
     Updating crates.io index
      Locking 80 packages to latest compatible versions
  Downloading crates ...
-  Downloaded wasm-bindgen-macro v0.2.126
-  Downloaded wasm-bindgen-shared v0.2.126
   Downloaded uuid v1.24.0
-  Downloaded unicode-ident v1.0.24
+  Downloaded wasm-bindgen-shared v0.2.126
+  Downloaded itoa v1.0.18
+  Downloaded signal-hook-registry v1.4.8
   Downloaded wasm-bindgen v0.2.126
-  Downloaded wasm-bindgen-macro-support v0.2.126
-  Downloaded is_terminal_polyfill v1.70.2
+  Downloaded slab v0.4.12
+  Downloaded redox_syscall v0.5.18
+  Downloaded futures-task v0.3.33
+  Downloaded strsim v0.11.1
+  Downloaded unicode-ident v1.0.24
+  Downloaded iana-time-zone-haiku v0.1.2
+  Downloaded windows-strings v0.5.1
+  Downloaded serde_core v1.0.229
+  Downloaded shlex v2.0.1
+  Downloaded colorchoice v1.0.5
+  Downloaded heck v0.5.0
+  Downloaded wasm-bindgen-macro v0.2.126
+  Downloaded windows-link v0.2.1
+  Downloaded anstyle v1.0.14
   Downloaded anstyle-wincon v3.0.11
-  Downloaded anstyle-query v1.1.5
-  Downloaded autocfg v1.5.1
-  Downloaded clap_lex v1.1.0
-  Downloaded tokio-macros v2.7.1
+  Downloaded js-sys v0.3.103
   Downloaded rustversion v1.0.23
+  Downloaded r-efi v6.0.0
+  Downloaded windows-core v0.62.2
+  Downloaded log v0.4.33
+  Downloaded once_cell_polyfill v1.70.2
+  Downloaded tokio-macros v2.7.1
+  Downloaded socket2 v0.6.5
+  Downloaded wasm-bindgen-macro-support v0.2.126
+  Downloaded futures-util v0.3.33
+  Downloaded pin-project-lite v0.2.17
+  Downloaded parking_lot_core v0.9.12
+  Downloaded scopeguard v1.2.0
+  Downloaded bumpalo v3.20.3
+  Downloaded errno v0.3.14
+  Downloaded windows-result v0.4.1
+  Downloaded anstyle-query v1.1.5
+  Downloaded zmij v1.0.23
+  Downloaded clap_lex v1.1.0
+  Downloaded anstream v1.0.0
+  Downloaded utf8parse v0.2.2
+  Downloaded autocfg v1.5.1
+  Downloaded is_terminal_polyfill v1.70.2
+  Downloaded anstyle-parse v1.0.0
+  Downloaded once_cell v1.21.4
+  Downloaded windows-interface v0.59.3
+  Downloaded windows-implement v0.60.2
+  Downloaded anyhow v1.0.104
+  Downloaded cfg-if v1.0.4
+  Downloaded android_system_properties v0.1.5
+  Downloaded wasi v0.11.1+wasi-snapshot-preview1
+  Downloaded quote v1.0.47
+  Downloaded iana-time-zone v0.1.65
+  Downloaded async-trait v0.1.91
   Downloaded clap_derive v4.6.1
   Downloaded smallvec v1.15.2
-  Downloaded futures-core v0.3.33
-  Downloaded windows-result v0.4.1
-  Downloaded windows-interface v0.59.3
-  Downloaded cfg-if v1.0.4
-  Downloaded windows-link v0.2.1
-  Downloaded heck v0.5.0
-  Downloaded windows-strings v0.5.1
-  Downloaded scopeguard v1.2.0
-  Downloaded errno v0.3.14
-  Downloaded itoa v1.0.18
-  Downloaded iana-time-zone-haiku v0.1.2
-  Downloaded colorchoice v1.0.5
-  Downloaded once_cell_polyfill v1.70.2
-  Downloaded futures-task v0.3.33
-  Downloaded find-msvc-tools v0.1.9
-  Downloaded android_system_properties v0.1.5
-  Downloaded signal-hook-registry v1.4.8
-  Downloaded async-trait v0.1.91
-  Downloaded anyhow v1.0.104
-  Downloaded syn v2.0.119
-  Downloaded windows-implement v0.60.2
-  Downloaded shlex v2.0.1
-  Downloaded anstyle v1.0.14
-  Downloaded utf8parse v0.2.2
-  Downloaded anstyle-parse v1.0.0
-  Downloaded lock_api v0.4.14
-  Downloaded wasi v0.11.1+wasi-snapshot-preview1
-  Downloaded zmij v1.0.23
-  Downloaded slab v0.4.12
-  Downloaded strsim v0.11.1
-  Downloaded redox_syscall v0.5.18
-  Downloaded quote v1.0.47
-  Downloaded num-traits v0.2.19
-  Downloaded windows-core v0.62.2
-  Downloaded clap v4.6.2
-  Downloaded parking_lot v0.12.5
-  Downloaded parking_lot_core v0.9.12
-  Downloaded pin-project-lite v0.2.17
-  Downloaded iana-time-zone v0.1.65
-  Downloaded log v0.4.33
-  Downloaded core-foundation-sys v0.8.7
-  Downloaded anstream v1.0.0
-  Downloaded bytes v1.12.1
-  Downloaded once_cell v1.21.4
-  Downloaded serde_core v1.0.229
-  Downloaded serde_derive v1.0.229
-  Downloaded getrandom v0.4.3
-  Downloaded r-efi v6.0.0
-  Downloaded memchr v2.8.3
-  Downloaded socket2 v0.6.5
   Downloaded bitflags v2.13.1
-  Downloaded mio v1.2.2
+  Downloaded lock_api v0.4.14
+  Downloaded futures-core v0.3.33
+  Downloaded getrandom v0.4.3
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded core-foundation-sys v0.8.7
+  Downloaded clap v4.6.2
   Downloaded proc-macro2 v1.0.107
-  Downloaded cc v1.3.0
+  Downloaded serde_derive v1.0.229
+  Downloaded num-traits v0.2.19
+  Downloaded parking_lot v0.12.5
+  Downloaded bytes v1.12.1
   Downloaded serde v1.0.229
-  Downloaded bumpalo v3.20.3
-  Downloaded js-sys v0.3.103
+  Downloaded memchr v2.8.3
+  Downloaded mio v1.2.2
+  Downloaded cc v1.3.0
   Downloaded serde_json v1.0.150
-  Downloaded futures-util v0.3.33
   Downloaded clap_builder v4.6.2
   Downloaded chrono v0.4.45
-  Downloaded syn v3.0.0
-  Downloaded tokio v1.53.0
+  Downloaded syn v3.0.1
+  Downloaded syn v2.0.119
   Downloaded libc v0.2.186
+  Downloaded tokio v1.53.0
   Downloaded windows-sys v0.61.2
    Compiling proc-macro2 v1.0.107
    Compiling unicode-ident v1.0.24
@@ -257,13 +257,13 @@ info: component clippy is up to date
    Compiling autocfg v1.5.1
    Compiling num-traits v0.2.19
    Compiling serde v1.0.229
-   Compiling getrandom v0.4.3
-   Compiling syn v3.0.0
    Compiling zmij v1.0.23
+   Compiling syn v3.0.1
+   Compiling getrandom v0.4.3
    Compiling serde_json v1.0.150
-    Checking itoa v1.0.18
     Checking iana-time-zone v0.1.65
     Checking memchr v2.8.3
+    Checking itoa v1.0.18
     Checking uuid v1.24.0
    Compiling anyhow v1.0.104
    Compiling syn v2.0.119
@@ -274,20 +274,20 @@ info: component clippy is up to date
     Checking errno v0.3.14
     Checking parking_lot v0.12.5
     Checking signal-hook-registry v1.4.8
-    Checking mio v1.2.2
     Checking socket2 v0.6.5
-    Checking bytes v1.12.1
+    Checking mio v1.2.2
     Checking pin-project-lite v0.2.17
+    Checking bytes v1.12.1
     Checking utf8parse v0.2.2
     Checking anstyle-parse v1.0.0
+    Checking is_terminal_polyfill v1.70.2
     Checking anstyle-query v1.1.5
     Checking anstyle v1.0.14
     Checking colorchoice v1.0.5
-    Checking is_terminal_polyfill v1.70.2
     Checking anstream v1.0.0
+   Compiling heck v0.5.0
     Checking strsim v0.11.1
     Checking clap_lex v1.1.0
-   Compiling heck v0.5.0
     Checking clap_builder v4.6.2
    Compiling serde_derive v1.0.229
    Compiling async-trait v0.1.91
@@ -298,27 +298,27 @@ info: component clippy is up to date
     Checking chrono v0.4.45
     Checking hm-core v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-core)
     Checking hm-auth v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-auth)
-    Checking hm-vector v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-vector)
     Checking hm-sdk v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-sdk)
+    Checking hm-vector v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-vector)
     Checking hm-tool-exec v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-exec)
-    Checking hm-channel-whatsapp v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-whatsapp)
-    Checking hm-channel-telegram v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-telegram)
     Checking hm-channel-slack v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-slack)
+    Checking hm-channel-telegram v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-telegram)
+    Checking hm-channel-whatsapp v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-whatsapp)
     Checking hm-channel-discord v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-discord)
-    Checking hm-tool-media v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-media)
     Checking hm-sessions v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-sessions)
+    Checking hm-tool-media v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-media)
     Checking hm-tool-browser v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-browser)
     Checking hm-tool-web v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-web)
-    Checking hm-cron v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cron)
     Checking hm-cli v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cli)
+    Checking hm-cron v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cron)
     Checking hm-storage v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-storage)
     Checking hm-plugins v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-plugins)
     Checking hm-memory v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-memory)
     Checking hm-agent v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-agent)
     Checking hm-gateway v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-gateway)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.74s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 13.78s
 
-added 20 packages in 6s
+added 20 packages in 7s
 
 > fullstack-heavy-metal-ui@0.1.0 build
 > vite build
@@ -331,160 +331,5 @@ dist/index.html                   0.54 kB │ gzip:  0.33 kB
 dist/assets/index-BHTA4Dg9.css    2.33 kB │ gzip:  1.03 kB
 dist/assets/index-Cm2UrYir.js   200.76 kB │ gzip: 63.16 kB
 
-[32m✓ built in 121ms[39m
+[32m✓ built in 129ms[39m
 Codex fullstack setup complete.
-{
-  "generated_at": "2026-07-19T19:36:34.196571+00:00",
-  "marker_failures": [],
-  "missing_files": [],
-  "ok": true,
-  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
-  "platform_config": {
-    "endpoint_count": 3,
-    "endpoint_ids": [
-      "primary",
-      "gateway-local",
-      "gateway-fallback"
-    ],
-    "exists": true,
-    "has_timeout": true,
-    "has_zero_staked_status": true
-  },
-  "required_files": [
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/setup.sh",
-      "size_bytes": 149
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/run-trigger.txt",
-      "size_bytes": 262
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/codex-setup.yml",
-      "size_bytes": 2894
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/rust-ci.yml",
-      "size_bytes": 369
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_setup.sh",
-      "size_bytes": 753
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_check.sh",
-      "size_bytes": 1024
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "logs/automated-initialization-run.md",
-      "size_bytes": 2514
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/production-api-contract.md",
-      "size_bytes": 24959
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/ui-control-plane-implementation.md",
-      "size_bytes": 2227
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/public/platform-config.json",
-      "size_bytes": 727
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 10618
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/main.ts",
-      "size_bytes": 10004
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/styles.css",
-      "size_bytes": 3086
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/index.html",
-      "size_bytes": 445
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/Dockerfile",
-      "size_bytes": 271
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 32949
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docker-compose.yml",
-      "size_bytes": 1081
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Cargo.toml",
-      "size_bytes": 1010
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Makefile",
-      "size_bytes": 330
-    }
-  ],
-  "source_markers": {
-    "endpoint_states_present": {
-      "degraded": true,
-      "offline": true,
-      "online": true,
-      "unknown": true,
-      "zero_staked": true
-    },
-    "gateway_agent_managed_present": true,
-    "gateway_routes_present": {
-      "GET /api/health": true,
-      "GET /gateway/health": true,
-      "GET /health": true,
-      "GET /tasks": true,
-      "POST /api/tasks": true,
-      "POST /gateway/tasks": true,
-      "POST /tasks": true
-    },
-    "gateway_zero_staked_present": true,
-    "ui_dispatch_present": true
-  }
-}
