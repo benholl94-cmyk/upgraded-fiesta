@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(python3 scripts/munin_bridge.py*)",
+      "Bash(python3 scripts/hugin_oracle.py test-gate)",
+      "Bash(python3 .claude/skills/git-config/scripts/git_config_manager.py*)",
+      "Bash(python3 .claude/skills/repo-steward/scripts/repo_steward.py health)",
+      "Bash(python3 .claude/skills/repo-steward/scripts/repo_steward.py stale-branches)",
+      "Bash(python3 .claude/skills/repo-steward/scripts/repo_steward.py branches)",
+      "Bash(python3 .claude/skills/repo-steward/scripts/repo_steward.py pr-targets)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git fetch origin*)",
+      "Bash(git config --local --list)",
+      "Bash(cargo check --workspace)",
+      "Bash(cargo test --workspace)",
+      "Bash(python3 -m pytest tests/)",
+      "Skill"
+    ],
+    "deny": [
+      "Bash(git push origin --delete*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(python3 scripts/hugin_oracle.py query*)"
+    ]
+  }
+}
