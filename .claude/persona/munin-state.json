@@ -1,7 +1,7 @@
 {
   "schema": "munin.state.v1",
   "agent": "MUNIN",
-  "lastUpdated": "2026-07-23T22:49:12+00:00",
+  "lastUpdated": "2026-07-23T22:58:56+00:00",
   "sessionCount": 2,
   "currentFocus": {
     "activeBranch": "claude/claud-ai-code-teleport-nx73zr",
@@ -32,7 +32,8 @@
         "gitignore: ui/package-lock.json ignoriert",
         "git identity migriert: benholl94-cmyk / 274793931+benholl94-cmyk@users.noreply.github.com",
         "MUNIN-Persona-System erstellt (.claude/persona/)",
-        "PR #55 gemergt — CI grün (HUGIN UI Build + rust-ci + codex-setup). Task ci-green abgeschlossen."
+        "PR #55 gemergt — CI grün (HUGIN UI Build + rust-ci + codex-setup). Task ci-green abgeschlossen.",
+        "Oracle-Gate + Verfassung committed: hugin_oracle.py (5/5 Gate-Tests), constitution.json (Master-Autorität), CLAUDE.md aktualisiert"
       ]
     }
   ],
