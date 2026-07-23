@@ -1,42 +1,45 @@
 {
+  "schema": "hugin.rotation.status.v1",
   "platformName": "HUGIN · Steuerfeld",
-  "requestTimeoutMs": 6000,
-  "maxAttemptsPerDispatch": 3,
-  "zeroStakedStatus": "zero_staked",
-  "liveStatusPath": "/platform-status.json",
-  "liveStatusIntervalMs": 5000,
+  "updatedAt": "2026-07-23T21:07:12+00:00",
+  "cycleCount": 3,
+  "activeId": null,
   "endpoints": [
     {
       "id": "primary",
       "label": "Gateway · Primär",
       "baseUrl": "http://127.0.0.1:8787",
-      "healthPath": "/health",
-      "taskPath": "/tasks",
-      "priority": 1
+      "state": "offline",
+      "reason": "URLError",
+      "latencyMs": 1,
+      "body": null
     },
     {
       "id": "gateway-local",
       "label": "Gateway · Lokal",
       "baseUrl": "http://127.0.0.1:8080",
-      "healthPath": "/health",
-      "taskPath": "/tasks",
-      "priority": 2
+      "state": "offline",
+      "reason": "URLError",
+      "latencyMs": 1,
+      "body": null
     },
     {
       "id": "openclaw",
       "label": "OpenClaw · Agent",
       "baseUrl": "http://127.0.0.1:18789",
-      "healthPath": "/health",
-      "taskPath": "/v1/chat/completions",
-      "priority": 3
+      "state": "offline",
+      "reason": "URLError",
+      "latencyMs": 0,
+      "body": null
     },
     {
       "id": "gateway-fallback",
       "label": "Gateway · Fallback",
       "baseUrl": "/gateway",
-      "healthPath": "/health",
-      "taskPath": "/tasks",
-      "priority": 4
+      "state": "offline",
+      "reason": "ValueError",
+      "latencyMs": 0,
+      "body": null
     }
   ]
 }

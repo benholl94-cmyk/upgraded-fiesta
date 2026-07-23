@@ -14,7 +14,27 @@ export interface PlatformConfig {
   requestTimeoutMs: number;
   maxAttemptsPerDispatch: number;
   zeroStakedStatus: string;
+  liveStatusPath?: string;
+  liveStatusIntervalMs?: number;
   endpoints: EndpointConfig[];
+}
+
+export interface LiveEndpointStatus {
+  id: string;
+  label: string;
+  baseUrl: string;
+  state: EndpointState;
+  reason: string;
+  latencyMs: number;
+}
+
+export interface LiveStatus {
+  schema: string;
+  platformName: string;
+  updatedAt: string;
+  cycleCount: number;
+  activeId: string | null;
+  endpoints: LiveEndpointStatus[];
 }
 
 export interface EndpointHealth {
@@ -41,8 +61,19 @@ export interface DispatchResult {
   attempts: EndpointHealth[];
 }
 
+export async function loadLiveStatus(config: PlatformConfig): Promise<LiveStatus | null> {
+  const path = config.liveStatusPath ?? "/platform-status.json";
+  try {
+    const res = await fetch(path, { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as LiveStatus;
+  } catch {
+    return null;
+  }
+}
+
 const defaultConfig: PlatformConfig = {
-  platformName: "Heavy Metal AI Control Plane",
+  platformName: "HUGIN · Steuerfeld",
   requestTimeoutMs: 8000,
   maxAttemptsPerDispatch: 3,
   zeroStakedStatus: "zero_staked",
