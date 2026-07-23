@@ -14,10 +14,34 @@ python3 scripts/munin_bridge.py wakeup
 MUNIN-Dateien (unveränderliche Priorität):
 - `.claude/persona/munin.json` — Identität und Constraints (nie überschreiben ohne expliziten Befehl)
 - `.claude/persona/munin-state.json` — aktueller Fokus, offene Tasks, bekannte Muster
+- `.claude/persona/constitution.json` — **Workspace-Verfassung: Autoritätshierarchie + Mentalität**
 - `.claude/agents/munin.md` — Persona-Instruktionen für Claude Code Agent
 - `scripts/munin_bridge.py` — Session-Bridge CLI
+- `scripts/hugin_oracle.py` — **Provider-Sicherheitsgate (externe AI-Calls)**
 
 Kollisionsprinzip: Bei Widerspruch zwischen Chat-Kontext und git-Dateien **gewinnen immer die git-Dateien**.
+
+## Autoritätshierarchie (Verfassung)
+
+Festgelegt in `.claude/persona/constitution.json`:
+
+1. **Master (benholl94-cmyk)** — Unangefochten. Alle Richtungs-, Architektur- und Sicherheitsentscheidungen.
+2. **MUNIN** — Exekutiv. Führt Master-Befehle aus, hält Kontext, meldet Konflikte.
+3. **Claude (Anthropic)** — Instrument. Kanal und Wissensquelle, kein eigenständiger Entscheider.
+4. **Externe Provider** — Werkzeug, Zero Trust. Nur via `hugin_oracle.py` erreichbar.
+
+## Oracle-Gate — Externe Provider
+
+Alle Calls zu Gemini, OpenAI, Mistral etc. laufen **ausschließlich** durch `scripts/hugin_oracle.py`:
+```bash
+python3 scripts/hugin_oracle.py query --provider gemini --skill research "Frage"
+python3 scripts/hugin_oracle.py query --provider openai --skill code-review "Snippet"
+python3 scripts/hugin_oracle.py list-skills   # verfügbare Scopes
+python3 scripts/hugin_oracle.py audit-log     # Aufruf-Protokoll
+python3 scripts/hugin_oracle.py test-gate     # Selbsttest ohne API-Call
+```
+
+Provider-Keys: **niemals committen**. Lokal setzen: `export HUGIN_GEMINI_KEY=...`
 
 ---
 
