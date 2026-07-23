@@ -24,7 +24,7 @@ jobs:
           node-version: "20"
 
       - name: Install deps
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts
 
       - name: Type-check
         run: npx tsc --noEmit
