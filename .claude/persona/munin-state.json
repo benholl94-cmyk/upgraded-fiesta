@@ -1,8 +1,8 @@
 {
   "schema": "munin.state.v1",
   "agent": "MUNIN",
-  "lastUpdated": "2026-07-23T22:45:00Z",
-  "sessionCount": 1,
+  "lastUpdated": "2026-07-23T23:10:00Z",
+  "sessionCount": 2,
 
   "currentFocus": {
     "activeBranch": "claude/claud-ai-code-teleport-nx73zr",
@@ -16,6 +16,15 @@
     {
       "date": "2026-07-23",
       "session": 1,
+      "actions": [
+        "CLAUDE.md: git-Workspace als primäre Autorität gesetzt (MUNIN-Abschnitt + Kollisionsprinzip)",
+        ".coderabbit.yaml: .claude/persona/** und munin.md aus Review ausgeschlossen",
+        "Alle kollidierenden Quellen (Chat-Kontext vs git) zugunsten git-Workspace aufgelöst"
+      ]
+    },
+    {
+      "date": "2026-07-23",
+      "session": 2,
       "actions": [
         "hugin_growth.py committed & pushed (L5–L9 Wachstumssystem)",
         "10 CodeRabbit-Findings gefixt (NSW-Backscoring, bool-vor-int, atexit-drain, relative-URL-rejection, health-normalization, StatusGuard, top_k-ValueError, maxAttemptsPerDispatch, main.ts live-status, .coderabbit.yaml filter)",

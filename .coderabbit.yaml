@@ -8,10 +8,12 @@ reviews:
     base_branches:
       - main
 
-  # Ausgenommen von Review-Pflicht: generierte Artefakte und Log-Dateien
+  # Ausgenommen von Review-Pflicht: generierte Artefakte, Log-Dateien, interne Agenten-Zustandsdaten
   path_filters:
     - "!logs/**"
     - "!ui/public/platform-status.json"
+    - "!.claude/persona/**"
+    - "!.claude/agents/munin.md"
 
 knowledge_base:
   # Lernmodus: CodeRabbit soll Fixes aus vergangenen Reviews in Zukunft
