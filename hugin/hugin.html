@@ -316,7 +316,8 @@ function defaultState() {
 let STATE = StateStore.load() || defaultState();
 // Migrate v1 state (add missing keys)
 if (!STATE.version || STATE.version < 2) {
-  STATE = Object.assign(defaultState(), STATE);
+  const base = defaultState();
+  STATE = Object.assign(base, STATE, { keys: Object.assign(base.keys, STATE.keys || {}) });
   STATE.version = 2;
   StateStore.save(STATE);
 }

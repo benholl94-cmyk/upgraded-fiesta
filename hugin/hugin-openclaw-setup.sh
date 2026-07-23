@@ -39,7 +39,7 @@ if [ -z "${CEREBRAS_API_KEY:-}" ]; then
 fi
 
 # --- 3. Operator-Token erzeugen oder wiederverwenden (idempotent) ------------
-mkdir -p "$(dirname "$TOKEN_FILE")"
+(umask 077; mkdir -p "$(dirname "$TOKEN_FILE")")
 if [ -f "$TOKEN_FILE" ] && [ -s "$TOKEN_FILE" ]; then
   GW_TOKEN="$(cat "$TOKEN_FILE")"
   say "Vorhandenes Gateway-Token wiederverwendet (idempotent)"
@@ -51,7 +51,7 @@ else
     GW_TOKEN="$(dd if=/dev/urandom bs=24 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')"
   fi
   [ -n "$GW_TOKEN" ] || die "Token-Erzeugung fehlgeschlagen."
-  printf '%s' "$GW_TOKEN" > "$TOKEN_FILE"
+  (umask 077; printf '%s' "$GW_TOKEN" > "$TOKEN_FILE")
   chmod 600 "$TOKEN_FILE"
   say "Neues Gateway-Token erzeugt und gespeichert"
 fi
@@ -116,8 +116,8 @@ openclaw gateway status 2>/dev/null || warn "Status unbekannt — 'openclaw logs
 # --- 11. Verbindungsdaten für HUGIN ausgeben ---------------------------------
 # IP-Erkennung: macOS → Linux → Fallback
 HOST_IP="$(ipconfig getifaddr en0 2>/dev/null \
-  || hostname -I 2>/dev/null | awk '{print $1}' \
-  || echo '127.0.0.1')"
+  || hostname -I 2>/dev/null | awk '{print $1}')"
+[ -n "$HOST_IP" ] || HOST_IP='127.0.0.1'
 
 LOOPBACK_NOTE=""
 if [ "$BIND" = "loopback" ]; then
