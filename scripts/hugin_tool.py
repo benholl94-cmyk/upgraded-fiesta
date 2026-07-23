@@ -30,6 +30,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+# ── Reflect-Logger (optional, lädt sich selbst nach wenn verfügbar) ───────────
+try:
+    _reflect_dir = str(Path(__file__).resolve().parent)
+    if _reflect_dir not in sys.path:
+        sys.path.insert(0, _reflect_dir)
+    from hugin_reflect import task as _reflect_task, get_logger as _reflect_logger
+    _REFLECT_AVAILABLE = True
+except ImportError:
+    _REFLECT_AVAILABLE = False
+    _reflect_task = None
+    _reflect_logger = None
+
 # ── ANSI-Farbpalette ─────────────────────────────────────────────────────────
 C = {
     "reset":  "\033[0m",
@@ -384,6 +396,14 @@ def action_token_set() -> None:
 def action_diagnostics(cfg: dict, token: str) -> None:
     header("System-Diagnose")
     import platform
+
+    # Reflect-Logger: Task öffnen
+    if _REFLECT_AVAILABLE:
+        _t = __import__("hugin_reflect").Task("Diagnose: System-Status", auto_print=False)
+        _t.plan("Systemstatus, Daemon-Zustand und Endpunkt-Erreichbarkeit prüfen")
+    else:
+        _t = None
+
     info(f"Python:   {platform.python_version()}")
     info(f"OS:       {platform.system()} {platform.release()}")
     info(f"Arch:     {platform.machine()}")
@@ -398,12 +418,16 @@ def action_diagnostics(cfg: dict, token: str) -> None:
             info(f"Daemon:   Zyklus #{st.get('cycleCount','?')} — {st.get('updatedAt','?')}")
             active = st.get("activeId")
             info(f"Aktiv:    {active or 'keiner'}")
+            if _t: _t.exec("platform-status.json", f"Daemon aktiv, Zyklus {st.get('cycleCount','?')}")
         except Exception:
             warn("platform-status.json unlesbar.")
+            if _t: _t.note("platform-status.json unlesbar — JSON-Fehler")
     else:
         info("Daemon:   inaktiv (platform-status.json fehlt)")
+        if _t: _t.note("Daemon inaktiv — keine Status-Datei")
 
     print(c("cyan", "\n  Endpunkt-Ping:"))
+    ping_ok = 0
     for ep in cfg.get("endpoints", []):
         base = ep.get("baseUrl", "").rstrip("/")
         label = ep.get("label", ep.get("id", "?"))
@@ -411,8 +435,21 @@ def action_diagnostics(cfg: dict, token: str) -> None:
             print(f"  {c('gray','─')}  {label.ljust(28)}  (relative URL, kein Ping)")
             continue
         status, _, ms = http_request(f"{base}/health", token=token, timeout=2.0)
-        mark = c("green", "✓") if 200 <= status < 300 else c("red", "✗")
+        ok = 200 <= status < 300
+        if ok: ping_ok += 1
+        mark = c("green", "✓") if ok else c("red", "✗")
         print(f"  {mark}  {label.ljust(28)}  {ms:4d}ms")
+        if _t: _t.exec(f"ping {label}", f"HTTP {status} in {ms}ms")
+
+    if _t:
+        _t.verify("endpoint-ping", passed=(ping_ok > 0),
+                  detail=f"{ping_ok}/{len(cfg.get('endpoints',[]))} Endpunkte erreichbar")
+        snap = _t.reflect()
+        if _t.has_errors or _t.quality_score < 70:
+            print()
+            snap.print()
+        _reflect_logger().record(_t)
+
     pause()
 
 def action_knowledge_graph(cfg: dict, token: str) -> None:
@@ -504,7 +541,16 @@ def main() -> None:
     )
     parser.add_argument("--token",   help="Bearer-Token (überschreibt gespeicherten)")
     parser.add_argument("--gateway", help="Gateway-URL (überschreibt Konfiguration)")
+    parser.add_argument("--reflect", action="store_true", help="Reflect-Demo vor dem Start ausführen")
     args = parser.parse_args()
+
+    # Reflect-Logger initialisieren (Hintergrund-Thread)
+    if _REFLECT_AVAILABLE:
+        _reflect_logger()  # Singleton starten
+
+    if args.reflect and _REFLECT_AVAILABLE:
+        import hugin_reflect
+        hugin_reflect._run_demo()
 
     cfg = load_config()
     if args.gateway:
@@ -514,7 +560,14 @@ def main() -> None:
 
     if not sys.stdout.isatty():
         # Nicht-interaktiver Modus: Diagnose ausgeben und beenden
-        action_diagnostics(cfg, token_ref[0])
+        if _REFLECT_AVAILABLE:
+            with __import__("hugin_reflect").task("Nicht-interaktive Diagnose") as t:
+                t.plan("Systemstatus im nicht-interaktiven Modus ausgeben")
+                action_diagnostics(cfg, token_ref[0])
+                t.exec("action_diagnostics", "Ausgabe abgeschlossen")
+                t.verify("tty-check", passed=False, detail="Non-TTY Modus erkannt — korrekt")
+        else:
+            action_diagnostics(cfg, token_ref[0])
         sys.exit(0)
 
     try:
