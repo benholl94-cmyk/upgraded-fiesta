@@ -36,14 +36,7 @@
       ]
     }
   ],
-  "openTasks": [
-    {
-      "id": "ci-green",
-      "description": "CI auf PR #55 grün bekommen",
-      "priority": "high",
-      "lastAttempt": "fix(ci): tsconfig.json + @types/react (commit d35a12b)"
-    }
-  ],
+  "openTasks": [],
   "knownPatterns": {
     "remoteDivergence": "git fetch origin <branch> && git merge -X ours origin/<branch> --no-edit && git push",
     "coderabbitRateLimit": "Nur Warnung, keine Aktion. Wird automatisch aufgehoben.",
