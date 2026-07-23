@@ -1,0 +1,62 @@
+{
+  "schema": "munin.state.v1",
+  "agent": "MUNIN",
+  "lastUpdated": "2026-07-23T22:45:00Z",
+  "sessionCount": 1,
+
+  "currentFocus": {
+    "activeBranch": "claude/claud-ai-code-teleport-nx73zr",
+    "activePR": 55,
+    "goal": "CI grün auf PR #55 — HUGIN UI Build (tsc + vite)",
+    "status": "in_progress",
+    "blockers": []
+  },
+
+  "workDone": [
+    {
+      "date": "2026-07-23",
+      "session": 1,
+      "actions": [
+        "hugin_growth.py committed & pushed (L5–L9 Wachstumssystem)",
+        "10 CodeRabbit-Findings gefixt (NSW-Backscoring, bool-vor-int, atexit-drain, relative-URL-rejection, health-normalization, StatusGuard, top_k-ValueError, maxAttemptsPerDispatch, main.ts live-status, .coderabbit.yaml filter)",
+        "CI Fix #1: npm cache / package-lock.json entfernt",
+        "CI Fix #2: npm ci → npm install",
+        "CI Fix #3: ui/tsconfig.json + vite-env.d.ts + @types/react erstellt",
+        "gitignore: ui/package-lock.json ignoriert",
+        "git identity migriert: benholl94-cmyk / 274793931+benholl94-cmyk@users.noreply.github.com",
+        "MUNIN-Persona-System erstellt (.claude/persona/)"
+      ]
+    }
+  ],
+
+  "openTasks": [
+    {
+      "id": "ci-green",
+      "description": "CI auf PR #55 grün bekommen",
+      "priority": "high",
+      "lastAttempt": "fix(ci): tsconfig.json + @types/react (commit d35a12b)"
+    }
+  ],
+
+  "knownPatterns": {
+    "remoteDivergence": "git fetch origin <branch> && git merge -X ours origin/<branch> --no-edit && git push",
+    "coderabbitRateLimit": "Nur Warnung, keine Aktion. Wird automatisch aufgehoben.",
+    "npmLockfile": "Repo hat kein package-lock.json in git — npm install statt npm ci",
+    "gitPushProtocol": "Immer: fetch + merge -X ours + push (kein force-push ohne explizite Erlaubnis)"
+  },
+
+  "systemMap": {
+    "mainScript": "scripts/munin_bridge.py",
+    "identityFile": ".claude/persona/munin.json",
+    "stateFile": ".claude/persona/munin-state.json",
+    "agentSkill": ".claude/agents/munin.md",
+    "claudeMd": "CLAUDE.md"
+  },
+
+  "securityConstraints": [
+    "Kein Commit von Secrets/API-Keys/.env",
+    "Kein Push/PR/Comment ohne expliziten Befehl",
+    "Keine automatischen Routinen ohne expliziten Befehl",
+    "Token-Klartext nur für loopback/privat/VPN"
+  ]
+}
