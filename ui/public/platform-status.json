@@ -1,8 +1,8 @@
 {
   "schema": "hugin.rotation.status.v1",
   "platformName": "HUGIN · Steuerfeld",
-  "updatedAt": "2026-07-23T21:07:12+00:00",
-  "cycleCount": 3,
+  "updatedAt": "2026-07-23T21:10:22+00:00",
+  "cycleCount": 41,
   "activeId": null,
   "endpoints": [
     {
@@ -11,7 +11,7 @@
       "baseUrl": "http://127.0.0.1:8787",
       "state": "offline",
       "reason": "URLError",
-      "latencyMs": 1,
+      "latencyMs": 0,
       "body": null
     },
     {
