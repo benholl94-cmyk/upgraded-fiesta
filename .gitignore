@@ -43,3 +43,6 @@ target/
 ui/node_modules/
 node_modules/
 Cargo.lock
+
+# Daemon runtime output — written every 5s, never committed
+ui/public/platform-status.json
