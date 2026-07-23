@@ -7,17 +7,18 @@
   "monitor_ok": true,
   "monitor_platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
   "platform_config": {
-    "endpoint_count": 3,
+    "endpoint_count": 4,
     "endpoint_ids": [
       "primary",
       "gateway-local",
+      "openclaw",
       "gateway-fallback"
     ],
     "exists": true,
     "has_timeout": true,
     "has_zero_staked_status": true
   },
-  "ref": "refs/heads/main",
+  "ref": "refs/heads/claude/claud-ai-code-teleport-nx73zr",
   "repository": "benholl94-cmyk/upgraded-fiesta",
   "run_id": "30039617526",
   "run_number": "689",
