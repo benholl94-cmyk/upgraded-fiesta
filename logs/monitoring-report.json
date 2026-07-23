@@ -1,14 +1,15 @@
 {
-  "generated_at": "2026-07-23T19:50:37.710087+00:00",
+  "generated_at": "2026-07-23T22:43:11.657787+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
   "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
   "platform_config": {
-    "endpoint_count": 3,
+    "endpoint_count": 4,
     "endpoint_ids": [
       "primary",
       "gateway-local",
+      "openclaw",
       "gateway-fallback"
     ],
     "exists": true,
@@ -74,19 +75,19 @@
       "exists": true,
       "is_file": true,
       "path": "ui/public/platform-config.json",
-      "size_bytes": 727
+      "size_bytes": 1030
     },
     {
       "exists": true,
       "is_file": true,
       "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 10618
+      "size_bytes": 11336
     },
     {
       "exists": true,
       "is_file": true,
       "path": "ui/src/main.ts",
-      "size_bytes": 10004
+      "size_bytes": 11623
     },
     {
       "exists": true,

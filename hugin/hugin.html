@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#05070a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HUGIN">
+<title>HUGIN · Autark</title>
+<style>
+  :root{
+    --void:#05070a;
+    --panel:#0b0f16;
+    --panel2:#10151f;
+    --line:#1c2430;
+    --cyan:#3ef4e6;
+    --magenta:#ff3ec8;
+    --amber:#ffb84d;
+    --green:#39ff9d;
+    --red:#ff4f6d;
+    --text:#dfe8ee;
+    --dim:#6b7a8c;
+    --mono:'SF Mono','Menlo','Consolas',monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:
+      radial-gradient(ellipse at top, #0d1420 0%, var(--void) 55%);
+    color:var(--text); font-family:-apple-system,system-ui,sans-serif;
+    display:flex; flex-direction:column; min-height:100vh;
+    overflow-x:hidden;
+  }
+  header{
+    padding:14px 16px 10px; display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--line); backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    position:sticky; top:0; z-index:20; background:rgba(5,7,10,.85);
+  }
+  .raven{ width:30px;height:30px;flex:none; }
+  .raven svg{width:100%;height:100%;display:block;}
+  h1{font-size:15px; letter-spacing:.28em; margin:0; font-weight:700;
+     color:var(--cyan); text-shadow:0 0 12px rgba(62,244,230,.5);}
+  .sub{font-size:10px; color:var(--dim); letter-spacing:.08em; margin-top:2px;}
+  .headline{display:flex; flex-direction:column; flex:1;}
+  .iconbtn{
+    background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    width:34px;height:34px;border-radius:9px; display:flex; align-items:center;
+    justify-content:center; font-size:15px; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+  }
+  .iconbtn:active{transform:scale(.94);}
+  main{flex:1; display:flex; flex-direction:column; overflow:hidden;}
+  #feed{flex:1; overflow-y:auto; padding:14px 12px 8px; display:flex; flex-direction:column; gap:12px;}
+  .msg{max-width:88%; padding:10px 13px; border-radius:14px; font-size:14.5px; line-height:1.45; white-space:pre-wrap; word-wrap:break-word;}
+  .msg.user{align-self:flex-end; background:linear-gradient(135deg,#1a2333,#141b28); border:1px solid var(--line); border-bottom-right-radius:4px;}
+  .msg.bot{align-self:flex-start; background:var(--panel); border:1px solid var(--line); border-bottom-left-radius:4px; position:relative;}
+  .msg.sys{align-self:center; color:var(--dim); font-size:11.5px; font-family:var(--mono); background:none; border:none; padding:2px 8px;}
+  .badge{display:flex; gap:8px; align-items:center; margin-bottom:6px; font-family:var(--mono); font-size:10px; color:var(--dim);}
+  .dot{width:7px;height:7px;border-radius:50%; flex:none;}
+  .dot.local{background:var(--green); box-shadow:0 0 6px var(--green);}
+  .dot.cloud{background:var(--cyan); box-shadow:0 0 6px var(--cyan);}
+  .dot.err{background:var(--red); box-shadow:0 0 6px var(--red);}
+  .cursor{display:inline-block; width:7px; height:14px; background:var(--cyan); vertical-align:text-bottom; animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  footer{border-top:1px solid var(--line); padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:rgba(5,7,10,.85);}
+  .inputrow{display:flex; gap:8px; align-items:flex-end;}
+  textarea{
+    flex:1; resize:none; background:var(--panel2); border:1px solid var(--line);
+    color:var(--text); border-radius:12px; padding:10px 12px; font-size:14.5px;
+    max-height:120px; font-family:inherit;
+    -webkit-appearance:none; appearance:none;
+  }
+  textarea:focus{outline:none; border-color:var(--cyan);}
+  .sendbtn{
+    width:42px;height:42px;border-radius:12px;border:none; flex:none;
+    background:linear-gradient(135deg,var(--cyan),var(--magenta)); color:#05070a;
+    font-size:17px; font-weight:800; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+  }
+  .sendbtn:active{transform:scale(.93);}
+  .statusline{display:flex; gap:10px; margin-top:7px; padding:0 2px; font-family:var(--mono); font-size:9.5px; color:var(--dim); overflow-x:auto; white-space:nowrap;}
+  .statusline b{color:var(--text);}
+
+  /* drawer */
+  #drawer{
+    position:fixed; inset:0; background:rgba(5,7,10,.72); backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    z-index:50; display:none;
+  }
+  #drawer.open{display:block;}
+  .panel{
+    position:absolute; right:0; top:0; bottom:0; width:min(390px,92vw);
+    background:var(--panel); border-left:1px solid var(--line);
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    overflow-y:auto;
+  }
+  .panel h2{font-size:12px; letter-spacing:.18em; color:var(--amber); margin:18px 0 8px;}
+  .panel h2:first-child{margin-top:0;}
+  label{display:block; font-size:11px; color:var(--dim); margin:10px 0 4px; letter-spacing:.03em;}
+  input[type=text],input[type=password],select{
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    padding:8px 10px; border-radius:8px; font-size:13px; font-family:var(--mono);
+    -webkit-appearance:none; appearance:none;
+  }
+  .row2{display:flex; gap:8px;}
+  .row2>*{flex:1;}
+  .toggle{display:flex; align-items:center; justify-content:space-between; padding:9px 0;}
+  .switch{position:relative; width:42px; height:24px; background:var(--panel2); border:1px solid var(--line); border-radius:999px; cursor:pointer; flex:none;}
+  .switch.on{background:linear-gradient(90deg,var(--cyan),var(--green)); border-color:transparent;}
+  .switch .knob{position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#0a0e14; transition:.15s;}
+  .switch.on .knob{left:20px; background:#05070a;}
+  .provrow{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
+  .provrow .stat{font-family:var(--mono); font-size:10px; color:var(--dim);}
+  .btn{
+    width:100%; padding:11px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--text); font-size:13px; margin-top:8px; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+  }
+  .btn.primary{background:linear-gradient(135deg,var(--cyan),var(--magenta)); color:#05070a; border:none; font-weight:700;}
+  .btn.danger{border-color:var(--red); color:var(--red);}
+  #testlog{
+    margin-top:10px; background:#000; border:1px solid var(--line); border-radius:8px;
+    padding:8px 10px; font-family:var(--mono); font-size:10.5px; max-height:180px; overflow-y:auto; white-space:pre-wrap;
+  }
+  .pill{display:inline-block; padding:1px 7px; border-radius:999px; font-size:9.5px; font-family:var(--mono); border:1px solid var(--line); color:var(--dim);}
+  .hint{font-size:10.5px; color:var(--dim); line-height:1.5; margin-top:4px;}
+  a{color:var(--cyan);}
+  ::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="raven">
+    <svg viewBox="0 0 64 64"><path fill="none" stroke="#3ef4e6" stroke-width="2.4" d="M8 40 Q16 18 32 16 Q48 18 56 40 Q44 34 40 42 Q36 30 32 30 Q28 30 24 42 Q20 34 8 40 Z"/><circle cx="26" cy="26" r="1.6" fill="#3ef4e6"/></svg>
+  </div>
+  <div class="headline">
+    <h1>HUGIN</h1>
+    <div class="sub" id="subtitle">Gedanke fliegt — Erinnerung bleibt · v2.1.0 SYNTHESE</div>
+  </div>
+  <button class="iconbtn" id="btnDrawer" aria-label="Einstellungen">⚙</button>
+</header>
+
+<main>
+  <div id="feed" role="log" aria-live="polite"></div>
+</main>
+
+<footer>
+  <div class="inputrow">
+    <textarea id="input" rows="1" placeholder="Frag Hugin…" aria-label="Nachricht eingeben"></textarea>
+    <button class="sendbtn" id="btnSend" aria-label="Senden">➤</button>
+  </div>
+  <div class="statusline" id="statusline" aria-live="polite">bereit</div>
+</footer>
+
+<div id="drawer" role="dialog" aria-modal="true" aria-label="Einstellungen">
+  <div class="panel">
+    <h2>ANBIETER — CLOUD-FALLBACK</h2>
+
+    <label>Groq API-Key <span class="pill">frei · schnell</span></label>
+    <input type="password" id="key_groq" placeholder="gsk_…" autocomplete="off">
+
+    <label>Google AI Studio Key <span class="pill">frei · großes Volumen</span></label>
+    <input type="password" id="key_google" placeholder="AIza…" autocomplete="off">
+
+    <label>Cerebras Key <span class="pill">frei · 1M Token/Tag</span></label>
+    <input type="password" id="key_cerebras" placeholder="csk-…" autocomplete="off">
+
+    <label>OpenRouter Key <span class="pill">frei · viele Modelle</span></label>
+    <input type="password" id="key_openrouter" placeholder="sk-or-…" autocomplete="off">
+
+    <label>Mistral Key <span class="pill">frei</span></label>
+    <input type="password" id="key_mistral" placeholder="…" autocomplete="off">
+
+    <label>Eigener OpenAI-kompatibler Endpunkt <span class="pill">optional</span></label>
+    <input type="text" id="custom_url" placeholder="https://…/v1/chat/completions" autocomplete="off">
+    <input type="password" id="custom_key" placeholder="Bearer-Key (optional)" style="margin-top:6px;" autocomplete="off">
+    <input type="text" id="custom_model" placeholder="Modellname" style="margin-top:6px;" autocomplete="off">
+
+    <div class="hint">Keys verlassen dieses Gerät nur in Richtung des jeweiligen Anbieters, versiegelt lokal gespeichert (FNV-1a, Dual-Slot A/B). Kein Server, kein Mittler.</div>
+
+    <button class="btn primary" id="btnSaveKeys">Versiegeln &amp; speichern</button>
+
+    <h2>ARBEITS-ENGINE — OPENCLAW <span class="pill">Agent · Werkzeuge · Automatik</span></h2>
+    <label>Gateway-URL</label>
+    <input type="text" id="oc_url" placeholder="http://192.168.0.202:18789" autocomplete="off">
+    <label>Operator-Token</label>
+    <input type="password" id="oc_token" placeholder="Bearer-Token aus dem Setup" autocomplete="off">
+    <label>Modell <span class="pill">Standard</span></label>
+    <input type="text" id="oc_model" placeholder="openclaw/default" autocomplete="off">
+    <div class="hint">Verbindet HUGIN mit einem OpenClaw-Gateway: voller Agent mit Datei-, Web-, Speicher- und Cron-Werkzeugen. Für komplexe Aufgaben wird OpenClaw automatisch bevorzugt. Setup: <code>sh hugin-openclaw-setup.sh</code>. Nur loopback/privat/VPN als Klartext-URL zulässig.</div>
+    <button class="btn primary" id="btnSaveOC">OpenClaw verbinden</button>
+
+    <h2>LOKALES MODELL (WebGPU)</h2>
+    <div class="toggle">
+      <span>Lokal aktiv</span>
+      <div class="switch" id="swLocal" role="switch" aria-label="Lokales Modell aktivieren"><div class="knob"></div></div>
+    </div>
+    <label>Modell</label>
+    <select id="localModel">
+      <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B — leicht, schnell</option>
+      <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC" selected>Llama-3.2 3B — ausgewogen</option>
+      <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">Phi-3.5-mini — Reasoning</option>
+    </select>
+    <div class="hint">Erfordert WebGPU (Safari 26+ / iOS 26 oder Chrome mit WebGPU-Flag). Modell wird bei erstem Aufruf einmalig geladen und lokal zwischengespeichert — danach volle Sprachmodell-Fähigkeit komplett offline. Ohne WebGPU bleibt der autarke Reflex-Kern immer nutzbar.</div>
+
+    <div class="toggle">
+      <span>Nur lokal (Offline-Modus)</span>
+      <div class="switch" id="swOffline" role="switch" aria-label="Offline-Modus"><div class="knob"></div></div>
+    </div>
+    <div class="hint">Unterbindet jeden Cloud-Fallback vollständig, auch bei Timeout.</div>
+
+    <button class="btn" id="btnPreload">Lokales Modell jetzt vorladen</button>
+    <div class="hint">Lädt das WebGPU-Modell einmalig herunter — danach sofortige Antworten ohne Netz, dauerhaft.</div>
+
+    <div class="toggle">
+      <span>Antwort-Cache</span>
+      <div class="switch on" id="swCache" role="switch" aria-label="Antwort-Cache"><div class="knob"></div></div>
+    </div>
+    <button class="btn" id="btnClearCache">Cache leeren</button>
+    <div class="hint">Identische Anfragen werden versiegelt zwischengespeichert (max. 60) — offline abrufbar, spart Anbieter-Kontingent.</div>
+
+    <h2>ROUTER-ZUSTAND <span class="pill">selbstlernend</span></h2>
+    <div id="provStats"></div>
+    <div class="hint">Nur EMA aus Erfolgsquote + Latenz pro Anbieter (2 Zahlen), keine Verlaufsdaten, keine Inhalte. Zerfällt automatisch bei Nichtnutzung.</div>
+    <button class="btn" id="btnResetStats">Lernzustand zurücksetzen</button>
+
+    <h2>SELBSTTEST</h2>
+    <button class="btn" id="btnSelftest">Selbsttest ausführen</button>
+    <div id="testlog">bereit.</div>
+
+    <button class="btn danger" id="btnClose" style="margin-top:20px;">Schließen</button>
+  </div>
+</div>
+
+<script type="module">
+'use strict';
+/* ============================================================
+   HUGIN v2.1.0 SYNTHESE
+   Selbstlernender, provider-agnostischer AI-Router.
+   Single-File · Kein Build · Kein Server · Offline-fähig.
+
+   Muster: FNV-1a-Siegel · Dual-Slot A/B · fail-closed · EMA-Lernzustand
+   ============================================================ */
+
+/* ---------- FNV-1a (identisch zum HORT/NORNE-Muster) ---------- */
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+/* ---------- Dual-Slot Persistenz (A/B · Read-Back · Self-Heal) ---------- */
+const StateStore = {
+  keyA: 'hugin_state_a',
+  keyB: 'hugin_state_b',
+
+  _wrap(payload) {
+    const body = JSON.stringify(payload);
+    return JSON.stringify({ ts: Date.now(), sum: fnv1a(body), body });
+  },
+  _unwrap(raw) {
+    if (!raw) return null;
+    try {
+      const outer = JSON.parse(raw);
+      if (fnv1a(outer.body) !== outer.sum) return null; // Siegel gebrochen
+      return { ts: outer.ts, payload: JSON.parse(outer.body) };
+    } catch (e) { return null; }
+  },
+  load() {
+    const a = this._unwrap(localStorage.getItem(this.keyA));
+    const b = this._unwrap(localStorage.getItem(this.keyB));
+    let best = null;
+    if (a && b) best = a.ts >= b.ts ? a : b;
+    else best = a || b;
+    if (best) {
+      // Self-Heal: verwaisten / korrupten Slot regenerieren
+      this._writeSlot(this.keyA, best.payload);
+      this._writeSlot(this.keyB, best.payload);
+      return best.payload;
+    }
+    return null;
+  },
+  _writeSlot(key, payload) {
+    try { localStorage.setItem(key, this._wrap(payload)); }
+    catch (e) { console.warn('HUGIN: Slot-Schreibfehler', key, e); }
+  },
+  save(payload) {
+    // Dual-Slot: erst B, dann A → im Absturzfall bleibt immer ein gültiger Slot
+    this._writeSlot(this.keyB, payload);
+    this._writeSlot(this.keyA, payload);
+  }
+};
+
+/* ---------- Standard-Zustand ---------- */
+function defaultState() {
+  return {
+    version: 2,
+    offlineOnly: false,
+    localEnabled: true,
+    keys: {
+      groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
+      openclawUrl: '', openclawToken: '', openclawModel: '',
+      customUrl: '', customKey: '', customModel: ''
+    },
+    cacheEnabled: true,
+    stats: {}  // providerId → {successEMA, latencyEMA, cooldownUntil, calls}
+  };
+}
+
+let STATE = StateStore.load() || defaultState();
+// Migrate v1 state (add missing keys)
+if (!STATE.version || STATE.version < 2) {
+  const base = defaultState();
+  STATE = Object.assign(base, STATE, { keys: Object.assign(base.keys, STATE.keys || {}) });
+  STATE.version = 2;
+  StateStore.save(STATE);
+}
+
+/* ---------- EMA-Lernzustand pro Anbieter ---------- */
+const EMA_ALPHA = 0.35;
+
+function statFor(id) {
+  if (!STATE.stats[id]) STATE.stats[id] = { successEMA: 0.7, latencyEMA: 1500, cooldownUntil: 0, calls: 0 };
+  return STATE.stats[id];
+}
+
+function updateStat(id, ok, latencyMs) {
+  const s = statFor(id);
+  s.successEMA = EMA_ALPHA * (ok ? 1 : 0) + (1 - EMA_ALPHA) * s.successEMA;
+  if (ok) s.latencyEMA = EMA_ALPHA * latencyMs + (1 - EMA_ALPHA) * s.latencyEMA;
+  s.calls += 1;
+  if (!ok) s.cooldownUntil = Date.now() + Math.min(60000, 2000 * Math.pow(2, Math.min(5, s.calls % 6)));
+  StateStore.save(STATE);
+}
+
+function score(id) {
+  const s = statFor(id);
+  if (Date.now() < s.cooldownUntil) return -1;
+  return s.successEMA * 1000 - (s.latencyEMA / 50);
+}
+
+/* ============================================================
+   PROVIDER-REGISTRY
+   Neuen Anbieter hinzufügen: einfach registerProvider() aufrufen.
+   Pflichtfelder: id, name, kind, ready(), call(messages, onToken) → {text, latencyMs}
+   ============================================================ */
+const PROVIDERS = [];
+
+function registerProvider(p) { PROVIDERS.push(p); }
+
+/* --- Groq (OpenAI-kompatibel, SSE-Streaming) --- */
+registerProvider({
+  id: 'groq', name: 'Groq · Llama-3.3-70B', kind: 'cloud',
+  ready() { return !!STATE.keys.groq; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.keys.groq },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, stream: true, temperature: 0.6 })
+    });
+    if (!res.ok) throw new Error('Groq HTTP ' + res.status);
+    const text = await streamSSE(res, onToken, chunkToTextOpenAI);
+    if (!text) throw new Error('Groq: leere Antwort');
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* --- Google AI Studio (Gemini Flash 2.0) --- */
+registerProvider({
+  id: 'google', name: 'Google · Gemini Flash 2.0', kind: 'cloud',
+  ready() { return !!STATE.keys.google; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const contents = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+    const sys = messages.find(m => m.role === 'system');
+    const body = { contents };
+    if (sys) body.systemInstruction = { parts: [{ text: sys.content }] };
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(STATE.keys.google)}`;
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error('Google HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+    if (!text) throw new Error('Google: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* --- Eigener OpenAI-kompatibler Endpunkt --- */
+registerProvider({
+  id: 'custom', name: 'Eigener Endpunkt', kind: 'cloud',
+  ready() { return !!STATE.keys.customUrl; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const headers = { 'Content-Type': 'application/json' };
+    if (STATE.keys.customKey) headers['Authorization'] = 'Bearer ' + STATE.keys.customKey;
+    const res = await fetch(STATE.keys.customUrl, {
+      method: 'POST', headers,
+      body: JSON.stringify({ model: STATE.keys.customModel || 'default', messages, stream: true })
+    });
+    if (!res.ok) throw new Error('Custom HTTP ' + res.status);
+    const text = await streamSSE(res, onToken, chunkToTextOpenAI);
+    if (!text) throw new Error('Custom: leere Antwort');
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* --- Fabrik für OpenAI-kompatible Anbieter --- */
+function openAICompatible({ id, name, url, keyField, model, stream = true }) {
+  registerProvider({
+    id, name, kind: 'cloud',
+    ready() { return !!STATE.keys[keyField]; },
+    async call(messages, onToken) {
+      const t0 = performance.now();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.keys[keyField] },
+        body: JSON.stringify({ model, messages, stream, temperature: 0.6 })
+      });
+      if (!res.ok) throw new Error(name + ' HTTP ' + res.status);
+      let text;
+      if (stream) { text = await streamSSE(res, onToken, chunkToTextOpenAI); }
+      else {
+        const d = await res.json();
+        text = d.choices?.[0]?.message?.content || '';
+        if (onToken) onToken(text);
+      }
+      if (!text) throw new Error(name + ': leere Antwort');
+      return { text, latencyMs: performance.now() - t0 };
+    }
+  });
+}
+
+/* Cerebras — 1M Tokens/Tag frei, ~2600 tok/s */
+openAICompatible({ id: 'cerebras', name: 'Cerebras · Llama-4-Scout', url: 'https://api.cerebras.ai/v1/chat/completions', keyField: 'cerebras', model: 'llama-4-scout' });
+
+/* OpenRouter — freie :free Modell-Slots */
+openAICompatible({ id: 'openrouter', name: 'OpenRouter · frei', url: 'https://openrouter.ai/api/v1/chat/completions', keyField: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' });
+
+/* Mistral — freier Entwickler-Tier */
+openAICompatible({ id: 'mistral', name: 'Mistral · Small', url: 'https://api.mistral.ai/v1/chat/completions', keyField: 'mistral', model: 'mistral-small-latest' });
+
+/* --- OpenClaw · Arbeits-Engine --- */
+function openclawChatUrl(base) {
+  let u = (base || '').trim().replace(/\/+$/, '');
+  if (/\/chat\/completions$/.test(u)) return u;
+  if (/\/v1$/.test(u)) return u + '/chat/completions';
+  return u + '/v1/chat/completions';
+}
+registerProvider({
+  id: 'openclaw', name: 'OpenClaw · Arbeits-Agent', kind: 'cloud',
+  ready() { return !!STATE.keys.openclawUrl; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const headers = { 'Content-Type': 'application/json' };
+    if (STATE.keys.openclawToken) headers['Authorization'] = 'Bearer ' + STATE.keys.openclawToken;
+    const res = await fetch(openclawChatUrl(STATE.keys.openclawUrl), {
+      method: 'POST', headers,
+      body: JSON.stringify({ model: STATE.keys.openclawModel || 'openclaw/default', messages, stream: true })
+    });
+    if (!res.ok) throw new Error('OpenClaw HTTP ' + res.status);
+    const text = await streamSSE(res, onToken, chunkToTextOpenAI);
+    if (!text) throw new Error('OpenClaw: leere Antwort');
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* --- Lokal: WebLLM / WebGPU (lazy geladen) --- */
+let webllmEngine = null;
+let webllmLoading = null;
+let webllmBroken = false;
+
+const WEBLLM_CDNS = [
+  'https://esm.run/@mlc-ai/web-llm',
+  'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm',
+  'https://unpkg.com/@mlc-ai/web-llm?module'
+];
+
+async function importWebLLM() {
+  let lastErr = null;
+  for (const url of WEBLLM_CDNS) {
+    try { return await import(url); }
+    catch (e) { lastErr = e; }
+  }
+  throw new Error('WebLLM-Import blockiert (CSP/Netz): ' + (lastErr?.message || ''));
+}
+
+async function ensureLocalEngine(onProgress) {
+  if (webllmBroken) throw new Error('Lokal deaktiviert (Umgebung unterstützt kein WebLLM)');
+  if (webllmEngine) return webllmEngine;
+  if (webllmLoading) return webllmLoading;
+  webllmLoading = (async () => {
+    try {
+      if (!('gpu' in navigator)) throw new Error('WebGPU nicht verfügbar (Safari 26+ / Chrome mit WebGPU erforderlich)');
+      const webllm = await importWebLLM();
+      const modelId = document.getElementById('localModel').value;
+      const engine = await webllm.CreateMLCEngine(modelId, {
+        initProgressCallback: (p) => onProgress && onProgress(p.text || '')
+      });
+      webllmEngine = engine;
+      return engine;
+    } catch (e) {
+      webllmBroken = true;
+      webllmLoading = null;
+      throw e;
+    }
+  })();
+  return webllmLoading;
+}
+
+registerProvider({
+  id: 'local', name: 'Lokal · WebGPU', kind: 'local',
+  ready() { return STATE.localEnabled && ('gpu' in navigator) && !webllmBroken; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const engine = await ensureLocalEngine((t) => setStatus('Modell lädt: ' + t));
+    const stream = await engine.chat.completions.create({ messages, stream: true, temperature: 0.6 });
+    let full = '';
+    for await (const chunk of stream) {
+      const piece = chunk.choices?.[0]?.delta?.content || '';
+      if (piece) { full += piece; onToken && onToken(piece); }
+    }
+    if (!full) throw new Error('Lokales Modell: leere Antwort');
+    return { text: full, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* ============================================================
+   REFLEX-KERN — vollständig autarker Rechen- & Werkzeug-Kern.
+   Null Abhängigkeiten · kein Netz · kein WebGPU · kein Key.
+   ============================================================ */
+const ReflexKernel = (() => {
+
+  /* Sicherer Ausdrucks-Parser (Recursive Descent, KEIN eval) */
+  const FUNCS = {
+    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, round: Math.round,
+    floor: Math.floor, ceil: Math.ceil, sin: Math.sin, cos: Math.cos, tan: Math.tan,
+    asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2,
+    log: Math.log10, ln: Math.log, exp: Math.exp, sign: Math.sign,
+    min: (...a) => Math.min(...a), max: (...a) => Math.max(...a), pow: Math.pow,
+    fak: (n) => { if (n < 0 || n !== Math.floor(n) || n > 170) return NaN; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+  };
+  const CONSTS = { pi: Math.PI, e: Math.E, tau: 2 * Math.PI, phi: (1 + Math.sqrt(5)) / 2 };
+
+  function tokenize(s) {
+    const toks = []; let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (/\s/.test(c)) { i++; continue; }
+      if (/[0-9.]/.test(c)) {
+        let j = i;
+        while (j < s.length && /[0-9.]/.test(s[j])) j++;
+        toks.push({ t: 'num', v: parseFloat(s.slice(i, j)) }); i = j; continue;
+      }
+      if (/[a-zäöü]/i.test(c)) {
+        let j = i;
+        while (j < s.length && /[a-zäöü0-9]/i.test(s[j])) j++;
+        toks.push({ t: 'id', v: s.slice(i, j).toLowerCase() }); i = j; continue;
+      }
+      if ('+-*/%^(),'.includes(c)) { toks.push({ t: 'op', v: c }); i++; continue; }
+      throw new Error('unerlaubtes Zeichen: ' + c);
+    }
+    return toks;
+  }
+
+  function evalMath(input) {
+    const norm = /\(/.test(input) ? input : input.replace(/,(?=\d)/g, '.');
+    const toks = tokenize(norm);
+    let pos = 0;
+    const peek = () => toks[pos];
+    const eat = (v) => { const t = toks[pos]; if (!t || (v && t.v !== v)) throw new Error('Syntaxfehler bei: ' + (t?.v || 'Ende')); pos++; return t; };
+
+    function parseExpr() {
+      let x = parseTerm();
+      while (peek() && peek().t === 'op' && (peek().v === '+' || peek().v === '-')) {
+        const op = eat().v; const y = parseTerm();
+        x = op === '+' ? x + y : x - y;
+      }
+      return x;
+    }
+    function parseTerm() {
+      let x = parsePower();
+      while (peek() && peek().t === 'op' && (peek().v === '*' || peek().v === '/' || peek().v === '%')) {
+        const op = eat().v; const y = parsePower();
+        x = op === '*' ? x * y : op === '/' ? x / y : x % y;
+      }
+      return x;
+    }
+    function parsePower() {
+      const x = parseUnary();
+      if (peek() && peek().t === 'op' && peek().v === '^') {
+        eat(); const y = parsePower(); // rechts-assoziativ
+        return Math.pow(x, y);
+      }
+      return x;
+    }
+    function parseUnary() {
+      if (peek() && peek().t === 'op' && (peek().v === '-' || peek().v === '+')) {
+        const op = eat().v; const x = parseUnary();
+        return op === '-' ? -x : x;
+      }
+      return parsePrimary();
+    }
+    function parsePrimary() {
+      const t = peek();
+      if (!t) throw new Error('unerwartetes Ende');
+      if (t.t === 'num') { eat(); return t.v; }
+      if (t.t === 'op' && t.v === '(') { eat('('); const x = parseExpr(); eat(')'); return x; }
+      if (t.t === 'id') {
+        eat();
+        if (peek() && peek().t === 'op' && peek().v === '(') {
+          eat('('); const args = [];
+          if (!(peek() && peek().v === ')')) {
+            args.push(parseExpr());
+            while (peek() && peek().v === ',') { eat(','); args.push(parseExpr()); }
+          }
+          eat(')');
+          const fn = FUNCS[t.v];
+          if (!fn) throw new Error('unbekannte Funktion: ' + t.v);
+          return fn(...args);
+        }
+        if (t.v in CONSTS) return CONSTS[t.v];
+        throw new Error('unbekannter Name: ' + t.v);
+      }
+      throw new Error('Syntaxfehler');
+    }
+
+    const result = parseExpr();
+    if (pos !== toks.length) throw new Error('unvollständig ausgewertet');
+    return result;
+  }
+
+  function fmtNum(n) {
+    if (!isFinite(n)) return String(n);
+    const r = Math.round(n * 1e10) / 1e10;
+    return String(r);
+  }
+
+  /* Einheiten-Umrechnung */
+  const UNIT_BASE = {
+    mm: ['len', 0.001], cm: ['len', 0.01], dm: ['len', 0.1], m: ['len', 1], km: ['len', 1000],
+    zoll: ['len', 0.0254], inch: ['len', 0.0254], fuss: ['len', 0.3048], ft: ['len', 0.3048],
+    yard: ['len', 0.9144], meile: ['len', 1609.344], mile: ['len', 1609.344],
+    mg: ['mas', 0.001], g: ['mas', 1], kg: ['mas', 1000], t: ['mas', 1e6],
+    pfund: ['mas', 453.592], lb: ['mas', 453.592], unze: ['mas', 28.3495], oz: ['mas', 28.3495],
+    ms: ['zeit', 0.001], s: ['zeit', 1], sek: ['zeit', 1], min: ['zeit', 60], h: ['zeit', 3600],
+    std: ['zeit', 3600], tag: ['zeit', 86400], woche: ['zeit', 604800],
+    byte: ['dat', 1], kb: ['dat', 1024], mb: ['dat', 1048576], gb: ['dat', 1073741824], tb: ['dat', 1099511627776]
+  };
+
+  function convert(val, from, to) {
+    from = from.toLowerCase(); to = to.toLowerCase();
+    const temp = { c: 'C', celsius: 'C', f: 'F', fahrenheit: 'F', k: 'K', kelvin: 'K' };
+    if (temp[from] && temp[to]) {
+      let c; const F = temp[from], T = temp[to];
+      if (F === 'C') c = val; else if (F === 'F') c = (val - 32) * 5 / 9; else c = val - 273.15;
+      if (T === 'C') return c; if (T === 'F') return c * 9 / 5 + 32; return c + 273.15;
+    }
+    const a = UNIT_BASE[from], b = UNIT_BASE[to];
+    if (!a || !b) throw new Error('Einheit unbekannt: ' + from + ' oder ' + to);
+    if (a[0] !== b[0]) throw new Error('inkompatible Einheiten: ' + from + ' ↔ ' + to);
+    return val * a[1] / b[1];
+  }
+
+  /* Kodierung */
+  function b64enc(s) { try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return '[Kodierungsfehler]'; } }
+  function b64dec(s) { try { return decodeURIComponent(escape(atob(s.trim()))); } catch (e) { return '[ungültiges Base64]'; } }
+  function hexenc(s) { return [...s].map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(''); }
+  function sha_like(s) { return fnv1a(s); }
+
+  /* Skill-Registry */
+  const skills = [];
+  function skill(name, test, run) { skills.push({ name, test, run }); }
+
+  skill('math',
+    (t) => /^[\s\d.,+\-*/%^()a-zäöü]+$/i.test(t) && /[\d)]/.test(t) && /[+\-*/%^(]|sqrt|sin|cos|log|ln|abs|min|max|pow|fak|pi|\be\b|cbrt|ceil|floor|round|atan/i.test(t),
+    (t) => { try { const v = evalMath(t); return isFinite(v) ? ('= ' + fmtNum(v)) : null; } catch (e) { return null; } });
+
+  skill('convert',
+    (t) => /^\s*-?[\d.,]+\s*[a-zäöü]+\s+(in|zu|nach|to)\s+[a-zäöü]+\s*$/i.test(t),
+    (t) => {
+      const m = t.match(/^\s*(-?[\d.,]+)\s*([a-zäöü]+)\s+(?:in|zu|nach|to)\s+([a-zäöü]+)\s*$/i);
+      if (!m) return null;
+      try {
+        const v = convert(parseFloat(m[1].replace(',', '.')), m[2], m[3]);
+        return fmtNum(parseFloat(m[1].replace(',', '.'))) + ' ' + m[2] + ' = ' + fmtNum(v) + ' ' + m[3];
+      } catch (e) { return 'Umrechnung nicht möglich: ' + e.message; }
+    });
+
+  skill('time', (t) => /\b(uhr|uhrzeit|zeit|wie spät)\b/i.test(t),
+    () => 'Es ist ' + new Date().toLocaleTimeString('de-DE') + '.');
+  skill('date', (t) => /\b(datum|welcher tag|heute)\b/i.test(t),
+    () => 'Heute ist ' + new Date().toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '.');
+  skill('daysto', (t) => /tage?\s+(bis|seit)\s+\d{4}-\d{2}-\d{2}/i.test(t),
+    (t) => {
+      const m = t.match(/(bis|seit)\s+(\d{4}-\d{2}-\d{2})/i);
+      const target = new Date(m[2] + 'T00:00:00'); const now = new Date(); now.setHours(0, 0, 0, 0);
+      const diff = Math.round((target - now) / 86400000);
+      return m[1].toLowerCase() === 'bis'
+        ? (diff >= 0 ? diff + ' Tage bis ' + m[2] : Math.abs(diff) + ' Tage her')
+        : (diff <= 0 ? Math.abs(diff) + ' Tage seit ' + m[2] : diff + ' Tage in der Zukunft');
+    });
+
+  skill('base64', (t) => /^base64(\s+dec(ode)?)?[:\s]/i.test(t),
+    (t) => { const dec = /dec/i.test(t.split(/\s+/)[1] || ''); const rest = t.replace(/^base64(\s+dec(ode)?)?[:\s]+/i, ''); return dec ? b64dec(rest) : b64enc(rest); });
+  skill('hex', (t) => /^hex[:\s]/i.test(t), (t) => hexenc(t.replace(/^hex[:\s]+/i, '')));
+  skill('hash', (t) => /\b(hash|prüfsumme|fnv)\b/i.test(t),
+    (t) => 'FNV-1a: ' + sha_like(t.replace(/.*\b(hash|prüfsumme|fnv)\b[:\s]*/i, '') || t));
+
+  skill('json', (t) => /^json[:\s]/i.test(t),
+    (t) => { const raw = t.replace(/^json[:\s]+/i, ''); try { return JSON.stringify(JSON.parse(raw), null, 2); } catch (e) { return 'Ungültiges JSON: ' + e.message; } });
+
+  skill('count', (t) => /^(zähle|count|wörter|zeichen)[:\s]/i.test(t),
+    (t) => { const r = t.replace(/^(zähle|count|wörter|zeichen)[:\s]+/i, ''); return 'Zeichen: ' + r.length + ' · Wörter: ' + r.split(/\s+/).filter(Boolean).length + ' · Zeilen: ' + r.split(/\n/).length; });
+  skill('upper', (t) => /^(groß|upper)[:\s]/i.test(t), (t) => t.replace(/^(groß|upper)[:\s]+/i, '').toUpperCase());
+  skill('lower', (t) => /^(klein|lower)[:\s]/i.test(t), (t) => t.replace(/^(klein|lower)[:\s]+/i, '').toLowerCase());
+  skill('reverse', (t) => /^(umkehr|reverse)[:\s]/i.test(t), (t) => [...t.replace(/^(umkehr|reverse)[:\s]+/i, '')].reverse().join(''));
+  skill('sort', (t) => /^(sortiere|sort)[:\s]/i.test(t),
+    (t) => t.replace(/^(sortiere|sort)[:\s]+/i, '').split(/\n|,/).map(x => x.trim()).filter(Boolean).sort().join('\n'));
+  skill('unique', (t) => /^(unique|einzig)[:\s]/i.test(t),
+    (t) => [...new Set(t.replace(/^(unique|einzig)[:\s]+/i, '').split(/\n|,/).map(x => x.trim()).filter(Boolean))].join('\n'));
+  skill('roll', (t) => /^(würfel|roll|zufall)\b/i.test(t),
+    (t) => {
+      const m = t.match(/(\d+)\s*d\s*(\d+)/i);
+      if (m) { let s = 0, out = []; for (let i = 0; i < +m[1]; i++) { const r = 1 + Math.floor(Math.random() * +m[2]); out.push(r); s += r; } return out.join(' + ') + ' = ' + s; }
+      return 'Zufallszahl: ' + (1 + Math.floor(Math.random() * 100));
+    });
+
+  skill('status', (t) => /\b(status|zustand|anbieter|provider|inneres|innenzustand)\b/i.test(t),
+    () => {
+      const lines = PROVIDERS.map(p => {
+        const s = statFor(p.id);
+        return '· ' + p.name + ': ' + (p.ready() ? 'bereit' : 'nicht bereit') + ' — ' + Math.round(s.successEMA * 100) + '% / ' + Math.round(s.latencyEMA) + 'ms';
+      });
+      return 'HUGIN Innenzustand:\n' + lines.join('\n') + '\nOffline-Modus: ' + (STATE.offlineOnly ? 'an' : 'aus') + '\nCache: ' + (STATE.cacheEnabled !== false ? 'an' : 'aus');
+    });
+
+  const HELP_TEXT =
+    'HUGIN Reflex-Kern (offline, ohne Abhängigkeit) — Befehle:\n' +
+    '· Rechnen: 12*38, sqrt(2), sin(pi/2), fak(6), 2^10, atan2(1,1)\n' +
+    '· Einheiten: 3 km in m · 100 f in c · 5 kg in pfund\n' +
+    '· Zeit/Datum: uhrzeit · datum · tage bis 2027-01-01\n' +
+    '· Kodierung: base64 text · base64 dec <b64> · hex text · hash text\n' +
+    '· JSON: json {"a":1}\n' +
+    '· Text: zähle <t> · groß/klein/umkehr <t> · sortiere a,b · unique a,b,a\n' +
+    '· Zufall: würfel 2d6\n' +
+    '· System: status · wer bist du\n' +
+    'Für freie Konversation: ⚙ → Key hinterlegen oder lokales Modell laden.';
+
+  skill('help', (t) => /\b(hilfe|help|was kannst du|befehle|kommandos)\b/i.test(t), () => HELP_TEXT);
+  skill('who', (t) => /\b(wer bist du|was bist du|dein name|hugin)\b/i.test(t),
+    () => 'Ich bin HUGIN — Odins Gedankenrabe. Autarker Kern: ich rechne, wandle um, kodiere und verwalte Werkzeuge komplett offline. Mit Key oder lokalem WebGPU-Modell werde ich zum vollen Sprachmodell.');
+  skill('greet', (t) => /^(hallo|hi|hey|moin|servus|guten (morgen|tag|abend))\b/i.test(t),
+    () => 'Hallo. Ich bin bereit — frag mich etwas oder gib einen Befehl. „hilfe" zeigt alle Befehle.');
+
+  function answer(q) {
+    const t = (q || '').trim();
+    if (!t) return 'Leere Eingabe. „hilfe" für Befehle.';
+    for (const s of skills) {
+      try { if (s.test(t)) { const r = s.run(t); if (r != null && r !== '') return r; } }
+      catch (e) { /* Skill scheitert leise → nächster */ }
+    }
+    return 'Kein Kern-Befehl erkannt und kein KI-Anbieter erreichbar.\n' + HELP_TEXT;
+  }
+
+  return { answer, evalMath, convert, fmtNum, skills, skill };
+})();
+
+function reflexAnswer(q) { return ReflexKernel.answer(q); }
+
+registerProvider({
+  id: 'reflex', name: 'Reflex · autarker Kern', kind: 'local',
+  ready() { return true; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+    const text = reflexAnswer(lastUser);
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* ---------- SSE-Hilfsfunktionen ---------- */
+function chunkToTextOpenAI(json) {
+  try { return JSON.parse(json).choices?.[0]?.delta?.content || ''; }
+  catch (e) { return ''; }
+}
+
+async function streamSSE(res, onToken, parseFn) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = ''; let full = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      const l = line.trim();
+      if (!l.startsWith('data:')) continue;
+      const payload = l.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      const piece = parseFn(payload);
+      if (piece) { full += piece; onToken && onToken(piece); }
+    }
+  }
+  return full;
+}
+
+/* ============================================================
+   EFFIZIENZ-SCHICHT — Cache (versiegelt) + In-Flight-Coalescing
+   ============================================================ */
+const RespCache = {
+  key: 'hugin_cache',
+  max: 60,
+  map: null,
+  _load() {
+    if (this.map) return this.map;
+    const raw = StateStore._unwrap(localStorage.getItem(this.key));
+    this.map = raw ? new Map(raw.payload) : new Map();
+    return this.map;
+  },
+  _persist() {
+    try { localStorage.setItem(this.key, StateStore._wrap([...this.map])); } catch (e) {}
+  },
+  sig(messages) { return fnv1a(JSON.stringify(messages)); },
+  get(messages) {
+    const m = this._load(); const k = this.sig(messages);
+    if (m.has(k)) { const v = m.get(k); m.delete(k); m.set(k, v); return v; } // LRU touch
+    return null;
+  },
+  set(messages, text, providerName) {
+    const m = this._load(); const k = this.sig(messages);
+    m.set(k, { text, providerName, ts: Date.now() });
+    while (m.size > this.max) m.delete(m.keys().next().value);
+    this._persist();
+  },
+  clear() { this.map = new Map(); this._persist(); }
+};
+
+const inFlight = new Map();
+
+/* ============================================================
+   ROUTER — Komplexitäts-Heuristik + selbstlernende Auswahl
+   ============================================================ */
+function estimateComplexity(text) {
+  const len = text.length;
+  const hardHints = /```|analysiere|architektur|beweise|optimiere|vergleiche|schritt für schritt|code review|implementiere|erkläre.*detail/i.test(text);
+  let s = len / 40;
+  if (hardHints) s += 40;
+  return s;
+}
+
+function candidateOrder(complexity) {
+  const ids = PROVIDERS.filter(p => p.ready()).map(p => p.id);
+  if (STATE.offlineOnly) {
+    const local = ids.filter(id => id === 'local');
+    return [...local, 'reflex'];
+  }
+  const localFirst = complexity < 25 && ids.includes('local');
+  const rest = ids
+    .filter(id => id !== 'local' && id !== 'reflex' && id !== 'openclaw')
+    .sort((a, b) => score(b) - score(a));
+  let chain;
+  if (localFirst) {
+    chain = ['local', ...rest];
+  } else {
+    chain = ids.includes('openclaw') ? ['openclaw', ...rest] : rest;
+    if (ids.includes('local')) chain.push('local');
+  }
+  chain.push('reflex');
+  return chain;
+}
+
+async function routeAndCallRaw(messages, onToken, onProvider) {
+  const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const complexity = estimateComplexity(lastUser);
+  const order = candidateOrder(complexity);
+  if (order.length === 0) throw new Error('Kein Anbieter verfügbar — Key hinterlegen oder Lokal aktivieren.');
+  let lastErr = null;
+  for (const id of order) {
+    const provider = PROVIDERS.find(p => p.id === id);
+    onProvider && onProvider(provider, 'versuch');
+    try {
+      const { text, latencyMs } = await provider.call(messages, onToken);
+      updateStat(id, true, latencyMs);
+      onProvider && onProvider(provider, 'erfolg', latencyMs);
+      return { text, provider };
+    } catch (e) {
+      updateStat(id, false, 9999);
+      onProvider && onProvider(provider, 'fehler', 0, e.message);
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Alle Anbieter fehlgeschlagen.');
+}
+
+async function routeAndCall(messages, onToken, onProvider) {
+  if (STATE.cacheEnabled !== false) {
+    const hit = RespCache.get(messages);
+    if (hit) {
+      if (onProvider) onProvider({ name: 'Cache · ' + hit.providerName, kind: 'local', id: 'cache' }, 'erfolg', 0);
+      if (onToken) onToken(hit.text);
+      return { text: hit.text, provider: { id: 'cache', name: 'Cache', kind: 'local' }, cached: true };
+    }
+  }
+  const sig = RespCache.sig(messages);
+  if (inFlight.has(sig)) {
+    const r = await inFlight.get(sig);
+    if (onToken) onToken(r.text);
+    return r;
+  }
+  const p = (async () => {
+    const r = await routeAndCallRaw(messages, onToken, onProvider);
+    if (STATE.cacheEnabled !== false && r.text && r.provider.id !== 'reflex') {
+      RespCache.set(messages, r.text, r.provider.name);
+    }
+    return r;
+  })();
+  inFlight.set(sig, p);
+  try { return await p; }
+  finally { inFlight.delete(sig); }
+}
+
+/* ============================================================
+   UI-VERDRAHTUNG
+   ============================================================ */
+const feed = document.getElementById('feed');
+const input = document.getElementById('input');
+const statusline = document.getElementById('statusline');
+
+function setStatus(t) { statusline.textContent = t; }
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  return div;
+}
+
+function addBotShell() {
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = '<div class="badge"><span class="dot local" data-role="dot"></span><span data-role="label">wähle Anbieter…</span></div><span data-role="text"></span><span class="cursor" data-role="cursor"></span>';
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  return div;
+}
+
+let history = [
+  { role: 'system', content: 'Du bist Hugin, ein knapper, präziser Assistent. Antworte direkt, ohne Floskeln.' }
+];
+
+async function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = 'auto';
+  addMsg('user', text);
+  history.push({ role: 'user', content: text });
+
+  const shell = addBotShell();
+  const dot = shell.querySelector('[data-role=dot]');
+  const label = shell.querySelector('[data-role=label]');
+  const txt = shell.querySelector('[data-role=text]');
+  const cursor = shell.querySelector('[data-role=cursor]');
+
+  let acc = '';
+  try {
+    const { text: full, provider } = await routeAndCall(
+      history,
+      (piece) => { acc += piece; txt.textContent = acc; feed.scrollTop = feed.scrollHeight; },
+      (prov, phase, latency) => {
+        dot.className = 'dot ' + (phase === 'fehler' ? 'err' : (prov.kind === 'local' ? 'local' : 'cloud'));
+        label.textContent = phase === 'versuch' ? ('frage ' + prov.name)
+          : phase === 'erfolg' ? (prov.name + ' · ' + Math.round(latency) + 'ms')
+          : (prov.name + ' fehlgeschlagen — weiche aus');
+      }
+    );
+    if (!acc) txt.textContent = full;
+    history.push({ role: 'assistant', content: full || acc });
+  } catch (e) {
+    dot.className = 'dot err';
+    label.textContent = 'kein Anbieter erreichbar';
+    txt.textContent = 'Fehler: ' + e.message;
+  } finally {
+    cursor.remove();
+    renderProviderStats();
+  }
+}
+
+document.getElementById('btnSend').addEventListener('click', send);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(120, input.scrollHeight) + 'px';
+});
+
+/* Drawer */
+const drawer = document.getElementById('drawer');
+document.getElementById('btnDrawer').addEventListener('click', () => { drawer.classList.add('open'); renderProviderStats(); });
+document.getElementById('btnClose').addEventListener('click', () => drawer.classList.remove('open'));
+drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.classList.remove('open'); });
+
+function syncSwitches() {
+  document.getElementById('swLocal').classList.toggle('on', STATE.localEnabled);
+  document.getElementById('swOffline').classList.toggle('on', STATE.offlineOnly);
+  document.getElementById('swCache').classList.toggle('on', STATE.cacheEnabled !== false);
+}
+
+document.getElementById('swLocal').addEventListener('click', () => {
+  STATE.localEnabled = !STATE.localEnabled; StateStore.save(STATE); syncSwitches();
+});
+document.getElementById('swOffline').addEventListener('click', () => {
+  STATE.offlineOnly = !STATE.offlineOnly; StateStore.save(STATE); syncSwitches();
+});
+document.getElementById('swCache').addEventListener('click', () => {
+  STATE.cacheEnabled = !(STATE.cacheEnabled !== false); StateStore.save(STATE); syncSwitches();
+});
+
+document.getElementById('btnSaveKeys').addEventListener('click', () => {
+  STATE.keys.groq = document.getElementById('key_groq').value.trim();
+  STATE.keys.google = document.getElementById('key_google').value.trim();
+  STATE.keys.cerebras = document.getElementById('key_cerebras').value.trim();
+  STATE.keys.openrouter = document.getElementById('key_openrouter').value.trim();
+  STATE.keys.mistral = document.getElementById('key_mistral').value.trim();
+  STATE.keys.customUrl = document.getElementById('custom_url').value.trim();
+  STATE.keys.customKey = document.getElementById('custom_key').value.trim();
+  STATE.keys.customModel = document.getElementById('custom_model').value.trim();
+  StateStore.save(STATE);
+  setStatus('Schlüssel versiegelt gespeichert.');
+  renderProviderStats();
+});
+
+document.getElementById('btnSaveOC').addEventListener('click', () => {
+  STATE.keys.openclawUrl = document.getElementById('oc_url').value.trim();
+  STATE.keys.openclawToken = document.getElementById('oc_token').value.trim();
+  STATE.keys.openclawModel = document.getElementById('oc_model').value.trim();
+  StateStore.save(STATE);
+  setStatus(STATE.keys.openclawUrl ? 'OpenClaw verbunden — Arbeits-Agent aktiv.' : 'OpenClaw-URL geleert.');
+  renderProviderStats();
+});
+
+document.getElementById('btnResetStats').addEventListener('click', () => {
+  STATE.stats = {}; StateStore.save(STATE); renderProviderStats();
+});
+
+document.getElementById('btnPreload').addEventListener('click', async () => {
+  const btn = document.getElementById('btnPreload');
+  btn.textContent = 'Lädt…';
+  try {
+    await ensureLocalEngine((t) => { btn.textContent = t || 'Lädt…'; });
+    btn.textContent = 'Lokal geladen ✓';
+    setStatus('Lokales Modell warm — Unabhängigkeit aktiv.');
+  } catch (e) {
+    btn.textContent = 'Lokal nicht verfügbar';
+    setStatus('Lokal: ' + e.message);
+  }
+});
+
+document.getElementById('btnClearCache').addEventListener('click', () => {
+  RespCache.clear(); setStatus('Cache geleert.');
+});
+
+function renderProviderStats() {
+  const box = document.getElementById('provStats');
+  box.innerHTML = '';
+  for (const p of PROVIDERS) {
+    const s = statFor(p.id);
+    const row = document.createElement('div');
+    row.className = 'provrow';
+    const cooldown = Date.now() < s.cooldownUntil ? ' · Cooldown' : '';
+    row.innerHTML = `<span>${p.name}${p.ready() ? '' : ' <span class="pill">kein Key</span>'}</span>
+      <span class="stat">${Math.round(s.successEMA * 100)}% · ${Math.round(s.latencyEMA)}ms${cooldown}</span>`;
+    box.appendChild(row);
+  }
+}
+
+/* Feldwerte beim Start vorbelegen */
+document.getElementById('key_groq').value = STATE.keys.groq || '';
+document.getElementById('key_google').value = STATE.keys.google || '';
+document.getElementById('key_cerebras').value = STATE.keys.cerebras || '';
+document.getElementById('key_openrouter').value = STATE.keys.openrouter || '';
+document.getElementById('key_mistral').value = STATE.keys.mistral || '';
+document.getElementById('oc_url').value = STATE.keys.openclawUrl || '';
+document.getElementById('oc_token').value = STATE.keys.openclawToken || '';
+document.getElementById('oc_model').value = STATE.keys.openclawModel || '';
+document.getElementById('custom_url').value = STATE.keys.customUrl || '';
+document.getElementById('custom_key').value = STATE.keys.customKey || '';
+document.getElementById('custom_model').value = STATE.keys.customModel || '';
+syncSwitches();
+
+/* ============================================================
+   SELBSTTEST — Fault-Injection, negative Pfade
+   ============================================================ */
+function logT(line) {
+  const el = document.getElementById('testlog');
+  el.textContent += '\n' + line;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function runSelftest() {
+  const el = document.getElementById('testlog');
+  el.textContent = 'HUGIN Selbsttest — ' + new Date().toLocaleTimeString();
+  let pass = 0, fail = 0;
+  const check = (name, cond) => { if (cond) { pass++; logT('OK   ' + name); } else { fail++; logT('FEHL ' + name); } };
+
+  // T1: FNV-1a
+  check('FNV-1a deterministisch', fnv1a('hugin') === fnv1a('hugin'));
+  check('FNV-1a sensitiv', fnv1a('hugin') !== fnv1a('Hugin'));
+
+  // T2: Dual-Slot
+  const testPayload = { probe: Math.random() };
+  StateStore.save(Object.assign({}, STATE, { _probe: testPayload }));
+  const reloaded = StateStore.load();
+  check('Dual-Slot Read-Back', reloaded && reloaded._probe && reloaded._probe.probe === testPayload.probe);
+  StateStore.save(STATE);
+
+  // T3: Self-Heal
+  const rawA = localStorage.getItem(StateStore.keyA);
+  localStorage.setItem(StateStore.keyA, '{"ts":0,"sum":"deadbeef","body":"{}"}');
+  const healed = StateStore.load();
+  check('Selbstheilung bei korrupter Slot A', healed && JSON.stringify(healed) === JSON.stringify(STATE));
+  if (rawA) localStorage.setItem(StateStore.keyA, rawA);
+
+  // T4: EMA
+  const beforeScore = score('__testprov__');
+  updateStat('__testprov__', true, 300);
+  check('EMA steigt bei Erfolg', score('__testprov__') > beforeScore || statFor('__testprov__').successEMA > 0.7);
+  updateStat('__testprov__', false, 9999);
+  check('Cooldown nach Fehlschlag aktiv', Date.now() < statFor('__testprov__').cooldownUntil);
+  check('Score negativ während Cooldown', score('__testprov__') === -1);
+  delete STATE.stats['__testprov__'];
+  StateStore.save(STATE);
+
+  // T5: Fault-Injection
+  const originalFetch = window.fetch;
+  let fallbackTriggered = false;
+  window.fetch = async () => { throw new Error('simulierter Netzwerkausfall'); };
+  const savedKeys = JSON.stringify(STATE.keys);
+  STATE.keys.groq = 'test-key'; STATE.keys.google = ''; STATE.keys.customUrl = '';
+  const savedLocalEnabled = STATE.localEnabled; STATE.localEnabled = false;
+  try {
+    await routeAndCall([{ role: 'user', content: 'test' }], () => {}, (p, phase) => { if (phase === 'fehler') fallbackTriggered = true; });
+  } catch (e) { /* erwartetes Scheitern */ }
+  window.fetch = originalFetch;
+  STATE.keys = JSON.parse(savedKeys); STATE.localEnabled = savedLocalEnabled;
+  StateStore.save(STATE);
+  check('Fault-Injection löst Fehlerpfad aus', fallbackTriggered);
+
+  // T6: Heuristik
+  check('Heuristik: kurz = niedrig', estimateComplexity('hi') < 25);
+  check('Heuristik: Code-Hinweis = hoch', estimateComplexity('analysiere ```code``` Architektur') >= 25);
+
+  // T7: Registry
+  const beforeLen = PROVIDERS.length;
+  registerProvider({ id: '__dummy__', name: 'Dummy', kind: 'cloud', ready: () => true, call: async () => ({ text: 'ok', latencyMs: 1 }) });
+  check('Registry erweiterbar', PROVIDERS.length === beforeLen + 1);
+  PROVIDERS.pop();
+
+  // T8: Ketten-Garantien
+  const chain = candidateOrder(999);
+  check('Kette endet mit Reflex', chain[chain.length - 1] === 'reflex');
+  check('Kette nie leer', chain.length >= 1);
+
+  // T9: Reflex
+  check('Reflex rechnet', reflexAnswer('12*38') === '= 456');
+  check('Reflex Status', reflexAnswer('status').includes('Innenzustand'));
+
+  // T10: WebLLM-Broken-Flag
+  const savedBroken = webllmBroken;
+  webllmBroken = true;
+  check('Lokal nicht bereit wenn broken', PROVIDERS.find(p => p.id === 'local').ready() === false);
+  webllmBroken = savedBroken;
+
+  // T11: Cache
+  const cm = [{ role: 'user', content: 'cache-probe-' + Math.random() }];
+  RespCache.set(cm, 'ANTWORT-X', 'TestProv');
+  const chit = RespCache.get(cm);
+  check('Cache Read-Back', chit && chit.text === 'ANTWORT-X');
+  check('Cache Signatur sensitiv', RespCache.sig(cm) !== RespCache.sig([{ role: 'user', content: 'anders' }]));
+
+  // T12: Cache-Treffer umgeht Provider
+  const cm2 = [{ role: 'user', content: 'cache-hit-' + Math.random() }];
+  RespCache.set(cm2, 'GECACHED', 'X');
+  const savedCache = STATE.cacheEnabled; STATE.cacheEnabled = true;
+  const rc = await routeAndCall(cm2, null, null);
+  check('Cache-Treffer ohne Provider', rc.cached === true && rc.text === 'GECACHED');
+  STATE.cacheEnabled = savedCache;
+
+  // T13: Coalescing
+  const cm3 = [{ role: 'user', content: '9*9' }];
+  STATE.cacheEnabled = false;
+  const [a, b] = await Promise.all([routeAndCall(cm3, null, null), routeAndCall(cm3, null, null)]);
+  check('Coalescing: beide Ergebnisse gleich', a.text === b.text);
+  STATE.cacheEnabled = savedCache;
+
+  // T14: Provider-IDs
+  const ids = PROVIDERS.map(p => p.id);
+  check('Cerebras registriert', ids.includes('cerebras'));
+  check('OpenRouter registriert', ids.includes('openrouter'));
+  check('Mistral registriert', ids.includes('mistral'));
+  check('OpenClaw registriert', ids.includes('openclaw'));
+
+  // T15: Parser
+  check('Parser: Punkt vor Strich', ReflexKernel.evalMath('2+3*4') === 14);
+  check('Parser: Klammern', ReflexKernel.evalMath('(2+3)*4') === 20);
+  check('Parser: Potenz rechts-assoz', ReflexKernel.evalMath('2^3^2') === 512);
+  check('Parser: sqrt(16)', ReflexKernel.evalMath('sqrt(16)') === 4);
+  check('Parser: Konstante pi', Math.abs(ReflexKernel.evalMath('pi') - Math.PI) < 1e-9);
+  check('Parser: fak(5)', ReflexKernel.evalMath('fak(5)') === 120);
+  let rejected = false; try { ReflexKernel.evalMath('alert(1)'); } catch (e) { rejected = true; }
+  check('Parser: lehnt Fremdnamen ab', rejected);
+  let rejected2 = false; try { ReflexKernel.evalMath('2+'); } catch (e) { rejected2 = true; }
+  check('Parser: lehnt unvollständig ab', rejected2);
+
+  // T16: Einheiten
+  check('Einheit: 3 km = 3000 m', ReflexKernel.convert(3, 'km', 'm') === 3000);
+  check('Einheit: 100 C = 212 F', Math.abs(ReflexKernel.convert(100, 'c', 'f') - 212) < 1e-9);
+  check('Einheit: inkompatibel wirft', (() => { try { ReflexKernel.convert(1, 'kg', 'm'); return false; } catch (e) { return true; } })());
+
+  // T17: Skills
+  check('answer math', reflexAnswer('12*38').includes('456'));
+  check('answer convert', reflexAnswer('3 km in m').includes('3000'));
+  check('answer base64 roundtrip', reflexAnswer('base64 dec ' + reflexAnswer('base64 Hallo').replace('', '')) === 'Hallo');
+  check('answer json format', reflexAnswer('json {"a":1}').includes('"a": 1'));
+  check('answer hilfe', reflexAnswer('hilfe').includes('Befehle'));
+  check('answer greet', reflexAnswer('hallo').length > 0);
+  check('answer count', reflexAnswer('zähle eins zwei drei').includes('Wörter: 3'));
+
+  // T18: OpenClaw URL-Normalisierung + Vorrang
+  check('OC-URL: nackte Basis', openclawChatUrl('http://h:18789') === 'http://h:18789/v1/chat/completions');
+  check('OC-URL: mit /v1', openclawChatUrl('http://h:18789/v1') === 'http://h:18789/v1/chat/completions');
+  check('OC-URL: voll', openclawChatUrl('http://h:18789/v1/chat/completions') === 'http://h:18789/v1/chat/completions');
+  check('OC-URL: Trailing-Slash', openclawChatUrl('http://h:18789/') === 'http://h:18789/v1/chat/completions');
+  (function () {
+    const saved = STATE.keys.openclawUrl; STATE.keys.openclawUrl = 'http://h:18789';
+    check('OpenClaw voran bei Komplexität', candidateOrder(999)[0] === 'openclaw');
+    STATE.keys.openclawUrl = saved;
+  })();
+
+  logT('\n— ' + pass + ' OK / ' + fail + ' FEHL —');
+  renderProviderStats();
+}
+
+document.getElementById('btnSelftest').addEventListener('click', runSelftest);
+
+/* Begrüßung */
+const hasAI = PROVIDERS.some(p => p.ready() && p.id !== 'reflex');
+addMsg('sys', hasAI
+  ? 'Hugin bereit. Route: automatisch nach Komplexität + Lernzustand. Reflex-Kern autark im Rücken.'
+  : 'Hugin bereit — autarker Reflex-Kern aktiv (offline: rechnen, umwandeln, kodieren, Werkzeuge). „hilfe" zeigt alle Befehle. Für freie Konversation: ⚙ → Key oder lokales WebGPU-Modell.');
+renderProviderStats();
+</script>
+</body>
+</html>

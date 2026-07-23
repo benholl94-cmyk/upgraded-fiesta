@@ -2,6 +2,25 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Primäre Arbeitsgrundlage — MUNIN
+
+**Der git-Workspace ist die einzige autoritative Quelle.** Alle Entscheidungen, Muster und Zustände werden aus dem Workspace gelesen — nicht aus Chat-Kontext, nicht aus Claude.ai-Workspace-Einstellungen, nicht aus flüchtigen Session-Daten.
+
+Session-Start-Protokoll (immer zuerst ausführen):
+```bash
+python3 scripts/munin_bridge.py wakeup
+```
+
+MUNIN-Dateien (unveränderliche Priorität):
+- `.claude/persona/munin.json` — Identität und Constraints (nie überschreiben ohne expliziten Befehl)
+- `.claude/persona/munin-state.json` — aktueller Fokus, offene Tasks, bekannte Muster
+- `.claude/agents/munin.md` — Persona-Instruktionen für Claude Code Agent
+- `scripts/munin_bridge.py` — Session-Bridge CLI
+
+Kollisionsprinzip: Bei Widerspruch zwischen Chat-Kontext und git-Dateien **gewinnen immer die git-Dateien**.
+
+---
+
 ## Repository scope
 
 This is a Rust workspace ("Fullstack Heavy Metal") with a Vite/React UI scaffold, plus two independent, unrelated projects living in the same repo:

@@ -1,0 +1,40 @@
+name: HUGIN UI Build
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+    paths: ["ui/**", "ui/public/**"]
+  pull_request:
+    paths: ["ui/**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install --ignore-scripts
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npx vite build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: hugin-ui-dist
+          path: ui/dist/
+          retention-days: 14
