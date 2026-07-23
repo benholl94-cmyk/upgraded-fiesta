@@ -27,12 +27,22 @@ description: >
 - **Kein Profil-Switch** wenn aktueller Commit bereits `noreply@anthropic.com` ist
 - Jede Änderung wird im Terminal geloggt (kein stilles Handeln)
 
+## Plattform-Modell (CCR)
+
+Der CCR-SessionStart-Hook setzt bei **jeder Session** zwingend `noreply@anthropic.com` / `Claude`.
+Das ist Anthropics Signing-Key-Registrierung — nicht überschreibbar.
+
+Masters Identität erscheint korrekt als `Co-authored-by`-Trailer (via `CCR_SESSION_ACCOUNT_EMAIL`).
+Das ist der offizielle Mechanismus, kein Defizit.
+
 ## Profile
 
-| Profil | Name | Email | Wann |
-|--------|------|-------|------|
-| `claude` | Claude | noreply@anthropic.com | Standard — CI, autonome Commits, Verified |
-| `munin` | benholl94-cmyk | 274793931+benholl94-cmyk@users.noreply.github.com | Wenn Commit unter Owner erscheinen soll |
+| Profil | Name | Email | Persistenz |
+|--------|------|-------|------------|
+| `claude` | Claude | noreply@anthropic.com | **Permanent** — CCR-Plattform-Standard, verified |
+| `munin` | benholl94-cmyk | 274793931+benholl94-cmyk@users.noreply.github.com | **Intra-Session only** — wird bei Session-Start vom CCR-Hook überschrieben |
+
+**Empfehlung:** Immer `claude`-Profil. Masters Authorship lebt im `Co-authored-by`-Trailer.
 
 ## Verwendung
 
