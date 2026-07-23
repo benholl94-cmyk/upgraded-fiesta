@@ -31,7 +31,14 @@ def load_config() -> dict:
         return json.load(f)
 
 def check_endpoint(ep: dict) -> dict:
-    url = ep["baseUrl"].rstrip("/") + ep.get("healthPath", "/health")
+    base = ep["baseUrl"].rstrip("/")
+    if not base.startswith(("http://", "https://")):
+        return {
+            "id": ep["id"], "label": ep["label"], "baseUrl": base,
+            "state": "offline", "reason": "relative baseUrl — nicht daemon-erreichbar",
+            "latencyMs": 0, "body": None,
+        }
+    url = base + ep.get("healthPath", "/health")
     t0  = time.monotonic()
     state, reason, body = "offline", "timeout", None
     try:
@@ -43,11 +50,21 @@ def check_endpoint(ep: dict) -> dict:
                 body = json.loads(raw)
             except Exception:
                 body = {"raw": raw.decode("utf-8", errors="replace")[:200]}
-            # Gilt als online wenn: 2xx UND (erkennbarer status/state/health key)
-            known_keys = {"status", "state", "health", "ok"}
-            if isinstance(body, dict) and known_keys & body.keys():
-                state  = "online"
-                reason = body.get("status") or body.get("state") or body.get("health") or "ok"
+            # Gilt als online wenn: 2xx UND Health-Wert positiv
+            _HEALTHY = {"ok", "healthy", "up", "online", "running", True}
+            _UNHEALTHY = {"offline", "unhealthy", "down", "error", "degraded", False}
+            if isinstance(body, dict):
+                val = (body.get("status") or body.get("state")
+                       or body.get("health") or body.get("ok"))
+                if val in _HEALTHY or val is True:
+                    state  = "online"
+                    reason = str(val)
+                elif val in _UNHEALTHY or val is False:
+                    state  = "degraded"
+                    reason = str(val)
+                else:
+                    state  = "unknown"
+                    reason = "2xx aber kein erkennbarer Health-Wert"
             else:
                 state  = "unknown"
                 reason = "2xx aber kein erkennbarer Health-Body"

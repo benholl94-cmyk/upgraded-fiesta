@@ -58,7 +58,7 @@ function App(): React.ReactElement {
     let active = true;
     const poll = async (): Promise<void> => {
       const s = await loadLiveStatus(config);
-      if (active && s) setLiveStatus(s);
+      if (active) setLiveStatus(s);
     };
     void poll();
     const timer = window.setInterval(() => void poll(), interval);

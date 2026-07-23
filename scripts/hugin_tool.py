@@ -291,7 +291,11 @@ def action_memory_search(cfg: dict, token: str) -> None:
     query = prompt("Suchanfrage")
     if not query:
         return
-    top_k = int(prompt("Anzahl Ergebnisse", "5") or "5")
+    try:
+        top_k = int(prompt("Anzahl Ergebnisse", "5") or "5")
+    except ValueError:
+        warn("Ungültige Zahl — verwende 5.")
+        top_k = 5
     status, resp, ms = http_request(
         f"{base}/memory/search",
         method="POST",
@@ -361,10 +365,10 @@ def action_config_edit() -> None:
     new_val_str = prompt(f"Neuer Wert für '{field}'", str(cur))
     try:
         # Versuche Typ beizubehalten
-        if isinstance(cur, int):
-            cfg[field] = int(new_val_str)
-        elif isinstance(cur, bool):
+        if isinstance(cur, bool):
             cfg[field] = new_val_str.lower() in ("true", "1", "ja", "yes")
+        elif isinstance(cur, int):
+            cfg[field] = int(new_val_str)
         else:
             cfg[field] = new_val_str
     except ValueError:

@@ -170,8 +170,12 @@ class CommitBundler:
         print(f"  {C['GN']}✓ Bundle-Commit erstellt: {bundle_msg[:60]}{C['R']}")
 
         if push:
-            from hugin_push import retry_push
-            return retry_push("claude/claud-ai-code-teleport-nx73zr")
+            import hugin_push
+            guard = hugin_push.StatusGuard()
+            if not guard.check():
+                print(f"  {C['RD']}Push durch StatusGuard blockiert (staged secrets){C['R']}")
+                return False
+            return hugin_push.retry_push(hugin_push.DEFAULT_BRANCH)
 
         return True
 

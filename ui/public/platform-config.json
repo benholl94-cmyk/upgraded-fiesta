@@ -1,7 +1,7 @@
 {
   "platformName": "HUGIN · Steuerfeld",
   "requestTimeoutMs": 6000,
-  "maxAttemptsPerDispatch": 3,
+  "maxAttemptsPerDispatch": 4,
   "zeroStakedStatus": "zero_staked",
   "liveStatusPath": "/platform-status.json",
   "liveStatusIntervalMs": 5000,

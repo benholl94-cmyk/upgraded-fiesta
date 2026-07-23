@@ -12,7 +12,6 @@ reviews:
   path_filters:
     - "!logs/**"
     - "!ui/public/platform-status.json"
-    - "!ui/public/platform-config.json"
 
 knowledge_base:
   # Lernmodus: CodeRabbit soll Fixes aus vergangenen Reviews in Zukunft

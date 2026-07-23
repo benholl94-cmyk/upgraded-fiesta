@@ -418,6 +418,14 @@ class AsyncReflectLogger:
     def stop(self):
         self._running = False
         self._thread.join(timeout=2)
+        # Drain remaining queue on shutdown
+        with self._lock:
+            batch = self._queue[:]
+            self._queue.clear()
+        if batch:
+            with open(self.log_path, "a", encoding="utf-8") as f:
+                for entry in batch:
+                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 # Singleton-Logger (wird beim Import initialisiert, falls LOG-Verzeichnis vorhanden)
@@ -427,7 +435,9 @@ _GLOBAL_LOGGER: Optional[AsyncReflectLogger] = None
 def get_logger() -> AsyncReflectLogger:
     global _GLOBAL_LOGGER
     if _GLOBAL_LOGGER is None:
+        import atexit
         _GLOBAL_LOGGER = AsyncReflectLogger()
+        atexit.register(_GLOBAL_LOGGER.stop)
     return _GLOBAL_LOGGER
 
 

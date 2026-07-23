@@ -108,6 +108,7 @@ pub fn embed(text: &str, dims: usize) -> Vec<f32> {
 }
 
 pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    debug_assert_eq!(a.len(), b.len(), "cosine_similarity: vector length mismatch");
     a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>().clamp(-1.0, 1.0)
 }
 
@@ -207,12 +208,7 @@ impl VectorIndex {
                     }
                 }
             }
-            self.entry = if self.nodes.is_empty() {
-                None
-            } else {
-                let e = self.entry.unwrap_or(0);
-                Some(if e >= old && e > 0 { (e - 1).min(self.nodes.len().saturating_sub(1)) } else { e.min(self.nodes.len().saturating_sub(1)) })
-            };
+            self.entry = if self.nodes.is_empty() { None } else { Some(0) };
         }
 
         let new_idx = self.nodes.len();
@@ -245,15 +241,14 @@ impl VectorIndex {
             if self.nodes[nb].neighbors.len() > NSW_M {
                 // Scores vorausberechnen (kein simultaner mut+imm borrow)
                 let nb_vec = self.nodes[nb].vector.clone();
-                let n_len = self.nodes.len();
                 let mut scored: Vec<(usize, f32)> = self.nodes[nb]
                     .neighbors
                     .iter()
                     .map(|&i| {
-                        let s = if i < n_len {
-                            cosine_similarity(&nb_vec, &self.nodes[i].vector)
+                        let s = if i == new_idx {
+                            cosine_similarity(&nb_vec, &vector)
                         } else {
-                            -1.0
+                            cosine_similarity(&nb_vec, &self.nodes[i].vector)
                         };
                         (i, s)
                     })
