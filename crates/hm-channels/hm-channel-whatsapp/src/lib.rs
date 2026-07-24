@@ -21,7 +21,7 @@ pub fn bot_token() -> anyhow::Result<String> {
 }
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 
 // ── WhatsApp Webhook Payload Typen ────────────────────────────────────────────
 

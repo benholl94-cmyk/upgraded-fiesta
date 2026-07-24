@@ -117,7 +117,7 @@ fn navigate(req: &BrowserRequest) -> Result<BrowserResult, String> {
     })
 }
 
-fn screenshot(req: &BrowserRequest) -> Result<BrowserResult, String> {
+fn screenshot(_req: &BrowserRequest) -> Result<BrowserResult, String> {
     // Screenshot via CDP erfordert WebSocket (nicht plain HTTP).
     // Ohne externe WS-Bibliothek geben wir eine klare Fehlermeldung zurück.
     Err(

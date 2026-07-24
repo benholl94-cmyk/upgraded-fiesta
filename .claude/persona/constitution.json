@@ -104,16 +104,16 @@
       "munin_loaded_via": "beide Pfade — .claude/skills/munin/SKILL.md (offiziell) + .claude/agents/munin.md (Fallback)"
     },
     "settingsJson": {
-      "project": ".claude/settings.json — FEHLT, braucht Master-Genehmigung für Permissions",
+      "project": ".claude/settings.json — VORHANDEN, enthält Bash/MCP-Permissions",
       "global": "~/.claude/launcher-settings.json — CCR-managed"
     },
     "collisionsResolved": [
       "git-identity: munin-Profil als intra-session markiert, claude als Standard dokumentiert",
       "agents-dir: munin.md nach .claude/skills/munin/SKILL.md dupliziert",
-      "persona-dir: funktioniert als Datenspeicher, kein Claude-Code-Konflikt"
+      "persona-dir: funktioniert als Datenspeicher, kein Claude-Code-Konflikt",
+      "settings.json: vorhanden und konfiguriert — kein offener Master-Entscheid mehr",
+      "oracle-config.json: erstellt, hugin_oracle.py dead-reference behoben"
     ],
-    "pendingMasterDecision": [
-      ".claude/settings.json Permissions-Einträge — welche Wildcards erlaubt?"
-    ]
+    "pendingMasterDecision": []
   }
 }
