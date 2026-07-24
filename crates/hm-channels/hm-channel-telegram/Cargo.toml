@@ -7,3 +7,5 @@ license.workspace=true
 hm-core={path="../../hm-core"}
 hm-auth={path="../../hm-auth"}
 anyhow.workspace=true
+serde.workspace=true
+serde_json.workspace=true

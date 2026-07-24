@@ -12,6 +12,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+use uuid::Uuid;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -786,7 +787,7 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
 
     let accepted_at_unix = unix_now();
     let task = TaskRecord {
-        task_id: format!("task-{accepted_at_unix}-{}", remote_addr.port()),
+        task_id: format!("task-{}", Uuid::new_v4()),
         task_type: if input.task_type.trim().is_empty() {
             "unspecified".to_string()
         } else {
