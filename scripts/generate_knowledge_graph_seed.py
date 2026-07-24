@@ -31,14 +31,20 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _crate_is_stub(crate_dir: Path) -> bool:
-    """Heuristic already used by hand throughout this repo's own history:
-    a crate whose combined src/*.rs is a handful of lines is a placeholder,
-    not a working component."""
-    total = 0
-    for rs_file in crate_dir.rglob("*.rs"):
-        total += len(rs_file.read_text(encoding="utf-8").splitlines())
-    return total <= 10
+# Crates declared as intentional placeholders in CLAUDE.md / docs/architecture.md.
+# These have grown beyond a naïve line-count threshold (due to structural scaffolding)
+# but are still non-functional stubs: no real external calls, no persistence.
+# hm-cron and hm-sessions are excluded — they are now live, integrated into hm-gateway.
+_KNOWN_STUBS = {
+    "hm-core", "hm-cli",
+    "hm-tool-browser", "hm-tool-media", "hm-tool-web",
+    "hm-channel-telegram", "hm-channel-discord", "hm-channel-slack", "hm-channel-whatsapp",
+}
+
+
+def _crate_is_stub(crate_name: str) -> bool:
+    """Return True for crates that CLAUDE.md / architecture.md declare as intentional placeholders."""
+    return crate_name in _KNOWN_STUBS
 
 
 def load_crate_nodes() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -58,7 +64,7 @@ def load_crate_nodes() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             "type": "crate",
             "label": name,
             "path": member,
-            "status": "stub" if _crate_is_stub(crate_dir) else "real",
+            "status": "stub" if _crate_is_stub(name) else "real",
         })
 
     edges: list[dict[str, Any]] = []

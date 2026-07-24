@@ -48,13 +48,15 @@ def test_hm_gateway_depends_on_matches_its_real_cargo_toml():
         for edge in graph["edges"]
         if edge["source"] == "crate:hm-gateway" and edge["relation"] == "depends_on"
     }
+    # hm-cron and hm-sessions were integrated into the gateway in the synergy-audit fix
     assert deps == {
-        "crate:hm-core",
         "crate:hm-storage",
         "crate:hm-plugins",
         "crate:hm-memory",
         "crate:hm-agent",
         "crate:hm-auth",
+        "crate:hm-cron",
+        "crate:hm-sessions",
     }
 
 
@@ -73,7 +75,7 @@ def test_stub_crates_match_known_placeholders():
     # These are the crates established by direct source inspection elsewhere
     # in this repo's history (CLAUDE.md) as intentional 1-8 line placeholders.
     expected_stubs = {
-        "hm-core", "hm-cli", "hm-cron", "hm-sessions",
+        "hm-core", "hm-cli",
         "hm-tool-browser", "hm-tool-media", "hm-tool-web",
         "hm-channel-telegram", "hm-channel-discord", "hm-channel-slack", "hm-channel-whatsapp",
     }
