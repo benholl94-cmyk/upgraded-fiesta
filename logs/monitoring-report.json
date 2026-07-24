@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T18:11:29.672622+00:00",
+  "generated_at": "2026-07-24T18:22:42.897525+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -39,7 +39,7 @@
       "exists": true,
       "is_file": true,
       "path": ".github/workflows/rust-ci.yml",
-      "size_bytes": 369
+      "size_bytes": 657
     },
     {
       "exists": true,
