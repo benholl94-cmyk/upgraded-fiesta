@@ -60,13 +60,54 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  gateway-b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      HM_OWNER_TOKEN: "${HM_OWNER_TOKEN:?HM_OWNER_TOKEN is required}"
+      HM_GATEWAY_BIND: "0.0.0.0:8080"
+      HM_STORAGE_BACKEND: "${HM_STORAGE_BACKEND:-local}"
+      HM_STORAGE_ROOT: /data/storage
+      HM_LLM_ENABLE: "${HM_LLM_ENABLE:-false}"
+      HM_LLM_API_URL: "${HM_LLM_API_URL:-}"
+      HM_LLM_API_KEY: "${HM_LLM_API_KEY:-}"
+      HM_LLM_MODEL: "${HM_LLM_MODEL:-}"
+    volumes:
+      - gwdata:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    restart: unless-stopped
+
+  nginx-lb:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./config/nginx-lb.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      gateway:
+        condition: service_healthy
+      gateway-b:
+        condition: service_healthy
+    ports:
+      - "${LB_BIND:-0.0.0.0}:${LB_PORT:-8000}:80"
+    restart: unless-stopped
+
   ui:
     build:
       context: .
       dockerfile: Dockerfile.ui
     depends_on:
-      gateway:
-        condition: service_healthy
+      nginx-lb:
+        condition: service_started
     ports:
       - "${UI_BIND:-0.0.0.0}:${UI_PORT:-3000}:80"
     restart: unless-stopped

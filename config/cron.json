@@ -16,5 +16,11 @@
     "task_type": "ops-tool",
     "payload": { "operation": "memory_usage" },
     "interval_secs": 21600
+  },
+  {
+    "name": "llm-key-check",
+    "task_type": "llm-key-check",
+    "payload": {},
+    "interval_secs": 3600
   }
 ]

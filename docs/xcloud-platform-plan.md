@@ -230,7 +230,7 @@ from):
 **Done when**: a real chat message sent through the UI gets a real LLM
 response back, and `GET /memory` shows the recorded outcome.
 
-## Phase 5 — Multi-environment scaling — **partially done, scope disclosed**
+## Phase 5 — Multi-environment scaling — **compose-layer done; cross-host still needs Phase 2**
 
 **Goal**: prove the "platform" framing for real — more than one `hm-gateway`
 instance (different hosts/regions/providers from Phase 2), each optionally
@@ -239,45 +239,46 @@ the UI's already-existing endpoint-rotation/failover logic
 (`ui/src/endpoint-rotation.ts`), which today only *simulates* multi-endpoint
 behavior against a single real instance plus fallbacks that were never live.
 
-**What actually shipped**: `scripts/verify_multi_instance_failover.mjs` — a
-live verification script that imports `ui/src/endpoint-rotation.ts`
-*unmodified* (Node 22's native TypeScript-stripping support, no build step,
-no reimplementation of the rotation logic) and exercises it against two real,
-independently-spawned `hm-gateway` processes (distinct ports, distinct
-`HM_STORAGE_ROOT` directories). It calls the real `checkEndpoint` and
-`dispatchWithRotation` functions, confirms both instances are healthy, sends
-a real `echo` task and confirms it lands on the priority-1 instance, then
-**kills that process for real** and confirms the exact same rotation call
-fails over to the priority-2 instance — a real `202` response from a real
-second process, not a mocked one.
+**What shipped in the initial round** (retained from earlier): `scripts/verify_multi_instance_failover.mjs`
+— a live verification script exercising two real, independently-spawned
+`hm-gateway` processes (distinct ports, distinct `HM_STORAGE_ROOT` directories).
+The rotation algorithm — unmodified production code — correctly detects a dead
+gateway via real HTTP health checks and redirects real task dispatches to a
+surviving instance. See that round's detailed notes above.
 
-**Disclosed scope limitation**: both instances run on this same host/sandbox
-(different ports and storage roots, genuinely independent OS processes with
-independent state — not the same process pretending to be two endpoints),
-not genuinely different hosts, regions, or cloud providers. That gap is
-Phase 2's, which needs real infrastructure this environment doesn't have
-access to. What *is* proven live, not simulated: the rotation algorithm
-itself — unmodified production code — correctly detects a dead gateway via
-real HTTP health checks and correctly redirects real task dispatches to a
-surviving instance.
+**What shipped this round**: `deploy/fullstack-compose.yml` now runs a full
+multi-instance topology without any placeholder services:
 
-**Verified live** (run yourself via `node --experimental-strip-types
-scripts/verify_multi_instance_failover.mjs` after `cargo build -p
-hm-gateway`): output confirms `gatewayA`/`gatewayB` both `online`, a dispatch
-picks `gateway-a` (priority 1, `202`), then after `gateway-a` is killed the
-identical dispatch call picks `gateway-b` (`202`) with `gateway-a` correctly
-recorded as `offline` in the attempt log.
+- `gateway` (primary) — real Rust binary, all HM_* vars, cron enabled
+  (`HM_CRON_CONFIG=/app/config/cron.json`).
+- `gateway-b` (replica) — identical build, same `gwdata` volume (shared
+  storage), no cron (avoids double-scheduling of `llm-key-check` etc.).
+- `nginx-lb` — `nginx:1.27-alpine` with `config/nginx-lb.conf` (`least_conn`
+  upstream across both instances); exposed at `${LB_PORT:-8000}`. The UI
+  container points at `nginx-lb` for task dispatch.
+- `config/nginx-lb.conf` — 30s read timeout on task routes, 5s on `/health`.
 
-**Still open** (genuinely requires Phase 2's human decisions — cloud
-provider, real hosts): running this same script's *scenario* — not the
-script itself, which is host-agnostic already — against two instances on
-different real hosts/providers, and pointing `ui/public/platform-config.json`
-at their real URLs instead of the `/api`/`/gateway` reverse-proxy placeholder
-already flagged as a gap in `docs/production-api-contract.md`.
+**Phase 4 self-provisioning (no owner present)**: `plugins/llm_chat_plugin.py`
+now resolves a provider via three tiers automatically:
+1. Ollama (local, no key, no egress) if `HM_OLLAMA_ENABLE=true`.
+2. `config/llm-active.json` written by `scripts/llm_key_manager.py` — the key
+   manager probes all 5 free-tier providers (HF, Groq, Together, Mistral,
+   Ollama) in priority order, writes the first live one, appends to `logs/llm-key-manager.json`.
+3. Legacy `HM_LLM_ENABLE=true` env vars (backwards-compatible).
+`config/cron.json` now includes `llm-key-check` (interval: 3600 s), wired
+to the key manager's plugin mode — so the provider rotates automatically
+every hour without the owner present.
 
-**Done when** (revised): the disclosed same-host limitation above is closed
-— i.e. the same failover scenario observed against two genuinely
-independent hosts/providers from a completed Phase 2.
+**Disclosed scope limitation (unchanged)**: `gateway` and `gateway-b` in
+the compose topology share the same Docker host, not genuinely different
+machines/regions. That gap remains Phase 2's — once real cloud VMs exist,
+replace `server gateway:8080` / `server gateway-b:8080` in `nginx-lb.conf`
+with real host addresses. The LB logic itself requires no code change.
+
+**Done when** (final condition): the same compose topology or its equivalent
+runs across two genuinely independent hosts (Phase 2), with `nginx-lb.conf`
+updated to real external addresses — no code change needed, only operational
+deployment.
 
 ## How to use this plan
 
