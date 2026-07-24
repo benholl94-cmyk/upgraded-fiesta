@@ -1,6 +1,6 @@
 {
   "created": "2026-07-24T12:02:25.837226+00:00",
-  "updated": "2026-07-24T12:11:29.655932+00:00",
+  "updated": "2026-07-24T12:11:34.786062+00:00",
   "files": {
     "crates/hm-agent/src/lib.rs": {
       "path": "crates/hm-agent/src/lib.rs",
@@ -698,12 +698,12 @@
     ".claude/persona/munin-state.json": {
       "path": ".claude/persona/munin-state.json",
       "kategorie": "persona",
-      "sha256": "6e0b0016cf7093289c62270589f8a534bf84fb1100329a1e67a014602933fd53",
-      "git_blob": "92e6508cbbf3f2fb354163953767182fe8877b3c",
+      "sha256": "91c226d336c675c499f5823f66df0f2acd2a9842d0626c2c5fda11a54a2fd58f",
+      "git_blob": "bdab646e93503fd97b3a1bd63ccbdc171738ff47",
       "size": 6464,
-      "mtime": 1784895069.4005315,
-      "last_seen": "2026-07-24T12:11:29.639332+00:00",
-      "status": "TOUCHED"
+      "mtime": 1784895089.7545233,
+      "last_seen": "2026-07-24T12:11:34.776076+00:00",
+      "status": "MODIFIED"
     },
     ".claude/persona/munin.json": {
       "path": ".claude/persona/munin.json",
@@ -798,21 +798,21 @@
     ".claude/persona/repo-index.json": {
       "path": ".claude/persona/repo-index.json",
       "kategorie": "persona",
-      "sha256": "7ab94724deba3468eb1ef7396ccc4deb122f3060f3fc54b73f9b1bca05a529f9",
-      "git_blob": "da0c81ab3f7d0908fc601ed3b5d0282e17cb1c61",
-      "size": 35246,
-      "mtime": 1784895069.4005315,
-      "last_seen": "2026-07-24T12:11:29.642083+00:00",
+      "sha256": "72b91c554df5895a72eb641d5680264bee8cc2cb66219a98aa86f62a83ebbffd",
+      "git_blob": "360fa190e345017c395c842547f562b23aba3ccb",
+      "size": 35362,
+      "mtime": 1784895089.657041,
+      "last_seen": "2026-07-24T12:11:34.778884+00:00",
       "status": "MODIFIED"
     },
     ".claude/persona/tracker-report.json": {
       "path": ".claude/persona/tracker-report.json",
       "kategorie": "persona",
-      "sha256": "cb4c99422c8e7c6d246e7bfab1e618dbdd1aa3faf2b775c774fe776c90989583",
-      "git_blob": "fbfb5ca809a17df3760e1958ddff95eaa0d6ae3f",
+      "sha256": "39076cfa87bcdda8cfd45bba1c2c60e2df6bf706be590cb6d3246183b04b1f18",
+      "git_blob": "52d8fb591ae45a2ae3b440513c92e3247a63a8c7",
       "size": 1064,
-      "mtime": 1784895069.4005315,
-      "last_seen": "2026-07-24T12:11:29.644615+00:00",
+      "mtime": 1784895089.7095556,
+      "last_seen": "2026-07-24T12:11:34.781163+00:00",
       "status": "MODIFIED"
     },
     "scripts/autonomy_core.py": {
@@ -822,18 +822,17 @@
       "git_blob": "fd09b597d49f4cd0286e96ea1f655d9158ffec03",
       "size": 15751,
       "mtime": 1784895069.2825499,
-      "last_seen": "2026-07-24T12:11:29.647023+00:00",
-      "status": "TOUCHED"
+      "last_seen": "2026-07-24T12:11:29.647023+00:00"
     },
     ".claude/persona/autonomy-state.json": {
       "path": ".claude/persona/autonomy-state.json",
       "kategorie": "persona",
-      "sha256": "12efe796e24d23a03684d1e4ba5dd13a2461da6660795d5027bb37ab345f8a5d",
-      "git_blob": "9bbcb5328c1bfa61eb283c3cef438656e32ba54c",
+      "sha256": "26a218d8239720b5790699a8c86a7db41ea8dd359e679d4dfedf7214899b4b96",
+      "git_blob": "866b2cc895a8ea937d95592a05c72385950a0473",
       "size": 592,
-      "mtime": 1784895069.4005315,
-      "last_seen": "2026-07-24T12:11:29.650077+00:00",
-      "status": "TOUCHED"
+      "mtime": 1784895089.7539325,
+      "last_seen": "2026-07-24T12:11:34.783361+00:00",
+      "status": "MODIFIED"
     },
     ".claude/persona/console-log.json": {
       "path": ".claude/persona/console-log.json",
@@ -842,8 +841,7 @@
       "git_blob": "d4404009250b6a341954f3c9dcbfed88a887c920",
       "size": 195,
       "mtime": 1784895069.2825499,
-      "last_seen": "2026-07-24T12:11:29.652430+00:00",
-      "status": "TOUCHED"
+      "last_seen": "2026-07-24T12:11:29.652430+00:00"
     }
   }
 }
