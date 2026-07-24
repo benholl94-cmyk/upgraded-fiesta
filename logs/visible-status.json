@@ -1,7 +1,7 @@
 {
-  "actor": "",
+  "actor": "benholl94-cmyk",
   "connector_visibility_workaround": true,
-  "generated_at": "2026-07-24T18:18:52.636159+00:00",
+  "generated_at": "2026-07-24T18:22:42.958829+00:00",
   "marker_failures": [],
   "missing_files": [],
   "monitor_ok": true,
@@ -18,12 +18,12 @@
     "has_timeout": true,
     "has_zero_staked_status": true
   },
-  "ref": "",
+  "ref": "refs/heads/claude/flow-collision-fix",
   "repository": "benholl94-cmyk/upgraded-fiesta",
-  "run_id": "",
-  "run_number": "",
-  "sha": "",
+  "run_id": "30116667800",
+  "run_number": "764",
+  "sha": "c3339a09227665c6335bdf8d26907bc778711ce3",
   "source": "scripts/write_visible_status.py",
   "status_file_visible_via_contents_api": true,
-  "workflow": ""
+  "workflow": "visible-status"
 }
