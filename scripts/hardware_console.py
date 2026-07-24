@@ -78,13 +78,20 @@ def _now_iso() -> str:
 
 
 def _log_event(event_type: str, data: dict) -> None:
-    """Schreibt Events in console-log.json (Ring-Buffer, max 200 Einträge)."""
+    """Schreibt Events in console-log.json (Ring-Buffer, max 200 Einträge).
+    Format: {"entries": [{ts, type, ...}, ...]} — kompatibel mit security_sentinel.py."""
     try:
-        log = []
+        log: dict = {"entries": []}
         if LOG_FILE.exists():
-            log = json.loads(LOG_FILE.read_text())
-        log.append({"ts": _now_iso(), "type": event_type, **data})
-        log = log[-200:]  # Ring-Buffer
+            raw = json.loads(LOG_FILE.read_text())
+            # Migration: flache Liste → dict mit entries
+            if isinstance(raw, list):
+                log = {"entries": raw}
+            elif isinstance(raw, dict):
+                log = raw
+        log.setdefault("entries", [])
+        log["entries"].append({"ts": _now_iso(), "type": event_type, **data})
+        log["entries"] = log["entries"][-200:]  # Ring-Buffer
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         LOG_FILE.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
     except Exception:

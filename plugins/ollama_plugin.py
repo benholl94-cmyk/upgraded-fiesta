@@ -140,14 +140,15 @@ def run_plugin(request: dict) -> dict:
     use_claude = payload.get("use_claude_tool", CLAUDE_TOOL_ENABLED)
 
     if not prompt:
-        return {"ok": False, "output": "Kein Prompt übergeben (Felder: prompt/message/text)"}
+        return {"ok": False, "result": "", "message": "Kein Prompt übergeben (Felder: prompt/message/text)"}
 
     # Ollama-Verfügbarkeit prüfen
     ok, status = check_ollama_available()
     if not ok:
         return {
             "ok": False,
-            "output": f"Ollama nicht verfügbar: {status}. Starte mit: ollama serve",
+            "result": "",
+            "message": f"Ollama nicht verfügbar: {status}. Starte mit: ollama serve",
             "model": OLLAMA_MODEL,
             "ollama_url": OLLAMA_URL,
         }
@@ -156,7 +157,7 @@ def run_plugin(request: dict) -> dict:
     try:
         response = call_ollama(prompt, history)
     except RuntimeError as e:
-        return {"ok": False, "output": str(e)}
+        return {"ok": False, "result": "", "message": str(e)}
 
     # Claude-Tool-Calls auflösen (wenn Ollama [CLAUDE_TOOL: ...] eingebaut hat)
     if use_claude and "[CLAUDE_TOOL:" in response:
@@ -164,7 +165,8 @@ def run_plugin(request: dict) -> dict:
 
     return {
         "ok": True,
-        "output": response,
+        "result": response,
+        "message": f"ollama/{OLLAMA_MODEL}",
         "model": OLLAMA_MODEL,
         "ollama_url": OLLAMA_URL,
         "claude_tool_used": "[CLAUDE_TOOL:" in response,

@@ -96,7 +96,7 @@ def run_plugin(request: dict) -> dict:
     skill_hint = payload.get("skill", "default")
 
     if not query:
-        return {"ok": False, "output": "Kein Query übergeben (Felder: query/prompt/text)"}
+        return {"ok": False, "result": "", "message": "Kein Query übergeben (Felder: query/prompt/text)"}
 
     # Skill bestimmen
     skill = SKILL_MAP.get(skill_hint, SKILL_MAP["default"])
@@ -109,11 +109,11 @@ def run_plugin(request: dict) -> dict:
 
     return {
         "ok": True,
-        "output": output,
+        "result": output,
+        "message": f"oracle/{skill}",
         "role": role,
         "skill_used": skill,
-        "source": "claude-via-hugin-oracle",
-        "note": "Claude als Subroutine — Ollama ist Orchestrator",
+        "source": "hugin-oracle",
     }
 
 

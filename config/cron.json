@@ -1,0 +1,8 @@
+[
+  {
+    "name": "heartbeat",
+    "task_type": "echo",
+    "payload": { "msg": "cron-heartbeat" },
+    "interval_secs": 3600
+  }
+]
