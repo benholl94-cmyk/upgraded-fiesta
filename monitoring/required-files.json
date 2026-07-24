@@ -7,7 +7,6 @@
     ".github/workflows/rust-ci.yml",
     "scripts/codex_fullstack_setup.sh",
     "scripts/codex_fullstack_check.sh",
-    "logs/automated-initialization-run.md",
     "docs/production-api-contract.md",
     "docs/ui-control-plane-implementation.md",
     "ui/public/platform-config.json",
