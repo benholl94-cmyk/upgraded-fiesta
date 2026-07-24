@@ -191,9 +191,7 @@ mod tests {
     async fn append_message_updates_session() {
         let store = SessionStore::new();
         let id = store.create("chat").await;
-        let ok = store
-            .append(&id, Message::new("user", "Hallo MUNIN"))
-            .await;
+        let ok = store.append(&id, Message::new("user", "Hallo MUNIN")).await;
         assert!(ok);
         let session = store.get(&id).await.unwrap();
         assert_eq!(session.messages.len(), 1);

@@ -120,12 +120,21 @@ pub fn embed(text: &str, dims: usize) -> Vec<f32> {
 /// `VectorIndex::insert()` einfügt, muss sie vorher selbst normieren.
 /// Der Rückgabewert liegt im Intervall `[-1.0, 1.0]`.
 pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
-    debug_assert_eq!(a.len(), b.len(), "cosine_similarity: vector length mismatch");
+    debug_assert_eq!(
+        a.len(),
+        b.len(),
+        "cosine_similarity: vector length mismatch"
+    );
     debug_assert!(
-        (a.iter().map(|x| x * x).sum::<f32>().sqrt() - 1.0).abs() < 0.01 || a.iter().all(|x| *x == 0.0),
+        (a.iter().map(|x| x * x).sum::<f32>().sqrt() - 1.0).abs() < 0.01
+            || a.iter().all(|x| *x == 0.0),
         "cosine_similarity: vector `a` is not L2-normalised — call embed() or normalise first"
     );
-    a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>().clamp(-1.0, 1.0)
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| x * y)
+        .sum::<f32>()
+        .clamp(-1.0, 1.0)
 }
 
 // ── VectorRecord (Compat) ────────────────────────────────────────────────────
@@ -253,7 +262,11 @@ impl VectorIndex {
         let new_idx = self.nodes.len();
 
         if self.entry.is_none() {
-            self.nodes.push(NswNode { id, vector, neighbors: vec![] });
+            self.nodes.push(NswNode {
+                id,
+                vector,
+                neighbors: vec![],
+            });
             self.entry = Some(0);
             return;
         }
@@ -298,7 +311,11 @@ impl VectorIndex {
             }
         }
 
-        self.nodes.push(NswNode { id, vector, neighbors });
+        self.nodes.push(NswNode {
+            id,
+            vector,
+            neighbors,
+        });
     }
 
     /// Entfernt den Eintrag mit der gegebenen ID. Alle Nachbarverweise werden
@@ -355,9 +372,15 @@ mod tests {
 
     #[test]
     fn aehnliche_texte_hoeherer_score() {
-        let b = embed("gateway akzeptiert lokale datei speicher anfragen", EMBED_DIMS);
+        let b = embed(
+            "gateway akzeptiert lokale datei speicher anfragen",
+            EMBED_DIMS,
+        );
         let s = embed("gateway akzeptiert datei upload anfragen lokal", EMBED_DIMS);
-        let u = embed("bananen sind tropische fruechte aus warmen klimazonen", EMBED_DIMS);
+        let u = embed(
+            "bananen sind tropische fruechte aus warmen klimazonen",
+            EMBED_DIMS,
+        );
         assert!(cosine_similarity(&b, &s) > cosine_similarity(&b, &u));
     }
 
@@ -374,7 +397,10 @@ mod tests {
         let mut idx = VectorIndex::new();
         idx.insert("a", embed("rust workspace gateway storage", EMBED_DIMS));
         idx.insert("b", embed("bananen tropisch frucht warm klima", EMBED_DIMS));
-        idx.insert("c", embed("gateway storage rust workspace crate tokio", EMBED_DIMS));
+        idx.insert(
+            "c",
+            embed("gateway storage rust workspace crate tokio", EMBED_DIMS),
+        );
         let q = embed("rust gateway storage workspace", EMBED_DIMS);
         let res = idx.search(&q, 2);
         assert_eq!(res.len(), 2);
@@ -403,7 +429,10 @@ mod tests {
         let mut idx = VectorIndex::new();
         for i in 0..100 {
             let topic = topics[i % topics.len()];
-            idx.insert(format!("id{i}"), embed(&format!("{topic} variante {i}"), EMBED_DIMS));
+            idx.insert(
+                format!("id{i}"),
+                embed(&format!("{topic} variante {i}"), EMBED_DIMS),
+            );
         }
         // Suche nach klar rust-spezifischem Text — muss eines der Rust-Einträge finden
         let q = embed("rust async tokio gateway http server", EMBED_DIMS);
@@ -412,7 +441,8 @@ mod tests {
         // Mindestens ein Rust-Eintrag (idx 0,5,10,...) muss in Top-5 sein
         let rust_ids: Vec<&str> = res.iter().map(|(id, _)| id.as_str()).collect();
         let found_rust = rust_ids.iter().any(|id| {
-            id.strip_prefix("id").and_then(|n| n.parse::<usize>().ok())
+            id.strip_prefix("id")
+                .and_then(|n| n.parse::<usize>().ok())
                 .map(|n| n % topics.len() == 0)
                 .unwrap_or(false)
         });
@@ -424,7 +454,7 @@ mod tests {
         let v = embed("test eingabe dreifach hash ensemble", EMBED_DIMS);
         let t = EMBED_DIMS / 3;
         assert!(v[..t].iter().any(|x| x.abs() > 1e-6));
-        assert!(v[t..2*t].iter().any(|x| x.abs() > 1e-6));
-        assert!(v[2*t..].iter().any(|x| x.abs() > 1e-6));
+        assert!(v[t..2 * t].iter().any(|x| x.abs() > 1e-6));
+        assert!(v[2 * t..].iter().any(|x| x.abs() > 1e-6));
     }
 }

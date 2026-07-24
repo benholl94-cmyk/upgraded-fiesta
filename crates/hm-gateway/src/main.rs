@@ -14,7 +14,6 @@ use std::{
     sync::Arc,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use uuid::Uuid;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -22,6 +21,7 @@ use tokio::{
     sync::Mutex,
     task::JoinSet,
 };
+use uuid::Uuid;
 
 /// How long shutdown waits for in-flight connections to finish after a
 /// termination signal, before giving up and exiting anyway.
@@ -313,7 +313,10 @@ async fn main() -> anyhow::Result<()> {
     if std::path::Path::new(&cron_config).exists() {
         let cron_config_clone = cron_config.clone();
         let cron_gateway_url = format!("http://{}", bind);
-        let cron_token = owner_token.clone().map(|t| (*t).clone()).unwrap_or_default();
+        let cron_token = owner_token
+            .clone()
+            .map(|t| (*t).clone())
+            .unwrap_or_default();
         tokio::spawn(async move {
             match load_jobs(&cron_config_clone) {
                 Ok(jobs) => {
@@ -592,7 +595,9 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
             sessions_get(&state, path.trim_start_matches("/sessions/")).await
         }
         ("POST", path) if path.starts_with("/sessions/") && path.ends_with("/messages") => {
-            let id = path.trim_start_matches("/sessions/").trim_end_matches("/messages");
+            let id = path
+                .trim_start_matches("/sessions/")
+                .trim_end_matches("/messages");
             sessions_append(&state, id, request.body).await
         }
         ("DELETE", path) if path.starts_with("/sessions/") => {
@@ -1018,8 +1023,11 @@ async fn sessions_list(state: &AppState) -> Vec<u8> {
 
 async fn sessions_create(state: &AppState, body: Vec<u8>) -> Vec<u8> {
     #[derive(Deserialize)]
-    struct Req { name: Option<String> }
-    let name = serde_json::from_slice::<Req>(&body).ok()
+    struct Req {
+        name: Option<String>,
+    }
+    let name = serde_json::from_slice::<Req>(&body)
+        .ok()
         .and_then(|r| r.name)
         .unwrap_or_else(|| "unnamed".to_string());
     let session = state.sessions.create(name).await;
@@ -1035,10 +1043,18 @@ async fn sessions_get(state: &AppState, id: &str) -> Vec<u8> {
 
 async fn sessions_append(state: &AppState, id: &str, body: Vec<u8>) -> Vec<u8> {
     #[derive(Deserialize)]
-    struct Req { role: String, content: String }
+    struct Req {
+        role: String,
+        content: String,
+    }
     let req = match serde_json::from_slice::<Req>(&body) {
         Ok(r) => r,
-        Err(e) => return json_response(400, json!({ "status": "bad_request", "reason": e.to_string() })),
+        Err(e) => {
+            return json_response(
+                400,
+                json!({ "status": "bad_request", "reason": e.to_string() }),
+            )
+        }
     };
     let msg = hm_sessions::Message::new(req.role, req.content);
     if state.sessions.append(id, msg).await {

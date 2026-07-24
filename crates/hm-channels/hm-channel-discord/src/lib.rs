@@ -118,7 +118,10 @@ impl DiscordClient {
         if event_type != "MESSAGE_CREATE" {
             return Ok(());
         }
-        let data = payload.d.as_ref().ok_or_else(|| anyhow::anyhow!("no data in payload"))?;
+        let data = payload
+            .d
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("no data in payload"))?;
         let msg: DiscordMessage = serde_json::from_value(data.clone())?;
 
         // Bots nicht weiterleiten

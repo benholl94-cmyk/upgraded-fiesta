@@ -99,12 +99,7 @@ impl WhatsAppClient {
 
     /// Verifiziert einen eingehenden Webhook-Verification-Request von Meta.
     /// Gibt `hub.challenge` zurück wenn `hub.verify_token` übereinstimmt.
-    pub fn verify_webhook(
-        &self,
-        mode: &str,
-        token: &str,
-        challenge: &str,
-    ) -> Option<String> {
+    pub fn verify_webhook(&self, mode: &str, token: &str, challenge: &str) -> Option<String> {
         if mode == "subscribe" && token == self.verify_token {
             Some(challenge.to_string())
         } else {
