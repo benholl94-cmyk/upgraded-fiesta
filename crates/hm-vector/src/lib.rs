@@ -54,6 +54,12 @@ fn sdbm(s: &str) -> u64 {
 
 // ── Embedding ────────────────────────────────────────────────────────────────
 
+/// Bettet `text` in einen L2-normierten Vektor der Länge `dims` ein.
+///
+/// Verwendet ein Dreifach-Hash-Ensemble (FNV-1a + DJB2 + SDBM) über
+/// Wörter, Bigrams und Trigramme.  Der zurückgegebene Vektor ist immer
+/// L2-normiert (Euklidische Norm ≈ 1), sofern der Text nicht leer ist.
+/// Für leere Strings wird ein Nullvektor zurückgegeben.
 pub fn embed(text: &str, dims: usize) -> Vec<f32> {
     let dims = dims.max(3);
     let mut v = vec![0.0f32; dims];
@@ -107,8 +113,18 @@ pub fn embed(text: &str, dims: usize) -> Vec<f32> {
     v
 }
 
+/// Berechnet die Kosinus-Ähnlichkeit zwischen zwei L2-normierten Vektoren.
+///
+/// **Vorbedingung**: Beide Vektoren müssen L2-normiert sein (Euklidische Norm ≈ 1).
+/// `embed()` liefert stets normierte Vektoren; wer rohe Vektoren über
+/// `VectorIndex::insert()` einfügt, muss sie vorher selbst normieren.
+/// Der Rückgabewert liegt im Intervall `[-1.0, 1.0]`.
 pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     debug_assert_eq!(a.len(), b.len(), "cosine_similarity: vector length mismatch");
+    debug_assert!(
+        (a.iter().map(|x| x * x).sum::<f32>().sqrt() - 1.0).abs() < 0.01 || a.iter().all(|x| *x == 0.0),
+        "cosine_similarity: vector `a` is not L2-normalised — call embed() or normalise first"
+    );
     a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>().clamp(-1.0, 1.0)
 }
 
@@ -195,10 +211,16 @@ impl VectorIndex {
         result
     }
 
+    /// Fügt einen Vektor ein oder ersetzt einen bestehenden Eintrag gleicher ID
+    /// (Upsert). `vector` muss L2-normiert sein — vorzugsweise via `embed()`.
+    /// Nach einem Upsert wird der NSW-Einstiegspunkt auf den Knoten mit der
+    /// höchsten Ähnlichkeit zum gelöschten Vektor gesetzt, um die Suchqualität
+    /// zu erhalten.
     pub fn insert(&mut self, id: impl Into<String>, vector: Vec<f32>) {
         let id = id.into();
 
         if let Some(old) = self.nodes.iter().position(|n| n.id == id) {
+            let old_vec = self.nodes[old].vector.clone();
             self.nodes.remove(old);
             for node in self.nodes.iter_mut() {
                 node.neighbors.retain(|&nb| nb != old);
@@ -208,7 +230,24 @@ impl VectorIndex {
                     }
                 }
             }
-            self.entry = if self.nodes.is_empty() { None } else { Some(0) };
+            // Wähle den ähnlichsten verbleibenden Knoten als neuen Einstiegspunkt,
+            // statt willkürlich Index 0 zu nehmen.
+            self.entry = if self.nodes.is_empty() {
+                None
+            } else {
+                Some(
+                    self.nodes
+                        .iter()
+                        .enumerate()
+                        .max_by(|a, b| {
+                            cosine_similarity(&old_vec, &a.1.vector)
+                                .partial_cmp(&cosine_similarity(&old_vec, &b.1.vector))
+                                .unwrap()
+                        })
+                        .map(|(i, _)| i)
+                        .unwrap_or(0),
+                )
+            };
         }
 
         let new_idx = self.nodes.len();
@@ -262,6 +301,9 @@ impl VectorIndex {
         self.nodes.push(NswNode { id, vector, neighbors });
     }
 
+    /// Entfernt den Eintrag mit der gegebenen ID. Alle Nachbarverweise werden
+    /// aktualisiert. Der Einstiegspunkt wird auf den verbleibenden Knoten mit
+    /// dem niedrigsten Index gesetzt (konservative Strategie).
     pub fn remove(&mut self, id: &str) {
         if let Some(pos) = self.nodes.iter().position(|n| n.id == id) {
             self.nodes.remove(pos);
@@ -277,6 +319,9 @@ impl VectorIndex {
         }
     }
 
+    /// Gibt die `top_k` ähnlichsten Einträge zur `query` zurück, sortiert nach
+    /// absteigender Ähnlichkeit. Bei weniger als 32 Einträgen Brute-Force,
+    /// darüber NSW-Beamsuche mit `ef = max(NSW_EF, top_k * 2)`.
     pub fn search(&self, query: &[f32], top_k: usize) -> Vec<(String, f32)> {
         if self.nodes.is_empty() {
             return vec![];

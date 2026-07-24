@@ -12,5 +12,6 @@ COPY --from=builder /app/target/release/hm-gateway /app/hm-gateway
 COPY --from=builder /app/target/release/hm-tool-exec /app/target/release/hm-tool-exec
 COPY config/ /app/config/
 COPY plugins/ /app/plugins/
+COPY scripts/ /app/scripts/
 EXPOSE 8080
 CMD ["/app/hm-gateway"]

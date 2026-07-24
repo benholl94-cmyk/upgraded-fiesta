@@ -6,3 +6,4 @@ license.workspace=true
 [dependencies]
 hm-core={path="../hm-core"}
 clap.workspace=true
+anyhow.workspace=true

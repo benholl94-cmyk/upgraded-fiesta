@@ -1,7 +1,9 @@
 use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
+use hm_cron::{load_jobs, run as run_cron};
 use hm_memory::MemoryStore;
 use hm_plugins::PluginRegistry;
+use hm_sessions::SessionStore;
 use hm_storage::{FileStorage, LocalFsStorage, RemoteHttpStorage};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -12,6 +14,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+use uuid::Uuid;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -146,6 +149,7 @@ struct AppState {
     storage: Arc<dyn FileStorage>,
     memory: Arc<MemoryStore>,
     agent: Arc<Agent>,
+    sessions: Arc<SessionStore>,
     diagnostics: Arc<Mutex<Vec<DiagnosticsReport>>>,
     diagnostics_key: Arc<String>,
     /// `None` only when `HM_GATEWAY_ALLOW_NO_AUTH=true` was explicitly set at
@@ -301,6 +305,26 @@ async fn main() -> anyhow::Result<()> {
         Duration::from_secs(60),
     ));
 
+    let sessions = Arc::new(SessionStore::new());
+
+    // Optional: cron scheduler — start if config/cron.json (or HM_CRON_CONFIG) exists.
+    let cron_config = env::var("HM_CRON_CONFIG").unwrap_or_else(|_| "config/cron.json".to_string());
+    let (cron_shutdown_tx, cron_shutdown_rx) = tokio::sync::watch::channel(false);
+    if std::path::Path::new(&cron_config).exists() {
+        let cron_config_clone = cron_config.clone();
+        let cron_gateway_url = format!("http://{}", bind);
+        let cron_token = owner_token.clone().map(|t| (*t).clone()).unwrap_or_default();
+        tokio::spawn(async move {
+            match load_jobs(&cron_config_clone) {
+                Ok(jobs) => {
+                    run_cron(jobs, cron_gateway_url, cron_token, cron_shutdown_rx).await;
+                }
+                Err(e) => eprintln!("hm-cron: could not load {cron_config_clone}: {e}"),
+            }
+        });
+        println!("hm-gateway: cron scheduler started from {cron_config}");
+    }
+
     let state = AppState {
         started_at: SystemTime::now(),
         zero_staked,
@@ -308,6 +332,7 @@ async fn main() -> anyhow::Result<()> {
         storage,
         memory,
         agent,
+        sessions,
         diagnostics: Arc::new(Mutex::new(diagnostics)),
         diagnostics_key: Arc::new(diagnostics_key),
         owner_token,
@@ -340,10 +365,12 @@ async fn main() -> anyhow::Result<()> {
             }
             _ = tokio::signal::ctrl_c() => {
                 println!("hm-gateway received SIGINT, shutting down gracefully");
+                let _ = cron_shutdown_tx.send(true);
                 break;
             }
             _ = sigterm.recv() => {
                 println!("hm-gateway received SIGTERM, shutting down gracefully");
+                let _ = cron_shutdown_tx.send(true);
                 break;
             }
         }
@@ -558,6 +585,19 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         ("GET", "/memory/graph") => memory_graph(&state).await,
         ("GET", "/diagnostics") => diagnostics_list(&state).await,
         ("POST", "/diagnostics") => diagnostics_submit(&state, request.body).await,
+        // Sessions
+        ("GET", "/sessions") => sessions_list(&state).await,
+        ("POST", "/sessions") => sessions_create(&state, request.body).await,
+        ("GET", path) if path.starts_with("/sessions/") => {
+            sessions_get(&state, path.trim_start_matches("/sessions/")).await
+        }
+        ("POST", path) if path.starts_with("/sessions/") && path.ends_with("/messages") => {
+            let id = path.trim_start_matches("/sessions/").trim_end_matches("/messages");
+            sessions_append(&state, id, request.body).await
+        }
+        ("DELETE", path) if path.starts_with("/sessions/") => {
+            sessions_delete(&state, path.trim_start_matches("/sessions/")).await
+        }
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
     }
 }
@@ -786,7 +826,7 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
 
     let accepted_at_unix = unix_now();
     let task = TaskRecord {
-        task_id: format!("task-{accepted_at_unix}-{}", remote_addr.port()),
+        task_id: format!("task-{}", Uuid::new_v4()),
         task_type: if input.task_type.trim().is_empty() {
             "unspecified".to_string()
         } else {
@@ -967,6 +1007,57 @@ fn audit_log(remote_addr: SocketAddr, method: &str, path: &str, status: u16, lat
             "latency_ms": latency.as_millis(),
         })
     );
+}
+
+// ── Sessions routes ──────────────────────────────────────────────────────────
+
+async fn sessions_list(state: &AppState) -> Vec<u8> {
+    let list = state.sessions.list().await;
+    json_response(200, json!({ "sessions": list }))
+}
+
+async fn sessions_create(state: &AppState, body: Vec<u8>) -> Vec<u8> {
+    #[derive(Deserialize)]
+    struct Req { name: Option<String> }
+    let name = serde_json::from_slice::<Req>(&body).ok()
+        .and_then(|r| r.name)
+        .unwrap_or_else(|| "unnamed".to_string());
+    let session = state.sessions.create(name).await;
+    json_response(201, json!({ "status": "created", "session": session }))
+}
+
+async fn sessions_get(state: &AppState, id: &str) -> Vec<u8> {
+    match state.sessions.get(id).await {
+        Some(s) => json_response(200, json!(s)),
+        None => json_response(404, json!({ "status": "not_found", "id": id })),
+    }
+}
+
+async fn sessions_append(state: &AppState, id: &str, body: Vec<u8>) -> Vec<u8> {
+    #[derive(Deserialize)]
+    struct Req { role: String, content: String }
+    let req = match serde_json::from_slice::<Req>(&body) {
+        Ok(r) => r,
+        Err(e) => return json_response(400, json!({ "status": "bad_request", "reason": e.to_string() })),
+    };
+    let msg = hm_sessions::Message::new(req.role, req.content);
+    if state.sessions.append(id, msg).await {
+        match state.sessions.get(id).await {
+            Some(s) => json_response(200, json!({ "status": "appended", "session": s })),
+            None => json_response(200, json!({ "status": "appended" })),
+        }
+    } else {
+        json_response(404, json!({ "status": "not_found", "id": id }))
+    }
+}
+
+async fn sessions_delete(state: &AppState, id: &str) -> Vec<u8> {
+    let removed = state.sessions.delete(id).await;
+    if removed {
+        json_response(200, json!({ "status": "deleted", "id": id }))
+    } else {
+        json_response(404, json!({ "status": "not_found", "id": id }))
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """
 hugin_oracle.py — MUNIN Provider Security Gate
 ===============================================
@@ -22,6 +23,7 @@ Verwendung:
   python3 scripts/hugin_oracle.py audit-log [--tail 20]
   python3 scripts/hugin_oracle.py test-gate
 """
+import abc
 import argparse
 import hashlib
 import json
@@ -84,8 +86,8 @@ SKILL_SCOPES = {
 # PROVIDER-ADAPTER — alle Adapter-Klassen sind identisch strukturiert
 # ════════════════════════════════════════════════════════════════════════════
 
-class ProviderAdapter:
-    """Basisklasse. Jeder Provider implementiert _call()."""
+class ProviderAdapter(abc.ABC):
+    """Basisklasse. Jeder Provider implementiert call()."""
 
     name: str = "base"
     env_key: str = ""
@@ -100,8 +102,8 @@ class ProviderAdapter:
             )
         return tok
 
-    def call(self, prompt: str, skill: str) -> str:
-        raise NotImplementedError
+    @abc.abstractmethod
+    def call(self, prompt: str, skill: str) -> str: ...
 
     def _http_post(self, url: str, headers: dict, body: dict) -> dict:
         data = json.dumps(body).encode()
@@ -201,9 +203,9 @@ class OllamaAdapter(ProviderAdapter):
                     return preferred
             if models:
                 return models[0]
-        except Exception:
-            pass
-        return "llama3.2"
+        except Exception as e:
+            print(f"[hugin/local] Ollama model detection failed: {e}", file=sys.stderr)
+        return "llama3.2"  # Fallback — überschreibe mit HUGIN_LOCAL_MODEL
 
     def is_available(self) -> bool:
         try:
