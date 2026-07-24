@@ -1,9 +1,5 @@
 {
-  "ok": true,
-  "provider": "pollinations-openai",
-  "url": "https://text.pollinations.ai/openai/chat/completions",
-  "key": "",
-  "model": "openai",
-  "checked_at": "2026-07-24T18:05:05Z",
-  "note": "Keyless fallback \u2014 llm-key-check cron rotiert auf besseren Provider wenn verf\u00fcgbar"
+  "ok": false,
+  "reason": "all providers failed or have no key configured",
+  "checked_at": "2026-07-24T18:15:57Z"
 }
