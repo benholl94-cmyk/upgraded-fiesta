@@ -145,7 +145,7 @@ impl SessionStore {
                 updated_at: s.updated_at,
             })
             .collect();
-        summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        summaries.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
         summaries
     }
 
