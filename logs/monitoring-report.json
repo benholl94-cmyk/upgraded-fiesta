@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T19:51:36.533375+00:00",
+  "generated_at": "2026-07-24T19:56:32.671122+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -141,7 +141,7 @@
       "exists": true,
       "is_file": true,
       "path": "hugin/manifest.json",
-      "size_bytes": 916
+      "size_bytes": 1541
     },
     {
       "exists": true,
