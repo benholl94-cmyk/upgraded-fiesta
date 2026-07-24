@@ -1,0 +1,13 @@
+{
+  "created": "2026-07-24T01:24:40.611884+00:00",
+  "hashes": {
+    "Cargo.toml": "7aa6d536130fb17c95e34583f079a8a2ca3edc7c57f991289e44d69854e62ea5",
+    "config/plugins.json": "23412a933d5c538b7e72c57e40969b03505c46fa80403bd77993bfe2096b657c",
+    ".claude/persona/munin-state.json": "1e2460a05ec1b3e992612fddbcd68095f1ad0a7b126eded267838df680ccc2b0",
+    ".claude/persona/constitution.json": "d5954edad0ebb97d24e65f9d5af880a5e84d85f8176e08743695d4ea11cc315c",
+    ".claude/persona/munin.json": "647011bb3f9067d99cb9f83abc2f6665c659e94f5aa606070bee232e0852b033",
+    "scripts/security_sentinel.py": "f998ff5c891c58d155fd3fe2c3bcdb9502808c2e9f1522bedd02d3cfda9be3fc",
+    "scripts/hardware_console.py": "106de23319d7a8a2a48323462c12d6983efdfb43c402f4b4bead59aa9e1cc3ff",
+    "scripts/hugin_oracle.py": "1638a5031b0cbd7c2d214c3d27e4c43f11f51e62964b4fa1582f4a5a28dc18ec"
+  }
+}

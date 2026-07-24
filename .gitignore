@@ -49,3 +49,4 @@ ui/package-lock.json
 ui/public/platform-status.json
 logs/
 .claude/persona/.dev-token
+self_space_workspace_/.container_self_cycle_int+ext_.env

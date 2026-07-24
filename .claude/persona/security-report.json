@@ -1,0 +1,449 @@
+{
+  "generated": "2026-07-24T01:24:40.616190+00:00",
+  "overall_score": 96.6,
+  "rating": "SECURE",
+  "total_checks": 59,
+  "total_passed": 57,
+  "layers": [
+    {
+      "layer": "L0_Hypervisor",
+      "passed": 6,
+      "total": 6,
+      "score": 100.0,
+      "checks": [
+        {
+          "check": "nomodule kernel param",
+          "ok": true,
+          "value": "present",
+          "expected": "present",
+          "note": "Verhindert dynamisches Kernel-Modul-Loading (Container-Escape via LKM)"
+        },
+        {
+          "check": "firecracker-init",
+          "ok": true,
+          "value": "present",
+          "expected": "present",
+          "note": "MicroVM l\u00e4uft unter Firecracker/KVM-Isolation"
+        },
+        {
+          "check": "ipv6 disabled",
+          "ok": true,
+          "value": "disabled",
+          "expected": "disabled",
+          "note": "IPv6-Angriffsfl\u00e4che eliminiert"
+        },
+        {
+          "check": "modules_disabled (proc)",
+          "ok": true,
+          "value": "absent",
+          "expected": "1 oder via nomodule",
+          "note": "nomodule param = effektiv deaktiviert"
+        },
+        {
+          "check": "vsock port defined",
+          "ok": true,
+          "value": "present",
+          "expected": "present",
+          "note": "Gesteuerter IPC-Kanal zum Host"
+        },
+        {
+          "check": "block-local-connections",
+          "ok": true,
+          "value": "set",
+          "expected": "set",
+          "note": "Verhindert VM\u2192Host lokale Netzwerk-Escapes"
+        }
+      ]
+    },
+    {
+      "layer": "L1_Kernel",
+      "passed": 16,
+      "total": 17,
+      "score": 94.1,
+      "checks": [
+        {
+          "check": "kernel.randomize_va_space",
+          "ok": true,
+          "value": "2",
+          "expected": "2",
+          "note": "2 = vollst\u00e4ndige ASLR (Stack+Heap+MMAP)"
+        },
+        {
+          "check": "net.ipv4.tcp_syncookies",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "net.ipv4.conf.all.rp_filter",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "net.ipv4.conf.default.rp_filter",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "net.ipv4.conf.all.accept_redirects",
+          "ok": true,
+          "value": "0",
+          "expected": "0"
+        },
+        {
+          "check": "net.ipv4.conf.default.accept_redirects",
+          "ok": true,
+          "value": "0",
+          "expected": "0"
+        },
+        {
+          "check": "net.ipv4.conf.all.send_redirects",
+          "ok": true,
+          "value": "0",
+          "expected": "0"
+        },
+        {
+          "check": "net.ipv4.conf.default.send_redirects",
+          "ok": true,
+          "value": "0",
+          "expected": "0"
+        },
+        {
+          "check": "net.ipv4.icmp_echo_ignore_broadcasts",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "net.ipv4.conf.all.log_martians",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "net.ipv4.conf.default.log_martians",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "kernel.dmesg_restrict",
+          "ok": true,
+          "value": "1",
+          "expected": "1"
+        },
+        {
+          "check": "kernel.kptr_restrict",
+          "ok": true,
+          "value": "2",
+          "expected": "2"
+        },
+        {
+          "check": "kernel.perf_event_paranoid",
+          "ok": true,
+          "value": "3",
+          "expected": "3"
+        },
+        {
+          "check": "net.ipv4.conf.all.accept_source_route",
+          "ok": true,
+          "value": "0",
+          "expected": "0"
+        },
+        {
+          "check": "net.ipv4.tcp_timestamps",
+          "ok": true,
+          "value": "0",
+          "expected": "0"
+        },
+        {
+          "check": "net.core.bpf_jit_harden",
+          "ok": false,
+          "value": "N/A",
+          "expected": "1 oder 2",
+          "note": "Verhindert BPF-JIT-Spray-Angriffe"
+        }
+      ]
+    },
+    {
+      "layer": "L2_Processes",
+      "passed": 3,
+      "total": 4,
+      "score": 75.0,
+      "checks": [
+        {
+          "check": "process_count",
+          "ok": true,
+          "value": "82",
+          "note": "Gesamtzahl Prozesse"
+        },
+        {
+          "check": "unknown_processes",
+          "ok": false,
+          "value": "13",
+          "expected": "0",
+          "note": "['   39 root     kdevtmpfs       [kdevtmpfs]', '   43 root     kauditd         [kauditd]', '   44 root     khungtaskd      [khungtaskd]']"
+        },
+        {
+          "check": "listening_ports",
+          "ok": true,
+          "value": "0",
+          "note": "keine"
+        },
+        {
+          "check": "unexpected_external_listeners",
+          "ok": true,
+          "value": "0",
+          "expected": "0",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "layer": "L3_Network",
+      "passed": 6,
+      "total": 6,
+      "score": 100.0,
+      "checks": [
+        {
+          "check": "iptables_input_default_drop",
+          "ok": true,
+          "value": "DROP",
+          "expected": "DROP",
+          "note": "Standardm\u00e4\u00dfig alle eingehenden Verbindungen blockieren"
+        },
+        {
+          "check": "iptables_output_rules_exist",
+          "ok": true,
+          "value": "ja",
+          "expected": "ja",
+          "note": "Ausgehender Traffic sollte explizit erlaubt sein"
+        },
+        {
+          "check": "rp_filter_enabled",
+          "ok": true,
+          "value": "1",
+          "expected": "1",
+          "note": "Verhindert IP-Spoofing"
+        },
+        {
+          "check": "no_icmp_redirects",
+          "ok": true,
+          "value": "0",
+          "expected": "0",
+          "note": "Verhindert ICMP-Redirect-basierte Routing-Angriffe"
+        },
+        {
+          "check": "ipv6_absent",
+          "ok": true,
+          "value": "absent",
+          "expected": "absent"
+        },
+        {
+          "check": "log_martians",
+          "ok": true,
+          "value": "1",
+          "expected": "1",
+          "note": "Loggt gef\u00e4lschte Pakete aus ung\u00fcltigen Quellen"
+        }
+      ]
+    },
+    {
+      "layer": "L4_Filesystem",
+      "passed": 8,
+      "total": 8,
+      "score": 100.0,
+      "checks": [
+        {
+          "check": "suid_binaries_only_known",
+          "ok": true,
+          "value": "13",
+          "expected": "13",
+          "note": "alle bekannt"
+        },
+        {
+          "check": "tmp_sticky_bit",
+          "ok": true,
+          "value": "set",
+          "expected": "set",
+          "note": "Verhindert L\u00f6schen fremder Dateien in /tmp"
+        },
+        {
+          "check": "dev_shm_empty",
+          "ok": true,
+          "value": "0",
+          "expected": "0",
+          "note": "Shared memory nicht f\u00fcr persistente Daten missbraucht"
+        },
+        {
+          "check": "workspace_not_world_writable",
+          "ok": true,
+          "value": "ok",
+          "expected": "ok"
+        },
+        {
+          "check": "ro_mount_claude-code",
+          "ok": true,
+          "value": "ro",
+          "expected": "ro",
+          "note": "/opt/claude-code muss read-only sein"
+        },
+        {
+          "check": "ro_mount_env-runner",
+          "ok": true,
+          "value": "ro",
+          "expected": "ro",
+          "note": "/opt/env-runner muss read-only sein"
+        },
+        {
+          "check": "ro_mount_public",
+          "ok": true,
+          "value": "ro",
+          "expected": "ro",
+          "note": "/mnt/skills/public muss read-only sein"
+        },
+        {
+          "check": "ro_mount_examples",
+          "ok": true,
+          "value": "ro",
+          "expected": "ro",
+          "note": "/mnt/skills/examples muss read-only sein"
+        }
+      ]
+    },
+    {
+      "layer": "L5_Users",
+      "passed": 7,
+      "total": 7,
+      "score": 100.0,
+      "checks": [
+        {
+          "check": "no_unknown_shell_accounts",
+          "ok": true,
+          "value": "['ubuntu', 'postgres', 'claude', 'root']",
+          "expected": "['ubuntu', 'postgres', 'claude', 'root']",
+          "note": ""
+        },
+        {
+          "check": "no_authorized_keys_root",
+          "ok": true,
+          "value": "absent",
+          "expected": "absent",
+          "note": "Kein SSH-Key-Zugang von au\u00dfen"
+        },
+        {
+          "check": "no_authorized_keys_user",
+          "ok": true,
+          "value": "absent",
+          "expected": "absent",
+          "note": "Kein SSH-Key-Zugang von au\u00dfen"
+        },
+        {
+          "check": "no_authorized_keys_claude",
+          "ok": true,
+          "value": "absent",
+          "expected": "absent",
+          "note": "Kein SSH-Key-Zugang von au\u00dfen"
+        },
+        {
+          "check": "no_authorized_keys_ubuntu",
+          "ok": true,
+          "value": "absent",
+          "expected": "absent",
+          "note": "Kein SSH-Key-Zugang von au\u00dfen"
+        },
+        {
+          "check": "claude_nopasswd_sudo_documented",
+          "ok": true,
+          "value": "NOPASSWD",
+          "note": "By design (Anthropic CCR) \u2014 dokumentiert, nicht blockiert"
+        },
+        {
+          "check": "postgres_restricted_shell",
+          "ok": true,
+          "value": "/bin/bash",
+          "note": "postgres hat /bin/bash \u2014 keine aktive DB-Verbindung aber Shell verf\u00fcgbar"
+        }
+      ]
+    },
+    {
+      "layer": "L6_Workspace",
+      "passed": 11,
+      "total": 11,
+      "score": 100.0,
+      "checks": [
+        {
+          "check": "git_no_corruption",
+          "ok": true,
+          "value": "0 Fehler, 37 dangling",
+          "expected": "0 Fehler",
+          "note": "Dangling objects sind normal nach rebase/squash"
+        },
+        {
+          "check": "hash_Cargo.toml",
+          "ok": true,
+          "value": "7aa6d536130fb17c...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_config_plugins.json",
+          "ok": true,
+          "value": "23412a933d5c538b...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_.claude_persona_munin-state.json",
+          "ok": true,
+          "value": "1e2460a05ec1b3e9...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_.claude_persona_constitution.json",
+          "ok": true,
+          "value": "d5954edad0ebb97d...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_.claude_persona_munin.json",
+          "ok": true,
+          "value": "647011bb3f9067d9...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_scripts_security_sentinel.py",
+          "ok": true,
+          "value": "f998ff5c891c58d1...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_scripts_hardware_console.py",
+          "ok": true,
+          "value": "106de23319d7a8a2...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "hash_scripts_hugin_oracle.py",
+          "ok": true,
+          "value": "1638a5031b0cbd7c...",
+          "note": "Lesbar und hashbar"
+        },
+        {
+          "check": "critical_files_unchanged",
+          "ok": true,
+          "value": "0 ge\u00e4ndert",
+          "expected": "0",
+          "note": "alle unver\u00e4ndert"
+        },
+        {
+          "check": "no_key_files_in_workspace",
+          "ok": true,
+          "value": "0",
+          "expected": "0",
+          "note": ""
+        }
+      ]
+    }
+  ]
+}
