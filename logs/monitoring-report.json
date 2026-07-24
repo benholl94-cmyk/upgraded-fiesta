@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T00:49:16.117047+00:00",
+  "generated_at": "2026-07-24T01:03:05.993709+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -105,7 +105,7 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 32949
+      "size_bytes": 32942
     },
     {
       "exists": true,
@@ -117,7 +117,7 @@
       "exists": true,
       "is_file": true,
       "path": "Cargo.toml",
-      "size_bytes": 1010
+      "size_bytes": 1017
     },
     {
       "exists": true,
