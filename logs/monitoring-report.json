@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T16:56:48.484837+00:00",
+  "generated_at": "2026-07-24T17:03:54.876081+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -81,7 +81,7 @@
       "exists": true,
       "is_file": true,
       "path": "ui/src/main.ts",
-      "size_bytes": 11623
+      "size_bytes": 15039
     },
     {
       "exists": true,
