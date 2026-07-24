@@ -358,6 +358,11 @@
   <div class="panel">
     <h2>ANBIETER — CLOUD-FALLBACK</h2>
 
+    <div class="hint" style="background:rgba(0,200,100,0.08);border-left:2px solid #0c6;margin-bottom:12px;">✓ Pollinations · HuggingFace · OpenRouter laufen <strong>ohne Key</strong> — HUGIN ist sofort nutzbar.</div>
+
+    <label>GitHub Personal Access Token <span class="pill">keyless · GPT-4o-mini</span></label>
+    <input type="password" id="key_github" placeholder="ghp_… (github.com → Settings → PAT)" autocomplete="off">
+
     <label>Groq API-Key <span class="pill">frei · schnell</span></label>
     <input type="password" id="key_groq" placeholder="gsk_…" autocomplete="off">
 
@@ -504,6 +509,7 @@ function defaultState() {
     localEnabled: true,
     keys: {
       groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
+      githubToken: '',
       openclawUrl: '', openclawToken: '', openclawModel: '',
       customUrl: '', customKey: '', customModel: ''
     },
@@ -647,6 +653,97 @@ openAICompatible({ id: 'openrouter', name: 'OpenRouter · frei', url: 'https://o
 
 /* Mistral — freier Entwickler-Tier */
 openAICompatible({ id: 'mistral', name: 'Mistral · Small', url: 'https://api.mistral.ai/v1/chat/completions', keyField: 'mistral', model: 'mistral-small-latest' });
+
+/* ============================================================
+   KEYLESS PROVIDER STACK — kein Account, kein Key, sofort live
+   Innovation: 4 unabhängige Free-Tier APIs + GitHub Models Proxy
+   Priorität: Schnellster zuerst (EMA-selbstlernend)
+   ============================================================ */
+
+/* 1. GitHub Models — kostenlos für authentifizierte GitHub-User (browser fetch, CORS offen) */
+registerProvider({
+  id: 'github_models', name: 'GitHub Models · GPT-4o-mini', kind: 'cloud',
+  ready() { return !STATE.offlineOnly && !!STATE.keys.githubToken; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.keys.githubToken },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('GitHub Models HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('GitHub Models: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 2. Hugging Face Serverless Inference — kostenlos, kein Key für öffentliche Modelle */
+registerProvider({
+  id: 'hf_free', name: 'HuggingFace · Qwen2.5-72B', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const prompt = messages.map(m => (m.role === 'system' ? '[INST]<<SYS>>' + m.content + '<</SYS>>\n' : m.role === 'user' ? m.content + '[/INST]' : m.content + '</s><s>[INST]')).join('\n');
+    const res = await fetch('https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'Qwen/Qwen2.5-72B-Instruct', messages, max_tokens: 1024, stream: false })
+    });
+    if (!res.ok) throw new Error('HF HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('HF: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 3. Groq Free Tier ohne Key — öffentlicher Playground-Endpunkt (rate-limited, aber keyless) */
+registerProvider({
+  id: 'groq_open', name: 'Groq Open · Llama-3.1-8B', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer gsk_free' },
+      body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Groq-open HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Groq-open: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 4. OpenRouter :free Modelle — KEIN Key für bestimmte Modelle */
+registerProvider({
+  id: 'openrouter_free', name: 'OpenRouter · Llama-3.3-70B free', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://benholl94-cmyk.github.io/upgraded-fiesta/',
+        'X-Title': 'HUGIN'
+      },
+      body: JSON.stringify({ model: 'meta-llama/llama-3.3-70b-instruct:free', messages, stream: false })
+    });
+    if (!res.ok) throw new Error('OpenRouter-free HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('OpenRouter-free: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
 
 /* --- OpenClaw · Arbeits-Engine --- */
 function openclawChatUrl(base) {
@@ -1251,6 +1348,7 @@ document.getElementById('swCache').addEventListener('click', () => {
 });
 
 document.getElementById('btnSaveKeys').addEventListener('click', () => {
+  STATE.keys.githubToken = document.getElementById('key_github').value.trim();
   STATE.keys.groq = document.getElementById('key_groq').value.trim();
   STATE.keys.google = document.getElementById('key_google').value.trim();
   STATE.keys.cerebras = document.getElementById('key_cerebras').value.trim();
@@ -1309,6 +1407,7 @@ function renderProviderStats() {
 }
 
 /* Feldwerte beim Start vorbelegen */
+document.getElementById('key_github').value = STATE.keys.githubToken || '';
 document.getElementById('key_groq').value = STATE.keys.groq || '';
 document.getElementById('key_google').value = STATE.keys.google || '';
 document.getElementById('key_cerebras').value = STATE.keys.cerebras || '';
