@@ -1,7 +1,7 @@
 {
   "actor": "benholl94-cmyk",
   "connector_visibility_workaround": true,
-  "generated_at": "2026-07-24T17:58:50.784668+00:00",
+  "generated_at": "2026-07-24T18:09:24.471851+00:00",
   "marker_failures": [],
   "missing_files": [],
   "monitor_ok": true,
@@ -18,11 +18,11 @@
     "has_timeout": true,
     "has_zero_staked_status": true
   },
-  "ref": "refs/heads/main",
+  "ref": "refs/heads/claude/workspace-finalize-nx73zr",
   "repository": "benholl94-cmyk/upgraded-fiesta",
-  "run_id": "30115112996",
-  "run_number": "760",
-  "sha": "14d6709ced7c18021bee7e66e48eb33db612af35",
+  "run_id": "30115808673",
+  "run_number": "761",
+  "sha": "c0692322861b53201a303edd2b0f7eb82b7d77ad",
   "source": "scripts/write_visible_status.py",
   "status_file_visible_via_contents_api": true,
   "workflow": "visible-status"

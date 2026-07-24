@@ -12,6 +12,7 @@
     { "task_type": "telegram-message",  "command": ["python3", "plugins/echo_plugin.py"] },
     { "task_type": "discord-message",   "command": ["python3", "plugins/echo_plugin.py"] },
     { "task_type": "slack-message",     "command": ["python3", "plugins/echo_plugin.py"] },
-    { "task_type": "whatsapp-message",  "command": ["python3", "plugins/echo_plugin.py"] }
+    { "task_type": "whatsapp-message",  "command": ["python3", "plugins/echo_plugin.py"] },
+    { "task_type": "autonomy-pulse",   "command": ["python3", "plugins/autonomy_pulse_plugin.py"] }
   ]
 }
