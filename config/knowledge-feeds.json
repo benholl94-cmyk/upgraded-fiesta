@@ -12,15 +12,15 @@
     "url": "https://github.com/trending",
     "tags": ["github", "trending", "code"],
     "max_chars": 3000,
-    "enabled": false,
-    "note": "Set enabled:true to activate. Publicly accessible, read-only."
+    "enabled": true,
+    "note": "Publicly accessible, read-only."
   },
   {
     "name": "Rust Blog",
     "url": "https://blog.rust-lang.org/",
     "tags": ["rust", "release", "language"],
     "max_chars": 3000,
-    "enabled": false,
+    "enabled": true,
     "note": "Official Rust language blog. Publicly accessible."
   },
   {
@@ -28,7 +28,7 @@
     "url": "https://huggingface.co/papers",
     "tags": ["ai", "ml", "papers", "research"],
     "max_chars": 4000,
-    "enabled": false,
+    "enabled": true,
     "note": "HuggingFace daily paper highlights. Publicly accessible."
   }
 ]

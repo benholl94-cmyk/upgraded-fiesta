@@ -28,6 +28,9 @@ def _run_plugin(request: dict, env: dict) -> dict:
 
 def _base_env(**overrides: str) -> dict:
     env = {k: v for k, v in os.environ.items() if not k.startswith("HM_LLM_")}
+    # Point active-provider file to /dev/null so tests are isolated from any
+    # llm-active.json that may exist in the workspace from key-manager runs.
+    env["HM_LLM_ACTIVE_FILE"] = "/dev/null"
     env.update(overrides)
     return env
 

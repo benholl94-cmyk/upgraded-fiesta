@@ -27,7 +27,9 @@ import urllib.error
 import urllib.request
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-ACTIVE_FILE = REPO_ROOT / "config" / "llm-active.json"
+ACTIVE_FILE = pathlib.Path(
+    os.environ.get("HM_LLM_ACTIVE_FILE", str(REPO_ROOT / "config" / "llm-active.json"))
+)
 
 
 def _load_active_provider() -> dict | None:
