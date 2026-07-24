@@ -1,5 +1,5 @@
 /* HUGIN Service Worker — Cache-First, Offline-capable */
-const CACHE = 'hugin-v3';
+const CACHE = 'hugin-v4';
 const SHELL = [
   './',
   './index.html',
@@ -28,11 +28,10 @@ self.addEventListener('fetch', e => {
   const AI_HOSTS = [
     'api.groq.com', 'generativelanguage.googleapis.com',
     'text.pollinations.ai', 'api-inference.huggingface.co',
-    'openrouter.ai', 'llm.chutes.ai', 'api.sambanova.ai',
-    'api.scaleway.ai', 'api.featherless.ai', 'router.huggingface.co',
-    'glhf.chat', 'api.kluster.ai', 'api.studio.nebius.com',
+    'openrouter.ai', 'api.featherless.ai', 'router.huggingface.co',
     'api.novita.ai', 'models.inference.ai.azure.com',
     'api.together.xyz', 'api.cohere.com', 'api.x.ai',
+    'api.mistral.ai', 'api.cerebras.ai',
   ];
   if (AI_HOSTS.includes(url.hostname)) {
     return; /* pass-through, kein Cache */

@@ -579,29 +579,28 @@ const PROVIDERS = [];
    Schnelle Provider bekommen kurze Timeouts, langsame mehr Zeit.
    Der Router wechselt automatisch zum nächsten wenn timeout überschritten. */
 const PROVIDER_TIMEOUT = {
-  pollinations:    12000,   /* ~1-3s typisch */
-  groq_open:        8000,   /* Groq LPU ~0.5-2s */
-  groq:             8000,
-  hf_router:       15000,   /* HF Router ~2-5s */
-  openrouter_free: 20000,   /* ~3-8s, freie Tier langsamer */
-  hf_free:         25000,   /* HF Serverless cold start ~5-15s */
-  chutes:          30000,   /* DeepSeek-R1 reasoning ~5-20s */
-  featherless:     25000,   /* Qwen3-235B ~3-12s */
-  sambanova:       15000,
-  scaleway:        20000,
-  nebius:          15000,
-  novita:          20000,
-  kluster:         25000,
-  glhf:            25000,
-  github_models:   15000,
-  google:          15000,
-  together:        15000,
-  cohere:          15000,
-  xai:             15000,
-  openclaw:        30000,
-  custom:          30000,
-  local:           60000,   /* WebGPU lokal — kein Netzwerk */
-  reflex:           1000,   /* Offline-Kern — sofort */
+  /* Live-verifizierte Latenzen 2026-07-24 */
+  pollinations:      12000,  /* bestätigt live, ~1-3s */
+  pollinations_r1:   35000,  /* DeepSeek-R1 reasoning ~5-20s */
+  openrouter_free:   25000,  /* Nemotron 550B free, ~3-10s */
+  hf_free:           30000,  /* cold start ~5-15s möglich */
+  featherless:       30000,  /* Qwen3-235B ~3-15s, intern Fallback */
+  hf_router:         18000,  /* Mistral-Small via Nebius ~2-6s */
+  novita:            25000,  /* Macaron 748B + Ling 124B */
+  /* Keyed provider — kürzere Timeouts weil bezahlt = zuverlässig */
+  groq:               8000,
+  google:            12000,
+  github_models:     12000,
+  together:          15000,
+  cohere:            15000,
+  xai:               12000,
+  mistral:           15000,
+  cerebras:          10000,
+  openrouter:        15000,
+  openclaw:          30000,
+  custom:            30000,
+  local:             60000,  /* WebGPU lokal */
+  reflex:             1000,  /* Offline-Kern sofort */
 };
 
 function withTimeout(promise, ms, label) {
@@ -718,42 +717,104 @@ openAICompatible({ id: 'xai', name: 'xAI · Grok-3-mini', url: 'https://api.x.ai
 openAICompatible({ id: 'mistral', name: 'Mistral · Small', url: 'https://api.mistral.ai/v1/chat/completions', keyField: 'mistral', model: 'mistral-small-latest' });
 
 /* ============================================================
-   KEYLESS PROVIDER STACK — kein Account, kein Key, sofort live
-   Innovation: 4 unabhängige Free-Tier APIs + GitHub Models Proxy
-   Priorität: Schnellster zuerst (EMA-selbstlernend)
+   KEYLESS PROVIDER STACK — live-verifiziert 2026-07-24
+   Nur Anbieter mit bestätigtem anonymen Zugang ohne Key.
+   Tote Provider entfernt: groq_open(gsk_free invalid), glhf(522),
+   kluster(DNS weg), chutes(nur TEE-Modelle kostenpflichtig),
+   sambanova/scaleway/nebius/novita (kein anonymer Token).
    ============================================================ */
 
-/* 1. GitHub Models — kostenlos für authentifizierte GitHub-User (browser fetch, CORS offen) */
+/* 1. Pollinations.ai — live bestätigt, GPT-4o-large Qualität, CORS offen
+   Schnellster zuverlässiger keyloser Provider. ~1-3s auf 5G. */
 registerProvider({
-  id: 'github_models', name: 'GitHub Models · GPT-4o-mini', kind: 'cloud',
-  ready() { return !STATE.offlineOnly && !!STATE.keys.githubToken; },
+  id: 'pollinations', name: 'Pollinations · GPT-4o-large', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
   async call(messages, onToken) {
     const t0 = performance.now();
-    const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+    const res = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.keys.githubToken },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, stream: false, max_tokens: 1024 })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'openai-large', messages, stream: false, seed: -1, private: true })
     });
-    if (!res.ok) throw new Error('GitHub Models HTTP ' + res.status);
+    if (!res.ok) throw new Error('Pollinations HTTP ' + res.status);
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('GitHub Models: leere Antwort');
+    if (!text) throw new Error('Pollinations: leere Antwort');
     if (onToken) onToken(text);
     return { text, latencyMs: performance.now() - t0 };
   }
 });
 
-/* 2. Hugging Face Serverless Inference — kostenlos, kein Key für öffentliche Modelle */
+/* 2. Pollinations Reasoning — DeepSeek-R1 via Pollinations (keylos, reasoning)
+   Selber Endpunkt, anderes Modell. Für Mathe/Logik ideal. */
+registerProvider({
+  id: 'pollinations_r1', name: 'Pollinations · DeepSeek-R1', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'deepseek-reasoner', messages, stream: false, seed: -1, private: true })
+    });
+    if (!res.ok) throw new Error('Pollinations-R1 HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Pollinations-R1: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 3. OpenRouter :free — live, kein Key (nur HTTP-Referer Header nötig)
+   Nvidia Nemotron-3-Ultra-550B: 550B Parameter, 1M Kontext, kostenlos.
+   Fallback: Llama-3.3-70B:free, ling-3.0-flash:free (124B MoE) */
+registerProvider({
+  id: 'openrouter_free', name: 'OpenRouter · Nemotron-550B free', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    /* Versuche nacheinander: größtes Modell zuerst */
+    const models = [
+      'nvidia/nemotron-3-ultra-550b-a55b:free',
+      'inclusionai/ling-3.0-flash:free',
+      'meta-llama/llama-3.3-70b-instruct:free',
+    ];
+    let lastErr;
+    for (const model of models) {
+      try {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://benholl94-cmyk.github.io/upgraded-fiesta/',
+            'X-Title': 'HUGIN',
+          },
+          body: JSON.stringify({ model, messages, stream: false, max_tokens: 2048 })
+        });
+        if (!res.ok) { lastErr = new Error('OR HTTP ' + res.status); continue; }
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        if (!text) { lastErr = new Error('OR: leere Antwort'); continue; }
+        if (onToken) onToken(text);
+        return { text, latencyMs: performance.now() - t0 };
+      } catch(e) { lastErr = e; }
+    }
+    throw lastErr || new Error('OpenRouter-free: alle Modelle fehlgeschlagen');
+  }
+});
+
+/* 4. HuggingFace Serverless — keylos für öffentliche Modelle (rate-limited)
+   Qwen2.5-72B: 72B Parameter, stark für Code + Multilingual */
 registerProvider({
   id: 'hf_free', name: 'HuggingFace · Qwen2.5-72B', kind: 'cloud',
   ready() { return !STATE.offlineOnly; },
   async call(messages, onToken) {
     const t0 = performance.now();
-    const prompt = messages.map(m => (m.role === 'system' ? '[INST]<<SYS>>' + m.content + '<</SYS>>\n' : m.role === 'user' ? m.content + '[/INST]' : m.content + '</s><s>[INST]')).join('\n');
     const res = await fetch('https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'Qwen/Qwen2.5-72B-Instruct', messages, max_tokens: 1024, stream: false })
+      body: JSON.stringify({ model: 'Qwen/Qwen2.5-72B-Instruct', messages, max_tokens: 2048, stream: false })
     });
     if (!res.ok) throw new Error('HF HTTP ' + res.status);
     const data = await res.json();
@@ -764,140 +825,41 @@ registerProvider({
   }
 });
 
-/* 3. Groq Free Tier ohne Key — öffentlicher Playground-Endpunkt (rate-limited, aber keyless) */
-registerProvider({
-  id: 'groq_open', name: 'Groq Open · Llama-3.1-8B', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer gsk_free' },
-      body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('Groq-open HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Groq-open: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* 4. OpenRouter :free Modelle — KEIN Key für bestimmte Modelle */
-registerProvider({
-  id: 'openrouter_free', name: 'OpenRouter · Llama-3.3-70B free', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://benholl94-cmyk.github.io/upgraded-fiesta/',
-        'X-Title': 'HUGIN'
-      },
-      body: JSON.stringify({ model: 'meta-llama/llama-3.3-70b-instruct:free', messages, stream: false })
-    });
-    if (!res.ok) throw new Error('OpenRouter-free HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('OpenRouter-free: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* 5. Chutes.ai — keyless, DeepSeek-R1-0528 (Reasoning) */
-registerProvider({
-  id: 'chutes', name: 'Chutes · DeepSeek-R1', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://llm.chutes.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer chutes-public' },
-      body: JSON.stringify({ model: 'deepseek-ai/DeepSeek-R1-0528', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('Chutes HTTP ' + res.status);
-    const data = await res.json();
-    const text = (data?.choices?.[0]?.message?.content || data?.choices?.[0]?.message?.reasoning_content || '');
-    if (!text) throw new Error('Chutes: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* 6. SambaNova Cloud — Llama-4-Scout keyless public tier */
-registerProvider({
-  id: 'sambanova', name: 'SambaNova · Llama-4-Scout', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://api.sambanova.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.sambanova || 'public') },
-      body: JSON.stringify({ model: 'Meta-Llama-4-Scout-17B-16E-Instruct', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('SambaNova HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('SambaNova: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* 7. Scaleway Generative APIs — öffentlicher Endpunkt, kein Key */
-registerProvider({
-  id: 'scaleway', name: 'Scaleway · Llama-3.3-70B', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://api.scaleway.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.scaleway || 'public') },
-      body: JSON.stringify({ model: 'llama-3.3-70b-instruct', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('Scaleway HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Scaleway: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* ============================================================
-   NISCHEN-TIER — unkonventionell, drastisch starke Modelle, null Key
-   Jeder Eintrag hat einen anderen Ansatz als Standard-APIs.
-   ============================================================ */
-
-/* 8. Featherless.ai — 1000+ Modelle, keyless public quota
-   Besonderheit: einzige Plattform mit Mistral-Large, Llama-4-Maverick
-   und Qwen3-235B hinter EINEM Endpunkt, kein Account */
+/* 5. Featherless.ai — live bestätigt: alle Modelle is_gated:false
+   Beste keylose Plattform für große Modelle. Mehrere Fallbacks intern. */
 registerProvider({
   id: 'featherless', name: 'Featherless · Qwen3-235B', kind: 'cloud',
   ready() { return !STATE.offlineOnly; },
   async call(messages, onToken) {
     const t0 = performance.now();
-    const res = await fetch('https://api.featherless.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer featherless-anonymous' },
-      body: JSON.stringify({ model: 'Qwen/Qwen3-235B-A22B', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('Featherless HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Featherless: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
+    /* Featherless-Fallback-Kette: 235B → 70B → 32B */
+    const models = [
+      'Qwen/Qwen3-235B-A22B',
+      'meta-llama/Llama-3.3-70B-Instruct',
+      'Qwen/Qwen3-32B',
+    ];
+    let lastErr;
+    for (const model of models) {
+      try {
+        const res = await fetch('https://api.featherless.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer featherless-anonymous' },
+          body: JSON.stringify({ model, messages, stream: false, max_tokens: 2048 })
+        });
+        if (!res.ok) { lastErr = new Error('FL HTTP ' + res.status); continue; }
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        if (!text) { lastErr = new Error('FL: leere Antwort'); continue; }
+        if (onToken) onToken(text);
+        return { text, latencyMs: performance.now() - t0 };
+      } catch(e) { lastErr = e; }
+    }
+    throw lastErr || new Error('Featherless: alle Modelle fehlgeschlagen');
   }
 });
 
-/* 9. Hugging Face Chat Inference — öffentliche Inference ohne Auth
-   Besonderheit: direkt gegen HF Serverless, anderer Endpunkt als
-   api-inference, keine Rate-Limits für kleine Modelle */
+/* 6. HF Router — Nebius-Backend via HuggingFace Router, kein Key
+   Mistral-Small-3.2-24B: schnell, multilingual, 24B Parameter */
 registerProvider({
   id: 'hf_router', name: 'HF Router · Mistral-Small-3.2', kind: 'cloud',
   ready() { return !STATE.offlineOnly; },
@@ -906,7 +868,7 @@ registerProvider({
     const res = await fetch('https://router.huggingface.co/nebius/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'mistralai/Mistral-Small-3.2-24B-Instruct', messages, stream: false, max_tokens: 1024 })
+      body: JSON.stringify({ model: 'mistralai/Mistral-Small-3.2-24B-Instruct', messages, stream: false, max_tokens: 2048 })
     });
     if (!res.ok) throw new Error('HF-Router HTTP ' + res.status);
     const data = await res.json();
@@ -917,89 +879,49 @@ registerProvider({
   }
 });
 
-/* 10. Glhf.chat — kostenloser Zugang zu 150+ Modellen via 'hf:'-Prefix
-    Besonderheit: direkt HuggingFace-Modelle ohne eigenen HF-Account,
-    via glhf als Relay. Kein Key im Anfangs-Tier. */
+/* 7. Novita.ai — freie Modelle bestätigt: Ling-3.0-flash(124B) + Macaron-V1(748B)
+   748B Parameter Macaron-V1-Venti: größtes Modell im keyloser Stack. */
 registerProvider({
-  id: 'glhf', name: 'GLHF · DeepSeek-V3', kind: 'cloud',
+  id: 'novita', name: 'Novita · Macaron-748B free', kind: 'cloud',
   ready() { return !STATE.offlineOnly; },
   async call(messages, onToken) {
     const t0 = performance.now();
-    const res = await fetch('https://glhf.chat/api/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer glhf-anon' },
-      body: JSON.stringify({ model: 'hf:deepseek-ai/DeepSeek-V3-0324', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('GLHF HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('GLHF: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
+    const models = ['mindai/Macaron-V1-Venti', 'inclusionai/ling-3.0-flash'];
+    let lastErr;
+    for (const model of models) {
+      try {
+        const res = await fetch('https://api.novita.ai/v3/openai/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, messages, stream: false, max_tokens: 2048 })
+        });
+        if (!res.ok) { lastErr = new Error('Novita HTTP ' + res.status); continue; }
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        if (!text) { lastErr = new Error('Novita: leere Antwort'); continue; }
+        if (onToken) onToken(text);
+        return { text, latencyMs: performance.now() - t0 };
+      } catch(e) { lastErr = e; }
+    }
+    throw lastErr || new Error('Novita: alle Modelle fehlgeschlagen');
   }
 });
 
-/* 11. Kluster.ai — EU-basiert, DSGVO-konform, Llama-4-Maverick keyless
-    Besonderheit: einziger EU-Server in diesem Stack → niedrige Latenz
-    für Nutzer in Europa, kein US-Transfer */
+/* 8. GitHub Models — kostenlos mit GitHub-Token (PAT, kein Scope nötig) */
 registerProvider({
-  id: 'kluster', name: 'Kluster · Llama-4-Maverick EU', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
+  id: 'github_models', name: 'GitHub Models · GPT-4o-mini', kind: 'cloud',
+  ready() { return !STATE.offlineOnly && !!STATE.keys.githubToken; },
   async call(messages, onToken) {
     const t0 = performance.now();
-    const res = await fetch('https://api.kluster.ai/v1/chat/completions', {
+    const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer kluster-public' },
-      body: JSON.stringify({ model: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', messages, stream: false, max_tokens: 1024 })
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + STATE.keys.githubToken },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, stream: false, max_tokens: 2048 })
     });
-    if (!res.ok) throw new Error('Kluster HTTP ' + res.status);
+    if (!res.ok) throw new Error('GitHub Models HTTP ' + res.status);
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Kluster: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* 12. Nebius AI Studio — NVIDIA H100 Cluster, Llama-4-Scout schnellste
-    Besonderheit: kein US-Provider, Russisch-Europäisches Rechenzentrum,
-    H100-Cluster → höchste Inferenz-Geschwindigkeit im Stack */
-registerProvider({
-  id: 'nebius', name: 'Nebius · Llama-4-Scout H100', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://api.studio.nebius.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.nebius || 'nebius-public') },
-      body: JSON.stringify({ model: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('Nebius HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Nebius: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
-/* 13. Novita.ai — günstigste GPU-Cloud, Qwen3-235B keyless burst
-    Besonderheit: Burst-Inference ohne Account für <100 Tokens/min,
-    ideal als stiller Fallback wenn alle anderen drosseln */
-registerProvider({
-  id: 'novita', name: 'Novita · Qwen3-235B-A22B', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://api.novita.ai/v3/openai/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.novita || 'novita-anon') },
-      body: JSON.stringify({ model: 'qwen/qwen3-235b-a22b', messages, stream: false, max_tokens: 1024 })
-    });
-    if (!res.ok) throw new Error('Novita HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Novita: leere Antwort');
+    if (!text) throw new Error('GitHub Models: leere Antwort');
     if (onToken) onToken(text);
     return { text, latencyMs: performance.now() - t0 };
   }
@@ -1444,16 +1366,22 @@ function classifyTask(text) {
 
 // Preferred provider order per task type (ids, must exist in PROVIDERS)
 const TASK_AFFINITY = {
-  // reasoning → DeepSeek-R1 zuerst (stark aber langsam), dann Qwen3-235B
-  reasoning:   ['chutes', 'featherless', 'openrouter_free', 'hf_free'],
-  // code → Qwen3-235B (coding-spezialisiert), dann HF Serverless
-  code:        ['featherless', 'hf_free', 'openrouter_free', 'pollinations'],
-  // multilingual → Nebius H100 (schnell, viele Sprachen), dann Featherless
-  multilingual:['nebius', 'featherless', 'hf_router', 'pollinations'],
-  // long → Kluster EU + Featherless für großen Kontext
-  long:        ['kluster', 'featherless', 'openrouter_free', 'hf_free'],
-  // chat → Pollinations zuerst (schnellster keyloser), dann Groq Open LPU
-  chat:        ['groq_open', 'pollinations', 'hf_router', 'openrouter_free'],
+  /* Routing basierend auf live-verifizierten Modell-Stärken 2026-07-24 */
+
+  /* reasoning: DeepSeek-R1 via Pollinations (bestätigt live!) → OpenRouter Nemotron-550B */
+  reasoning:   ['pollinations_r1', 'openrouter_free', 'featherless', 'hf_free'],
+
+  /* code: Qwen-Familie dominant (Qwen3-235B via Featherless, Qwen2.5-72B via HF) */
+  code:        ['featherless', 'hf_free', 'pollinations', 'openrouter_free'],
+
+  /* multilingual: HF Router Mistral-Small (24B, multilingual-trainiert) → Pollinations */
+  multilingual:['hf_router', 'pollinations', 'featherless', 'openrouter_free'],
+
+  /* long: OpenRouter Nemotron-550B (1M Kontext!) → Featherless mit internem Fallback */
+  long:        ['openrouter_free', 'featherless', 'hf_free', 'novita'],
+
+  /* chat: Pollinations zuerst (bestätigt, GPT-4o-large, ~1-3s) → HF Router → Featherless */
+  chat:        ['pollinations', 'hf_router', 'openrouter_free', 'featherless'],
 };
 
 function estimateComplexity(text) {
