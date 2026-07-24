@@ -132,6 +132,32 @@ def _rule_console_log_schema() -> dict:
             "issues": [] if ok else ["hardware_console.py schreibt kein {'entries':[...]} Format"],
             "note": "security_sentinel.py erwartet log['entries'] Schlüssel"}
 
+def _rule_graph_seed_exists() -> dict:
+    """data/graph-seed.json muss existieren (knowledge graph für /memory/graph)."""
+    seed = REPO_ROOT / "data" / "graph-seed.json"
+    if not seed.exists():
+        return {"rule": "graph_seed_exists", "ok": False,
+                "issues": ["data/graph-seed.json fehlt — HM_MEMORY_GRAPH_SEED_PATH nicht nutzbar"],
+                "note": "Generieren: python3 scripts/generate_knowledge_graph_seed.py --out data/graph-seed.json"}
+    try:
+        d = json.loads(seed.read_text())
+        nodes = len(d.get("nodes", []))
+        edges = len(d.get("edges", []))
+        return {"rule": "graph_seed_exists", "ok": nodes > 0,
+                "issues": [] if nodes > 0 else ["Seed hat 0 Nodes"],
+                "note": f"{nodes} Nodes, {edges} Edges"}
+    except Exception as e:
+        return {"rule": "graph_seed_exists", "ok": False,
+                "issues": [f"Ungültiges JSON: {e}"], "note": ""}
+
+def _rule_oracle_config_exists() -> dict:
+    """oracle-config.json muss existieren (hugin_oracle.py dead reference)."""
+    cfg = REPO_ROOT / ".claude" / "persona" / "oracle-config.json"
+    ok = cfg.exists()
+    return {"rule": "oracle_config_exists", "ok": ok,
+            "issues": [] if ok else ["oracle-config.json fehlt — hugin_oracle.py hat dead reference"],
+            "note": "Wird von hugin_oracle.py als CONFIG_FILE geladen"}
+
 SYNERGY_RULES = [
     _rule_plugin_response_fields,
     _rule_cargo_deps_consistent,
@@ -139,6 +165,8 @@ SYNERGY_RULES = [
     _rule_env_vars_documented,
     _rule_platform_config_port,
     _rule_console_log_schema,
+    _rule_graph_seed_exists,
+    _rule_oracle_config_exists,
 ]
 
 # ── Index-Operationen ─────────────────────────────────────────────────────────

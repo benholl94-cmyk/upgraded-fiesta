@@ -4,5 +4,17 @@
     "task_type": "echo",
     "payload": { "msg": "cron-heartbeat" },
     "interval_secs": 3600
+  },
+  {
+    "name": "disk-check",
+    "task_type": "ops-tool",
+    "payload": { "operation": "disk_usage" },
+    "interval_secs": 21600
+  },
+  {
+    "name": "memory-check",
+    "task_type": "ops-tool",
+    "payload": { "operation": "memory_usage" },
+    "interval_secs": 21600
   }
 ]

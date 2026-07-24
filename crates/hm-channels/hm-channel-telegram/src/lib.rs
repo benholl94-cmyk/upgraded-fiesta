@@ -21,7 +21,7 @@ pub fn bot_token() -> anyhow::Result<String> {
     hm_auth::load_bot_token(channel_name())
 }
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -56,6 +56,7 @@ pub struct TelegramChat {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct TelegramResponse<T> {
     ok: bool,
     result: Option<T>,
@@ -64,7 +65,7 @@ struct TelegramResponse<T> {
 
 // ── HTTP-Hilfsfunktion (plain TCP, kein TLS — Telegram erfordert HTTPS) ──────
 
-fn telegram_api_post(token: &str, method: &str, body: &Value) -> Result<Value, anyhow::Error> {
+fn telegram_api_post(token: &str, method: &str, _body: &Value) -> Result<Value, anyhow::Error> {
     // Telegram API erfordert HTTPS. Ohne TLS-Bibliothek geben wir einen
     // klaren Fehler zurück — in Production eine TLS-fähige Implementierung verwenden.
     anyhow::bail!(

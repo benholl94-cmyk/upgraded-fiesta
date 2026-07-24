@@ -14,7 +14,7 @@
 //!   hm-cli storage put <key> <value>
 
 use clap::{Parser, Subcommand};
-use hm_core::{optional_env, require_env, HmError};
+use hm_core::{optional_env, HmError};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 

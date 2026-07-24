@@ -19,7 +19,9 @@
 | `HM_STORAGE_BACKEND` | `local` | `local` (uses `HM_STORAGE_ROOT`) or `remote` (uses `HM_REMOTE_STORAGE_URL`/`HM_REMOTE_STORAGE_TOKEN`) -- see "External memory place" below |
 | `HM_REMOTE_STORAGE_URL` | *(unset)* | Required when `HM_STORAGE_BACKEND=remote`: a plain `http://host:port` URL of another `hm-gateway`-compatible `/storage` endpoint |
 | `HM_REMOTE_STORAGE_TOKEN` | *(unset)* | Bearer token sent with every request to `HM_REMOTE_STORAGE_URL`, if that endpoint requires auth (it should) |
-| `HM_MEMORY_GRAPH_SEED_PATH` | *(unset)* | Path to a `scripts/generate_knowledge_graph_seed.py`-shaped JSON file (`{"nodes":[...],"edges":[...]}`), ingested into `hm-memory` at startup -- see "Graph-enhanced memory" below. A missing or malformed file logs a warning and does not block startup. |
+| `HM_MEMORY_GRAPH_SEED_PATH` | *(unset)* | Path to a `scripts/generate_knowledge_graph_seed.py`-shaped JSON file (`{"nodes":[...],"edges":[...]}`), ingested into `hm-memory` at startup -- see "Graph-enhanced memory" below. A missing or malformed file logs a warning and does not block startup. A live seed exists at `data/graph-seed.json` (50 nodes, 72 edges). |
+| `HM_CRON_CONFIG` | `config/cron.json` | Path to the cron job manifest loaded by `hm-cron` at gateway startup. Jobs run as background `POST /tasks` calls to the gateway itself. Missing file = cron silently disabled. |
+| `HM_PLUGIN_MANIFEST` | `config/plugins.json` | Path to the plugin registry mapping `task_type` → subprocess command. |
 
 ## External memory place (`hm-storage::RemoteHttpStorage`)
 
@@ -480,3 +482,35 @@ gateway; it currently doesn't.
   this API actually uses;
 - plugin commands are fixed by the checked-in manifest, never by request input --
   a client selects a registered `task_type`, it cannot supply arbitrary commands.
+
+## Session API (`/sessions/*`)
+
+In-memory conversation session store backed by `hm-sessions::SessionStore`. Sessions are not persisted to disk — they live only while the gateway process is running. All routes require the owner bearer token.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/sessions` | List all session IDs and names |
+| `POST` | `/sessions` | Create a new session; body: `{"name":"optional-label"}` |
+| `GET` | `/sessions/{id}` | Fetch a session and its full message history |
+| `POST` | `/sessions/{id}` | Append a message; body: `{"role":"user","content":"..."}` |
+| `DELETE` | `/sessions/{id}` | Delete a session |
+
+## Cron scheduler (`hm-cron`)
+
+`hm-cron` runs as a `tokio::spawn`-ed background task inside `hm-gateway`. On startup it loads `HM_CRON_CONFIG` (default `config/cron.json`), derives a `JobState` per entry, and submits each due job as a `POST /tasks` to `http://{HM_GATEWAY_BIND}` with the owner token. The bearer token used for internal cron calls is the same `HM_OWNER_TOKEN` the gateway itself was started with. If `HM_CRON_CONFIG` does not exist, the cron scheduler is silently disabled — no panic, no log noise.
+
+Example `config/cron.json`:
+```json
+[
+  {
+    "name": "heartbeat",
+    "task_type": "echo",
+    "payload": { "msg": "cron-heartbeat" },
+    "interval_secs": 3600
+  }
+]
+```
+
+## Autonomy layer (Python, out-of-process)
+
+`scripts/autonomy_core.py` and `scripts/repo_tracker.py` are not part of the Rust gateway binary. They run as separate Python processes and interact with the gateway only via its HTTP API (same bearer-token auth). They are the self-monitoring / self-healing / self-documentation layer of the platform and are tracked in `.claude/persona/autonomy-state.json`.
