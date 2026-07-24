@@ -1,6 +1,14 @@
-# Fullstack Heavy Metal
+# HUGIN · Autark — Selbstlernender AI-Router
 
-Generated from the uploaded Markdown specification as a Rust workspace.
+[![CI](https://github.com/benholl94-cmyk/upgraded-fiesta/actions/workflows/ci.yml/badge.svg)](https://github.com/benholl94-cmyk/upgraded-fiesta/actions/workflows/ci.yml)
+[![Secret Scan](https://github.com/benholl94-cmyk/upgraded-fiesta/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/benholl94-cmyk/upgraded-fiesta/actions/workflows/secret-scan.yml)
+[![HUGIN PWA](https://img.shields.io/badge/HUGIN-PWA%20installierbar-3ef4e6?style=flat&logo=pwa)](https://benholl94-cmyk.github.io/upgraded-fiesta/)
+
+> Provider-agnostischer AI-Router mit autonomem Fallback-Kern.  
+> Kein API-Key nötig für den Start — Pollinations AI als kostenloser Einstieg.  
+> Als PWA auf dem iPhone installierbar: Overlay-HUD über dem Homescreen-Wallpaper.
+
+**Topics:** `ai-router` · `pwa` · `rust` · `self-hosting` · `autonomous-agent` · `llm` · `iphone` · `offline-first`
 
 ## Includes
 
