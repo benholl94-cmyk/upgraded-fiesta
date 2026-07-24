@@ -12,34 +12,75 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='22' d='M64 320 Q128 144 256 128 Q384 144 448 320 Q352 272 320 336 Q288 240 256 240 Q224 240 192 336 Q160 272 64 320Z'/%3E%3Ccircle cx='208' cy='208' r='14' fill='%233ef4e6'/%3E%3Ccircle cx='304' cy='208' r='14' fill='%233ef4e6'/%3E%3C/svg%3E">
 <title>HUGIN · Admin</title>
 <script>
-/* ── ADMIN GATE ─────────────────────────────────────────────────
-   FNV-1a hash des Owner-Tokens. Kein Plaintext im Code.
-   Setup: ?admin=HUGIN-2026-ADMIN (einmalig, speichert in localStorage)
-   Ohne gültiges Token → Redirect zu ./lite/
+/* ── ADMIN GATE v2 ───────────────────────────────────────────────
+   SHA-256 via Web Crypto API (browser built-in, kein CDN).
+   Kein Plaintext-Token je im Source-Code oder Commit-History.
+   One-Time-Seal: nach erstem Setup wird ?admin= permanent gesperrt.
+   Mechanismus:
+     1. Beim ersten Aufruf mit ?admin=TOKEN:
+        - SHA-256 von TOKEN wird berechnet (async, blocking via Promise)
+        - Stimmt mit ADMIN_SHA256 überein → TOKEN in localStorage,
+          Seal-Flag gesetzt, URL bereinigt
+     2. Bei jedem weiteren Aufruf: gespeicherter Token wird erneut
+        via SHA-256 verifiziert
+     3. Nach dem Seal: ?admin= Parameter wird komplett ignoriert
+        (verhindert Token-Rotation-Angriffe)
    ────────────────────────────────────────────────────────────── */
 (function(){
-  function fnv1a(s){
-    let h=2166136261>>>0;
-    for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
-    return h;
+  const ADMIN_SHA256 = '467d9c07c1e93eb77d63c39ba7f1bac3d99e3ad1f6d89427346c916e96fda18c';
+  const KEY_TOKEN  = 'hugin_admin_v2';
+  const KEY_SEALED = 'hugin_admin_v2_sealed';
+
+  function buf2hex(buf){
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
   }
-  const ADMIN_HASH = 0x8F3A1C74; /* fnv1a("HUGIN-2026-ADMIN") */
-  const KEY = 'hugin_admin_v1';
-  const p = new URLSearchParams(location.search);
-  if(p.has('admin')){
-    const tok = p.get('admin');
-    if(fnv1a(tok) === ADMIN_HASH){
-      localStorage.setItem(KEY, tok);
-      /* URL bereinigen ohne Reload */
-      history.replaceState(null,'',location.pathname);
+  async function sha256(str){
+    const enc = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', enc);
+    return buf2hex(hash);
+  }
+
+  async function boot(){
+    const sealed = localStorage.getItem(KEY_SEALED) === '1';
+    const p = new URLSearchParams(location.search);
+
+    /* Seal gesetzt → ?admin= wird komplett ignoriert */
+    if(!sealed && p.has('admin')){
+      const tok = p.get('admin');
+      const h = await sha256(tok);
+      if(h === ADMIN_SHA256){
+        localStorage.setItem(KEY_TOKEN, tok);
+        localStorage.setItem(KEY_SEALED, '1');
+        history.replaceState(null, '', location.pathname);
+      } else {
+        /* Falsches Token → Lite-Version */
+        location.replace('./lite/');
+        return;
+      }
     }
+
+    /* Token aus Storage prüfen */
+    const stored = localStorage.getItem(KEY_TOKEN);
+    if(!stored){
+      location.replace('./lite/');
+      return;
+    }
+    const h2 = await sha256(stored);
+    if(h2 !== ADMIN_SHA256){
+      /* Manipulierter Storage-Wert */
+      localStorage.removeItem(KEY_TOKEN);
+      localStorage.removeItem(KEY_SEALED);
+      location.replace('./lite/');
+      return;
+    }
+    window.__HUGIN_ADMIN = true;
+    /* Verstecktes DOM-Flag entfernen (Seite bleibt unsichtbar bis hier) */
+    document.documentElement.style.visibility = 'visible';
   }
-  const stored = localStorage.getItem(KEY);
-  if(!stored || fnv1a(stored) !== ADMIN_HASH){
-    /* Kein gültiges Admin-Token → Lite-Version */
-    location.replace('./lite/');
-  }
-  window.__HUGIN_ADMIN = true;
+
+  /* Seite zunächst unsichtbar halten bis Gate-Check abgeschlossen */
+  document.documentElement.style.visibility = 'hidden';
+  boot().catch(() => location.replace('./lite/'));
 })();
 </script>
 <style>
