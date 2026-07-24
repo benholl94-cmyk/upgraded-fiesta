@@ -4,10 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#00000000">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HUGIN">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='22' d='M64 320 Q128 144 256 128 Q384 144 448 320 Q352 272 320 336 Q288 240 256 240 Q224 240 192 336 Q160 272 64 320Z'/%3E%3Ccircle cx='208' cy='208' r='14' fill='%233ef4e6'/%3E%3Ccircle cx='304' cy='208' r='14' fill='%233ef4e6'/%3E%3C/svg%3E">
 <title>HUGIN · Autark</title>
 <style>
   :root{
@@ -566,6 +568,42 @@ function score(id) {
    Pflichtfelder: id, name, kind, ready(), call(messages, onToken) → {text, latencyMs}
    ============================================================ */
 const PROVIDERS = [];
+
+/* Provider-Timeouts (ms) — basierend auf bekannten Latenz-Profilen.
+   Schnelle Provider bekommen kurze Timeouts, langsame mehr Zeit.
+   Der Router wechselt automatisch zum nächsten wenn timeout überschritten. */
+const PROVIDER_TIMEOUT = {
+  pollinations:    12000,   /* ~1-3s typisch */
+  groq_open:        8000,   /* Groq LPU ~0.5-2s */
+  groq:             8000,
+  hf_router:       15000,   /* HF Router ~2-5s */
+  openrouter_free: 20000,   /* ~3-8s, freie Tier langsamer */
+  hf_free:         25000,   /* HF Serverless cold start ~5-15s */
+  chutes:          30000,   /* DeepSeek-R1 reasoning ~5-20s */
+  featherless:     25000,   /* Qwen3-235B ~3-12s */
+  sambanova:       15000,
+  scaleway:        20000,
+  nebius:          15000,
+  novita:          20000,
+  kluster:         25000,
+  glhf:            25000,
+  github_models:   15000,
+  google:          15000,
+  together:        15000,
+  cohere:          15000,
+  xai:             15000,
+  openclaw:        30000,
+  custom:          30000,
+  local:           60000,   /* WebGPU lokal — kein Netzwerk */
+  reflex:           1000,   /* Offline-Kern — sofort */
+};
+
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label}: Timeout nach ${ms/1000}s`)), ms);
+    promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
 
 function registerProvider(p) { PROVIDERS.push(p); }
 
@@ -1450,7 +1488,8 @@ async function routeAndCallRaw(messages, onToken, onProvider) {
     const provider = PROVIDERS.find(p => p.id === id);
     onProvider && onProvider(provider, 'versuch');
     try {
-      const { text, latencyMs } = await provider.call(messages, onToken);
+      const ms = PROVIDER_TIMEOUT[id] ?? 20000;
+      const { text, latencyMs } = await withTimeout(provider.call(messages, onToken), ms, provider.name);
       updateStat(id, true, latencyMs);
       onProvider && onProvider(provider, 'erfolg', latencyMs);
       return { text, provider };
@@ -1842,6 +1881,14 @@ renderProviderStats();
     hint.addEventListener('click', ()=>{ hint.classList.remove('visible'); });
   }
 })();
+
+/* Service Worker registrieren — ermöglicht Homescreen-Installation + Offline-Cache */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch(err => console.warn('SW registration failed:', err));
+  });
+}
 </script>
 </body>
 </html>
