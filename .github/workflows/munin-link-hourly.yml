@@ -1,0 +1,27 @@
+name: MUNIN-Link Hourly Broadcast
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: MUNIN Status Broadcast
+        run: python3 .claude/skills/munin-link/scripts/munin_link.py broadcast "CI-Scheduler: stündlicher Status-Check"
+
+      - name: Commit status file if changed
+        run: |
+          git config user.email "noreply@anthropic.com"
+          git config user.name "MUNIN"
+          if git diff --quiet .claude/persona/munin-link-status.json 2>/dev/null; then
+            echo "No changes."
+          else
+            git add .claude/persona/munin-link-status.json
+            git commit -m "chore(munin): hourly status broadcast [skip ci]"
+            git push origin HEAD
+          fi
