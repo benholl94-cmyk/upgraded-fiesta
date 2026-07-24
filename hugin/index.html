@@ -976,6 +976,26 @@ const ReflexKernel = (() => {
 
 function reflexAnswer(q) { return ReflexKernel.answer(q); }
 
+/* --- Pollinations.ai — kostenlos, kein Key, sofort nutzbar --- */
+registerProvider({
+  id: 'pollinations', name: 'Pollinations · kostenlos', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'openai-large', messages, stream: false, seed: -1 })
+    });
+    if (!res.ok) throw new Error('Pollinations HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Pollinations: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
 registerProvider({
   id: 'reflex', name: 'Reflex · autarker Kern', kind: 'local',
   ready() { return true; },
