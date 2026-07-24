@@ -57,4 +57,5 @@ logs/
 .claude/persona/console-log.json
 .claude/persona/security-report.json
 .claude/persona/security-baseline.json
+.claude/persona/munin-state.json
 self_space_workspace_/.container_self_cycle_int+ext_.env
