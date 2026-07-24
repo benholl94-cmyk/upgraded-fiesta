@@ -10,7 +10,38 @@
 <meta name="apple-mobile-web-app-title" content="HUGIN">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='22' d='M64 320 Q128 144 256 128 Q384 144 448 320 Q352 272 320 336 Q288 240 256 240 Q224 240 192 336 Q160 272 64 320Z'/%3E%3Ccircle cx='208' cy='208' r='14' fill='%233ef4e6'/%3E%3Ccircle cx='304' cy='208' r='14' fill='%233ef4e6'/%3E%3C/svg%3E">
-<title>HUGIN · Autark</title>
+<title>HUGIN · Admin</title>
+<script>
+/* ── ADMIN GATE ─────────────────────────────────────────────────
+   FNV-1a hash des Owner-Tokens. Kein Plaintext im Code.
+   Setup: ?admin=HUGIN-2026-ADMIN (einmalig, speichert in localStorage)
+   Ohne gültiges Token → Redirect zu ./lite/
+   ────────────────────────────────────────────────────────────── */
+(function(){
+  function fnv1a(s){
+    let h=2166136261>>>0;
+    for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
+    return h;
+  }
+  const ADMIN_HASH = 0x8F3A1C74; /* fnv1a("HUGIN-2026-ADMIN") */
+  const KEY = 'hugin_admin_v1';
+  const p = new URLSearchParams(location.search);
+  if(p.has('admin')){
+    const tok = p.get('admin');
+    if(fnv1a(tok) === ADMIN_HASH){
+      localStorage.setItem(KEY, tok);
+      /* URL bereinigen ohne Reload */
+      history.replaceState(null,'',location.pathname);
+    }
+  }
+  const stored = localStorage.getItem(KEY);
+  if(!stored || fnv1a(stored) !== ADMIN_HASH){
+    /* Kein gültiges Admin-Token → Lite-Version */
+    location.replace('./lite/');
+  }
+  window.__HUGIN_ADMIN = true;
+})();
+</script>
 <style>
   :root{
     --void:#05070a;
@@ -498,6 +529,9 @@
   <div class="headline">
     <h1>HUGIN</h1>
     <div class="sub" id="subtitle">Gedanke fliegt — Erinnerung bleibt · v2.1.0 SYNTHESE</div>
+    <div style="display:inline-flex;align-items:center;gap:5px;margin-top:3px;">
+      <span style="font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:#ffb84d;background:rgba(255,184,77,.1);border:1px solid rgba(255,184,77,.35);border-radius:3px;padding:1px 6px;">ADMIN</span>
+    </div>
   </div>
   <button class="iconbtn" id="btnDrawer" aria-label="Einstellungen">⚙</button>
 </header>

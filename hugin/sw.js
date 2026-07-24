@@ -1,10 +1,12 @@
 /* HUGIN Service Worker — Cache-First, Offline-capable */
-const CACHE = 'hugin-v4';
+const CACHE = 'hugin-v5';
 const SHELL = [
   './',
   './index.html',
   './hugin.html',
   './manifest.json',
+  './lite/',
+  './lite/index.html',
 ];
 
 self.addEventListener('install', e => {
