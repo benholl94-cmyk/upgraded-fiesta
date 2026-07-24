@@ -1602,6 +1602,28 @@ function candidateOrder(complexity, taskType) {
   return [...new Set(chain)]; // deduplizieren
 }
 
+/* ── Response Validation Gate ──────────────────────────────────
+   Schützt gegen: leere Antworten, Error-JSON-Passthrough,
+   abgeschnittene Code-Blöcke (ungerade ``` Fences), zu kurze
+   Antworten auf lange Prompts. Kein Nutzer-Output bei Fail —
+   silent retry mit nächstem Provider.
+   ────────────────────────────────────────────────────────────── */
+function validateResponse(text, promptLen) {
+  if (!text || text.length < 3)
+    return { ok: false, reason: 'empty' };
+  // Error-JSON passthrough (Provider schickt Fehlerobjekt als Text)
+  if (/^\{"error"/.test(text.trim()) || /^Error:/.test(text.trim()))
+    return { ok: false, reason: 'error_passthrough' };
+  // Abgeschnittene Code-Blöcke: ungerade ``` Zählung
+  const fences = (text.match(/```/g) || []).length;
+  if (fences > 0 && fences % 2 !== 0)
+    return { ok: false, reason: 'truncated_code' };
+  // Zu kurze Antwort bei langer Anfrage (Antwort-Verweigerung oder Timeout-Artefakt)
+  if (promptLen > 80 && text.length < 8)
+    return { ok: false, reason: 'too_short' };
+  return { ok: true };
+}
+
 async function routeAndCallRaw(messages, onToken, onProvider) {
   const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content || '';
   const complexity = estimateComplexity(lastUser);
@@ -1612,12 +1634,23 @@ async function routeAndCallRaw(messages, onToken, onProvider) {
   for (const id of order) {
     const provider = PROVIDERS.find(p => p.id === id);
     onProvider && onProvider(provider, 'versuch');
+    let accumulated = '';
+    const wrappedOnToken = onToken ? (tok) => { accumulated += tok; onToken(tok); } : (tok) => { accumulated += tok; };
     try {
       const ms = PROVIDER_TIMEOUT[id] ?? 20000;
-      const { text, latencyMs } = await withTimeout(provider.call(messages, onToken), ms, provider.name);
+      const { text, latencyMs } = await withTimeout(provider.call(messages, wrappedOnToken), ms, provider.name);
+      const finalText = accumulated || text || '';
+      const vResult = validateResponse(finalText, lastUser.length);
+      if (!vResult.ok) {
+        // Validation failed — treat as soft error, try next provider silently
+        updateStat(id, false, latencyMs ?? 0);
+        onProvider && onProvider(provider, 'fehler', 0, `validation:${vResult.reason}`);
+        lastErr = new Error(`${provider.name}: ${vResult.reason}`);
+        continue;
+      }
       updateStat(id, true, latencyMs);
       onProvider && onProvider(provider, 'erfolg', latencyMs);
-      return { text, provider };
+      return { text: finalText, provider };
     } catch (e) {
       updateStat(id, false, 9999);
       onProvider && onProvider(provider, 'fehler', 0, e.message);
