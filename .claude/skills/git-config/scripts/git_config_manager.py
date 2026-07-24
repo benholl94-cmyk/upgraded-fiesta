@@ -57,10 +57,10 @@ PROTECTED_EMAILS = {
 
 
 def run(cmd: list[str], check=True, capture=True) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        cmd, cwd=REPO_ROOT, check=check,
-        capture_output=capture, text=True,
-    )
+    kwargs = {"cwd": REPO_ROOT, "check": check, "text": True}
+    if capture:
+        kwargs["capture_output"] = True
+    return subprocess.run(cmd, **kwargs)
 
 
 def current_config() -> tuple[str, str]:
@@ -141,7 +141,8 @@ def cmd_fix_tip(args: list[str]) -> None:
         print(f"{C['YL']}⚠{C['R']} Tip-Commit ist ein Merge-Commit — wird nicht angefasst.")
         return
 
-    run(["git", "commit", "--amend", "--no-edit", "--reset-author"])
+    # capture_output=False: signing program (/tmp/code-sign) benötigt vollen FD-Zugang
+    run(["git", "commit", "--amend", "--no-edit", "--reset-author"], capture=False)
     tip = run(["git", "log", "-1", "--format=%H %ae"]).stdout.strip()
     h, ae = tip.split(" ", 1)
     print(f"{C['GR']}✓{C['R']} Tip-Commit re-authored: {h[:8]} <{ae}>")
@@ -178,7 +179,7 @@ def cmd_rebase_fix(args: list[str]) -> None:
     exec_cmd = "git commit --amend --no-edit --reset-author"
     result = run(
         ["git", "rebase", "--exec", exec_cmd, base],
-        check=False,
+        check=False, capture=False,
     )
     if result.returncode != 0:
         print(f"{C['RD']}Rebase-Fehler:{C['R']}\n{result.stderr[:400]}")
