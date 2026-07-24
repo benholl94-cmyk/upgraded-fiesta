@@ -210,7 +210,7 @@ pub fn run_plugin() {
         Ok(result) => {
             let status = result.status;
             let value = serde_json::to_value(&result).unwrap_or(Value::Null);
-            write_response(status >= 200 && status < 300, value, "ok");
+            write_response((200..300).contains(&status), value, "ok");
         }
         Err(e) => write_response(false, Value::Null, &e),
     }

@@ -19,7 +19,7 @@ pub fn bot_token() -> anyhow::Result<String> {
 }
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 
 // ── Slack Event Typen ─────────────────────────────────────────────────────────
 

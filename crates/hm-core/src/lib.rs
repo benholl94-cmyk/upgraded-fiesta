@@ -1,7 +1,7 @@
-/// Gemeinsame Typen und Hilfsfunktionen für den gesamten hm-Workspace.
-///
-/// Alle Crates können dieses Crate als Dependency einbinden um einheitliche
-/// Fehlertypen, Versionsinfos und Config-Hilfsfunktionen zu verwenden.
+//! Gemeinsame Typen und Hilfsfunktionen für den gesamten hm-Workspace.
+//!
+//! Alle Crates können dieses Crate als Dependency einbinden um einheitliche
+//! Fehlertypen, Versionsinfos und Config-Hilfsfunktionen zu verwenden.
 
 /// Workspace-weite Version (gespiegelt aus `Cargo.toml`).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

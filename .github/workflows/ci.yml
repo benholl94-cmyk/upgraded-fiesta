@@ -52,7 +52,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install UI dependencies
-        run: npm ci
+        run: npm install --no-save
         working-directory: ui
       - name: TypeScript type-check
         run: npx tsc --noEmit
