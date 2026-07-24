@@ -88,5 +88,32 @@
     "constitution": ".claude/persona/constitution.json (diese Datei)",
     "gateway": "crates/hm-gateway — einzige HTTP-Außenfläche",
     "ui": "ui/ — React/Vite Steuerfeld"
+  },
+
+  "platformModel": {
+    "host": "Anthropic CCR (Claude Code Remote)",
+    "gitIdentity": {
+      "committer": "Claude <noreply@anthropic.com>",
+      "authority": "CCR-Plattform — setzt bei jedem Session-Start via ~/.claude/session-start-git-identity.sh",
+      "masterRepresentation": "Co-authored-by Trailer via CCR_SESSION_ACCOUNT_EMAIL — offizieller Mechanismus",
+      "munin_profile_scope": "intra-session only — kein persistentes Override möglich"
+    },
+    "skillPaths": {
+      "official": ".claude/skills/<name>/SKILL.md",
+      "agentsDir": ".claude/agents/<name>.md — nicht offiziell, Fallback behalten",
+      "munin_loaded_via": "beide Pfade — .claude/skills/munin/SKILL.md (offiziell) + .claude/agents/munin.md (Fallback)"
+    },
+    "settingsJson": {
+      "project": ".claude/settings.json — FEHLT, braucht Master-Genehmigung für Permissions",
+      "global": "~/.claude/launcher-settings.json — CCR-managed"
+    },
+    "collisionsResolved": [
+      "git-identity: munin-Profil als intra-session markiert, claude als Standard dokumentiert",
+      "agents-dir: munin.md nach .claude/skills/munin/SKILL.md dupliziert",
+      "persona-dir: funktioniert als Datenspeicher, kein Claude-Code-Konflikt"
+    ],
+    "pendingMasterDecision": [
+      ".claude/settings.json Permissions-Einträge — welche Wildcards erlaubt?"
+    ]
   }
 }
