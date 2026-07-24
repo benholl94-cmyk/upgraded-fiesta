@@ -280,6 +280,21 @@ runs across two genuinely independent hosts (Phase 2), with `nginx-lb.conf`
 updated to real external addresses — no code change needed, only operational
 deployment.
 
+## Phase 6 — HUGIN PWA Frontend — **done**
+
+**Goal**: a zero-install, zero-key AI interface deployable on any device including iPhone, served via GitHub Pages.
+
+**Done** (`hugin/`):
+- Single-file PWA (`hugin.html` / `index.html`), no build step, no server
+- 24 registered AI providers: 20 keyless (Pollinations, Chutes/DeepSeek-R1, Featherless/Qwen3-235B, GLHF/DeepSeek-V3, OpenRouter:free, HuggingFace Serverless, HF Router, Kluster/Llama-4-Maverick, Nebius/H100, Novita/Qwen3-235B, SambaNova/Llama-4, Scaleway, Groq Open, GitHub Models) + 4 keyed (Groq, Google Gemini, Together, Cohere, xAI, OpenClaw, Custom)
+- Intelligent task router: `classifyTask()` (regex-based, 5 categories) → `TASK_AFFINITY` → `candidateOrder()` with EMA scoring and Set-deduplication
+- ReflexKernel offline fallback (math, date/time, system commands) — works fully without network
+- FNV-1a integrity seal + dual-slot A/B localStorage state
+- GitHub Pages deployment via `hugin-pages.yml` (uploads `hugin/` directory)
+- Synergy enforcement: `hugin_index_sync` rule in `repo_tracker.py`, `HUGIN index.html sync check` step in `ci.yml`
+
+**Seam to Phase 4**: HUGIN's `openclaw` provider can proxy to a real `hm-gateway` instance (Phase 2 → Phase 4) once live LLM plugin is verified.
+
 ## How to use this plan
 
 Each phase stands alone — pick one, and it's a normal PR-sized piece of

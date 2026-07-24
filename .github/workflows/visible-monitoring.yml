@@ -2,8 +2,10 @@ name: visible-monitoring
 
 on:
   push:
+    branches: ["main"]
     paths-ignore:
-      - logs/visible-monitoring-report.json
+      - "logs/**"
+      - "**.md"
   workflow_dispatch:
   schedule:
     - cron: '23 */6 * * *'

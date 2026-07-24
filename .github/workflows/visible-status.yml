@@ -2,12 +2,13 @@ name: visible-status
 
 on:
   push:
+    branches: ["main"]
     paths-ignore:
-      - logs/visible-status.json
-      - logs/monitoring-report.json
+      - "logs/**"
+      - "**.md"
   workflow_dispatch:
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '41 */6 * * *'
 
 permissions:
   contents: write

@@ -158,6 +158,39 @@ def _rule_oracle_config_exists() -> dict:
             "issues": [] if ok else ["oracle-config.json fehlt — hugin_oracle.py hat dead reference"],
             "note": "Wird von hugin_oracle.py als CONFIG_FILE geladen"}
 
+def _rule_hugin_index_sync() -> dict:
+    """hugin/index.html muss bytewise identisch mit hugin/hugin.html sein (GitHub Pages root)."""
+    src = REPO_ROOT / "hugin" / "hugin.html"
+    dst = REPO_ROOT / "hugin" / "index.html"
+    if not src.exists():
+        return {"rule": "hugin_index_sync", "ok": False,
+                "issues": ["hugin/hugin.html fehlt"], "note": ""}
+    if not dst.exists():
+        return {"rule": "hugin_index_sync", "ok": False,
+                "issues": ["hugin/index.html fehlt — GitHub Pages liefert 404 auf /"],
+                "note": "Fix: cp hugin/hugin.html hugin/index.html"}
+    src_hash = hashlib.sha256(src.read_bytes()).hexdigest()[:16]
+    dst_hash = hashlib.sha256(dst.read_bytes()).hexdigest()[:16]
+    ok = src_hash == dst_hash
+    return {"rule": "hugin_index_sync", "ok": ok,
+            "issues": [] if ok else [f"hugin.html ({src_hash}) ≠ index.html ({dst_hash}) — Pages wäre veraltet"],
+            "note": "Fix: cp hugin/hugin.html hugin/index.html && git add + commit"}
+
+def _rule_knowledge_feeds_reachable() -> dict:
+    """Alle enabled Feeds in config/knowledge-feeds.json müssen existieren und enabled sein."""
+    feeds_file = REPO_ROOT / "config" / "knowledge-feeds.json"
+    if not feeds_file.exists():
+        return {"rule": "knowledge_feeds_reachable", "ok": False,
+                "issues": ["config/knowledge-feeds.json fehlt"], "note": ""}
+    feeds = json.loads(feeds_file.read_text())
+    enabled = [f for f in feeds if f.get("enabled", True)]
+    issues = []
+    for f in enabled:
+        if "github.com/trending" in f.get("url", ""):
+            issues.append(f"{f['name']}: github.com/trending gibt 403 in CI zurück — ersetzen durch Atom/API")
+    return {"rule": "knowledge_feeds_reachable", "ok": len(issues) == 0,
+            "issues": issues, "note": f"{len(enabled)} Feeds aktiv"}
+
 SYNERGY_RULES = [
     _rule_plugin_response_fields,
     _rule_cargo_deps_consistent,
@@ -167,6 +200,8 @@ SYNERGY_RULES = [
     _rule_console_log_schema,
     _rule_graph_seed_exists,
     _rule_oracle_config_exists,
+    _rule_hugin_index_sync,
+    _rule_knowledge_feeds_reachable,
 ]
 
 # ── Index-Operationen ─────────────────────────────────────────────────────────

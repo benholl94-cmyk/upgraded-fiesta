@@ -8,12 +8,12 @@
     "note": "Official HN Firebase API — public, no key, no scraping. Returns top story IDs."
   },
   {
-    "name": "GitHub Trending (public page)",
-    "url": "https://github.com/trending",
-    "tags": ["github", "trending", "code"],
+    "name": "GitHub Release Notes (Atom)",
+    "url": "https://github.com/rust-lang/rust/releases.atom",
+    "tags": ["github", "rust", "release"],
     "max_chars": 3000,
     "enabled": true,
-    "note": "Publicly accessible, read-only."
+    "note": "GitHub public Atom feed — no auth, no scraping. github.com/trending returns 403 in CI."
   },
   {
     "name": "Rust Blog",
@@ -30,5 +30,13 @@
     "max_chars": 4000,
     "enabled": true,
     "note": "HuggingFace daily paper highlights. Publicly accessible."
+  },
+  {
+    "name": "arxiv AI (RSS)",
+    "url": "https://rss.arxiv.org/rss/cs.AI",
+    "tags": ["ai", "research", "arxiv"],
+    "max_chars": 3000,
+    "enabled": true,
+    "note": "arXiv cs.AI daily RSS — public, no key, lightweight XML feed."
   }
 ]

@@ -2,6 +2,9 @@ name: ci
 
 on:
   push:
+    paths-ignore:
+      - "logs/**"
+      - "docs/master-dossier.html"
   pull_request:
   workflow_dispatch:
 
@@ -42,6 +45,14 @@ jobs:
         run: python3 scripts/validate_repo.py
       - name: Run pytest
         run: python3 -m pytest tests/ -q
+      - name: HUGIN index.html sync check
+        run: |
+          if ! diff -q hugin/hugin.html hugin/index.html > /dev/null 2>&1; then
+            echo "ERROR: hugin/index.html is out of sync with hugin/hugin.html"
+            echo "Fix: cp hugin/hugin.html hugin/index.html"
+            exit 1
+          fi
+          echo "hugin/index.html in sync ✓"
 
   ui:
     name: UI (tsc · vite build)

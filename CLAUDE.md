@@ -47,10 +47,11 @@ Provider-Keys: **niemals committen**. Lokal setzen: `export HUGIN_GEMINI_KEY=...
 
 ## Repository scope
 
-This is a Rust workspace ("Fullstack Heavy Metal") with a Vite/React UI scaffold, plus two independent, unrelated projects living in the same repo:
+This is a Rust workspace ("Fullstack Heavy Metal") with a Vite/React UI scaffold, plus independent projects living in the same repo:
 
 - `crates/` — the Rust workspace (backend/gateway).
 - `ui/` — the React/Vite control-plane frontend.
+- `hugin/` — **HUGIN PWA**: single-file no-build AI interface (`hugin.html` + `index.html`), deployed to GitHub Pages (`benholl94-cmyk.github.io/upgraded-fiesta`). 24 providers (20 keyless), task-aware router, offline ReflexKernel. `index.html` MUST be a bytewise copy of `hugin.html` — enforced by synergy rule `hugin_index_sync` and CI step. **After any edit to `hugin.html` always run:** `cp hugin/hugin.html hugin/index.html`
 - `ghm_core/` + root `pyproject.toml` — `ghm-core`, a real installable pip package (console script `ghm-core`) providing local workspace/onboarding tooling.
 - `iphone-dev-platform/` — a **fully self-contained** static site (German-language iPhone local-dev setup guide) imported from an unrelated, disconnected git history. It has its own `package.json`, `validate.py`/`test-validate.py`, and must be tested from inside that directory (`cd iphone-dev-platform && npm test`), never from the repo root. Do not assume anything in it shares code, dependencies, or conventions with the Rust workspace.
 
