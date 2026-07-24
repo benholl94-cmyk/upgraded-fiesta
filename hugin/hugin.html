@@ -3,18 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#05070a">
+<meta name="theme-color" content="#00000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HUGIN">
+<link rel="manifest" href="manifest.json">
 <title>HUGIN · Autark</title>
 <style>
   :root{
     --void:#05070a;
-    --panel:#0b0f16;
-    --panel2:#10151f;
-    --line:#1c2430;
+    --glass-bg:rgba(5,7,10,.78);
+    --glass-panel:rgba(11,15,22,.72);
+    --glass-panel2:rgba(16,21,31,.68);
+    --glass-blur:18px;
+    --line:rgba(62,244,230,.13);
+    --line-solid:#1c2430;
     --cyan:#3ef4e6;
+    --cyan-glow:rgba(62,244,230,.22);
     --magenta:#ff3ec8;
     --amber:#ffb84d;
     --green:#39ff9d;
@@ -22,112 +27,304 @@
     --text:#dfe8ee;
     --dim:#6b7a8c;
     --mono:'SF Mono','Menlo','Consolas',monospace;
+    --scan:repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,.06) 3px,
+      rgba(0,0,0,.06) 4px
+    );
+    --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   }
+
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
+  html{height:100%; background:#000;}
   body{
-    margin:0; background:
-      radial-gradient(ellipse at top, #0d1420 0%, var(--void) 55%);
+    margin:0;
+    background:
+      var(--scan),
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(62,244,230,.06) 0%, transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(255,62,200,.04) 0%, transparent 50%),
+      rgba(5,7,10,.82);
     color:var(--text); font-family:-apple-system,system-ui,sans-serif;
-    display:flex; flex-direction:column; min-height:100vh;
+    display:flex; flex-direction:column; min-height:100dvh;
     overflow-x:hidden;
+    /* In PWA standalone mode this lets iOS wallpaper bleed through the scan-line mask */
+    -webkit-backdrop-filter:blur(0px);
+    backdrop-filter:blur(0px);
   }
+
+  /* ── Ambient edge glow (HUD frame mask) ── */
+  body::before{
+    content:'';
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    border:1px solid rgba(62,244,230,.08);
+    border-radius:0;
+    box-shadow:
+      inset 0 0 40px rgba(62,244,230,.04),
+      inset 0 0 1px rgba(62,244,230,.18),
+      0 0 0 1px rgba(62,244,230,.05);
+  }
+
+  /* ── Corner bracket decorators ── */
+  body::after{
+    content:'';
+    position:fixed; inset:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+    pointer-events:none; z-index:0;
+    background:
+      /* top-left */
+      linear-gradient(var(--cyan),var(--cyan)) top 0 left 0 / 1px 20px no-repeat,
+      linear-gradient(var(--cyan),var(--cyan)) top 0 left 0 / 20px 1px no-repeat,
+      /* top-right */
+      linear-gradient(var(--cyan),var(--cyan)) top 0 right 0 / 1px 20px no-repeat,
+      linear-gradient(var(--cyan),var(--cyan)) top 0 right 0 / 20px 1px no-repeat,
+      /* bottom-left */
+      linear-gradient(var(--cyan),var(--cyan)) bottom 0 left 0 / 1px 20px no-repeat,
+      linear-gradient(var(--cyan),var(--cyan)) bottom 0 left 0 / 20px 1px no-repeat,
+      /* bottom-right */
+      linear-gradient(var(--cyan),var(--cyan)) bottom 0 right 0 / 1px 20px no-repeat,
+      linear-gradient(var(--cyan),var(--cyan)) bottom 0 right 0 / 20px 1px no-repeat;
+    opacity:.35;
+    animation:cornerPulse 4s ease-in-out infinite;
+  }
+  @keyframes cornerPulse{0%,100%{opacity:.25} 50%{opacity:.55}}
+
   header{
-    padding:14px 16px 10px; display:flex; align-items:center; gap:10px;
-    border-bottom:1px solid var(--line); backdrop-filter:blur(6px);
-    -webkit-backdrop-filter:blur(6px);
-    position:sticky; top:0; z-index:20; background:rgba(5,7,10,.85);
+    padding:calc(14px + env(safe-area-inset-top)) 16px 10px;
+    display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--line);
+    backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
+    position:sticky; top:0; z-index:20;
+    background:rgba(5,7,10,.75);
+    box-shadow:0 1px 0 rgba(62,244,230,.08), 0 4px 24px rgba(0,0,0,.4);
   }
-  .raven{ width:30px;height:30px;flex:none; }
+  .raven{ width:30px;height:30px;flex:none; position:relative; }
   .raven svg{width:100%;height:100%;display:block;}
+  .raven::after{
+    content:'';
+    position:absolute; inset:-6px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(62,244,230,.18) 0%, transparent 70%);
+    animation:ravenPulse 3s ease-in-out infinite;
+  }
+  @keyframes ravenPulse{0%,100%{transform:scale(.9);opacity:.6} 50%{transform:scale(1.1);opacity:1}}
+
   h1{font-size:15px; letter-spacing:.28em; margin:0; font-weight:700;
-     color:var(--cyan); text-shadow:0 0 12px rgba(62,244,230,.5);}
+     color:var(--cyan);
+     text-shadow:0 0 16px rgba(62,244,230,.6), 0 0 40px rgba(62,244,230,.2);}
   .sub{font-size:10px; color:var(--dim); letter-spacing:.08em; margin-top:2px;}
   .headline{display:flex; flex-direction:column; flex:1;}
+
   .iconbtn{
-    background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    background:rgba(16,21,31,.6); border:1px solid var(--line); color:var(--text);
     width:34px;height:34px;border-radius:9px; display:flex; align-items:center;
     justify-content:center; font-size:15px; cursor:pointer;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     -webkit-appearance:none; appearance:none;
+    transition:border-color .15s, box-shadow .15s;
   }
-  .iconbtn:active{transform:scale(.94);}
-  main{flex:1; display:flex; flex-direction:column; overflow:hidden;}
+  .iconbtn:active{transform:scale(.94); border-color:rgba(62,244,230,.4); box-shadow:0 0 12px rgba(62,244,230,.2);}
+
+  main{flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; z-index:1;}
+
   #feed{flex:1; overflow-y:auto; padding:14px 12px 8px; display:flex; flex-direction:column; gap:12px;}
-  .msg{max-width:88%; padding:10px 13px; border-radius:14px; font-size:14.5px; line-height:1.45; white-space:pre-wrap; word-wrap:break-word;}
-  .msg.user{align-self:flex-end; background:linear-gradient(135deg,#1a2333,#141b28); border:1px solid var(--line); border-bottom-right-radius:4px;}
-  .msg.bot{align-self:flex-start; background:var(--panel); border:1px solid var(--line); border-bottom-left-radius:4px; position:relative;}
-  .msg.sys{align-self:center; color:var(--dim); font-size:11.5px; font-family:var(--mono); background:none; border:none; padding:2px 8px;}
+
+  .msg{
+    max-width:88%; padding:10px 13px; border-radius:14px;
+    font-size:14.5px; line-height:1.45; white-space:pre-wrap; word-wrap:break-word;
+  }
+  .msg.user{
+    align-self:flex-end;
+    background:rgba(26,35,51,.75);
+    border:1px solid rgba(62,244,230,.15);
+    border-bottom-right-radius:4px;
+    backdrop-filter:blur(12px) saturate(1.2);
+    -webkit-backdrop-filter:blur(12px) saturate(1.2);
+    box-shadow:0 2px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(62,244,230,.08);
+  }
+  .msg.bot{
+    align-self:flex-start;
+    background:rgba(11,15,22,.72);
+    border:1px solid rgba(62,244,230,.12);
+    border-bottom-left-radius:4px;
+    position:relative;
+    backdrop-filter:blur(14px) saturate(1.3);
+    -webkit-backdrop-filter:blur(14px) saturate(1.3);
+    box-shadow:0 2px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .msg.sys{
+    align-self:center; color:var(--dim); font-size:11.5px;
+    font-family:var(--mono); background:none; border:none; padding:2px 8px;
+    opacity:.7;
+  }
+
   .badge{display:flex; gap:8px; align-items:center; margin-bottom:6px; font-family:var(--mono); font-size:10px; color:var(--dim);}
-  .dot{width:7px;height:7px;border-radius:50%; flex:none;}
-  .dot.local{background:var(--green); box-shadow:0 0 6px var(--green);}
-  .dot.cloud{background:var(--cyan); box-shadow:0 0 6px var(--cyan);}
-  .dot.err{background:var(--red); box-shadow:0 0 6px var(--red);}
-  .cursor{display:inline-block; width:7px; height:14px; background:var(--cyan); vertical-align:text-bottom; animation:blink 1s steps(1) infinite;}
+  .dot{width:7px;height:7px;border-radius:50%; flex:none; transition:background .2s, box-shadow .2s;}
+  .dot.local{background:var(--green); box-shadow:0 0 8px var(--green), 0 0 16px rgba(57,255,157,.3);}
+  .dot.cloud{background:var(--cyan); box-shadow:0 0 8px var(--cyan), 0 0 16px var(--cyan-glow);}
+  .dot.err{background:var(--red); box-shadow:0 0 8px var(--red), 0 0 16px rgba(255,79,109,.3);}
+
+  .cursor{
+    display:inline-block; width:7px; height:14px;
+    background:var(--cyan);
+    vertical-align:text-bottom;
+    box-shadow:0 0 8px var(--cyan);
+    animation:blink 1s steps(1) infinite;
+  }
   @keyframes blink{50%{opacity:0;}}
-  footer{border-top:1px solid var(--line); padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:rgba(5,7,10,.85);}
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(5,7,10,.78);
+    backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.4);
+    box-shadow:0 -1px 0 rgba(62,244,230,.08), 0 -4px 24px rgba(0,0,0,.4);
+    position:relative; z-index:1;
+  }
   .inputrow{display:flex; gap:8px; align-items:flex-end;}
   textarea{
-    flex:1; resize:none; background:var(--panel2); border:1px solid var(--line);
+    flex:1; resize:none;
+    background:rgba(16,21,31,.65);
+    border:1px solid rgba(62,244,230,.14);
     color:var(--text); border-radius:12px; padding:10px 12px; font-size:14.5px;
     max-height:120px; font-family:inherit;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     -webkit-appearance:none; appearance:none;
+    transition:border-color .15s, box-shadow .15s;
   }
-  textarea:focus{outline:none; border-color:var(--cyan);}
+  textarea:focus{
+    outline:none;
+    border-color:rgba(62,244,230,.45);
+    box-shadow:0 0 0 2px rgba(62,244,230,.08), 0 0 20px rgba(62,244,230,.12);
+  }
   .sendbtn{
     width:42px;height:42px;border-radius:12px;border:none; flex:none;
     background:linear-gradient(135deg,var(--cyan),var(--magenta)); color:#05070a;
     font-size:17px; font-weight:800; cursor:pointer;
     -webkit-appearance:none; appearance:none;
+    box-shadow:0 0 16px rgba(62,244,230,.3), 0 0 32px rgba(255,62,200,.15);
+    transition:transform .1s, box-shadow .1s;
   }
-  .sendbtn:active{transform:scale(.93);}
-  .statusline{display:flex; gap:10px; margin-top:7px; padding:0 2px; font-family:var(--mono); font-size:9.5px; color:var(--dim); overflow-x:auto; white-space:nowrap;}
+  .sendbtn:active{
+    transform:scale(.93);
+    box-shadow:0 0 8px rgba(62,244,230,.2);
+  }
+
+  .statusline{
+    display:flex; gap:10px; margin-top:7px; padding:0 2px;
+    font-family:var(--mono); font-size:9.5px; color:var(--dim);
+    overflow-x:auto; white-space:nowrap;
+  }
   .statusline b{color:var(--text);}
 
-  /* drawer */
+  /* ── Drawer / Settings Panel ── */
   #drawer{
-    position:fixed; inset:0; background:rgba(5,7,10,.72); backdrop-filter:blur(3px);
-    -webkit-backdrop-filter:blur(3px);
+    position:fixed; inset:0;
+    background:rgba(5,7,10,.6);
+    backdrop-filter:blur(6px) saturate(1.2);
+    -webkit-backdrop-filter:blur(6px) saturate(1.2);
     z-index:50; display:none;
   }
   #drawer.open{display:block;}
   .panel{
     position:absolute; right:0; top:0; bottom:0; width:min(390px,92vw);
-    background:var(--panel); border-left:1px solid var(--line);
-    padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    background:rgba(11,15,22,.88);
+    border-left:1px solid rgba(62,244,230,.14);
+    backdrop-filter:blur(24px) saturate(1.5);
+    -webkit-backdrop-filter:blur(24px) saturate(1.5);
+    padding:calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
     overflow-y:auto;
+    box-shadow:-8px 0 48px rgba(0,0,0,.6);
   }
-  .panel h2{font-size:12px; letter-spacing:.18em; color:var(--amber); margin:18px 0 8px;}
+  .panel h2{font-size:12px; letter-spacing:.18em; color:var(--amber); margin:18px 0 8px;
+    text-shadow:0 0 12px rgba(255,184,77,.3);}
   .panel h2:first-child{margin-top:0;}
   label{display:block; font-size:11px; color:var(--dim); margin:10px 0 4px; letter-spacing:.03em;}
   input[type=text],input[type=password],select{
-    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    width:100%;
+    background:rgba(16,21,31,.7);
+    border:1px solid rgba(62,244,230,.12); color:var(--text);
     padding:8px 10px; border-radius:8px; font-size:13px; font-family:var(--mono);
     -webkit-appearance:none; appearance:none;
+    transition:border-color .15s;
+  }
+  input[type=text]:focus,input[type=password]:focus{
+    outline:none;
+    border-color:rgba(62,244,230,.4);
+    box-shadow:0 0 0 2px rgba(62,244,230,.07);
   }
   .row2{display:flex; gap:8px;}
   .row2>*{flex:1;}
   .toggle{display:flex; align-items:center; justify-content:space-between; padding:9px 0;}
-  .switch{position:relative; width:42px; height:24px; background:var(--panel2); border:1px solid var(--line); border-radius:999px; cursor:pointer; flex:none;}
-  .switch.on{background:linear-gradient(90deg,var(--cyan),var(--green)); border-color:transparent;}
+  .switch{
+    position:relative; width:42px; height:24px;
+    background:rgba(16,21,31,.8);
+    border:1px solid rgba(62,244,230,.12);
+    border-radius:999px; cursor:pointer; flex:none;
+    transition:background .2s, border-color .2s;
+  }
+  .switch.on{
+    background:linear-gradient(90deg,var(--cyan),var(--green));
+    border-color:transparent;
+    box-shadow:0 0 12px rgba(62,244,230,.25);
+  }
   .switch .knob{position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#0a0e14; transition:.15s;}
   .switch.on .knob{left:20px; background:#05070a;}
-  .provrow{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
+  .provrow{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 0; border-bottom:1px solid rgba(62,244,230,.07); font-size:12.5px;
+  }
   .provrow .stat{font-family:var(--mono); font-size:10px; color:var(--dim);}
   .btn{
-    width:100%; padding:11px; border-radius:10px; border:1px solid var(--line);
-    background:var(--panel2); color:var(--text); font-size:13px; margin-top:8px; cursor:pointer;
+    width:100%; padding:11px; border-radius:10px;
+    border:1px solid rgba(62,244,230,.14);
+    background:rgba(16,21,31,.65); color:var(--text); font-size:13px; margin-top:8px; cursor:pointer;
     -webkit-appearance:none; appearance:none;
+    transition:border-color .15s, background .15s;
   }
-  .btn.primary{background:linear-gradient(135deg,var(--cyan),var(--magenta)); color:#05070a; border:none; font-weight:700;}
-  .btn.danger{border-color:var(--red); color:var(--red);}
+  .btn:active{background:rgba(62,244,230,.08);}
+  .btn.primary{
+    background:linear-gradient(135deg,var(--cyan),var(--magenta));
+    color:#05070a; border:none; font-weight:700;
+    box-shadow:0 0 20px rgba(62,244,230,.2);
+  }
+  .btn.danger{border-color:rgba(255,79,109,.4); color:var(--red);}
   #testlog{
-    margin-top:10px; background:#000; border:1px solid var(--line); border-radius:8px;
-    padding:8px 10px; font-family:var(--mono); font-size:10.5px; max-height:180px; overflow-y:auto; white-space:pre-wrap;
+    margin-top:10px;
+    background:rgba(0,0,0,.5);
+    border:1px solid rgba(62,244,230,.1);
+    border-radius:8px;
+    padding:8px 10px; font-family:var(--mono); font-size:10.5px;
+    max-height:180px; overflow-y:auto; white-space:pre-wrap;
   }
-  .pill{display:inline-block; padding:1px 7px; border-radius:999px; font-size:9.5px; font-family:var(--mono); border:1px solid var(--line); color:var(--dim);}
+  .pill{
+    display:inline-block; padding:1px 7px; border-radius:999px;
+    font-size:9.5px; font-family:var(--mono);
+    border:1px solid rgba(62,244,230,.2); color:var(--dim);
+  }
   .hint{font-size:10.5px; color:var(--dim); line-height:1.5; margin-top:4px;}
   a{color:var(--cyan);}
   ::-webkit-scrollbar{width:0;height:0;}
+
+  /* ── Install hint (shown only before PWA install) ── */
+  #installHint{
+    display:none;
+    position:fixed; bottom:calc(80px + env(safe-area-inset-bottom)); left:50%;
+    transform:translateX(-50%);
+    background:rgba(11,15,22,.92);
+    border:1px solid rgba(62,244,230,.25);
+    border-radius:12px; padding:10px 16px;
+    font-size:11px; color:var(--dim); font-family:var(--mono);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    white-space:nowrap; z-index:10;
+    box-shadow:0 4px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(62,244,230,.06);
+    animation:hintSlide .4s ease-out;
+  }
+  @keyframes hintSlide{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  #installHint.visible{display:block;}
+  #installHint span{color:var(--cyan);}
 </style>
 </head>
 <body>
@@ -154,6 +351,8 @@
   </div>
   <div class="statusline" id="statusline" aria-live="polite">bereit</div>
 </footer>
+
+<div id="installHint"><span>⬆</span> Zu Homescreen hinzufügen → Overlay aktiv</div>
 
 <div id="drawer" role="dialog" aria-modal="true" aria-label="Einstellungen">
   <div class="panel">
@@ -1264,6 +1463,18 @@ addMsg('sys', hasAI
   ? 'Hugin bereit. Route: automatisch nach Komplexität + Lernzustand. Reflex-Kern autark im Rücken.'
   : 'Hugin bereit — autarker Reflex-Kern aktiv (offline: rechnen, umwandeln, kodieren, Werkzeuge). „hilfe" zeigt alle Befehle. Für freie Konversation: ⚙ → Key oder lokales WebGPU-Modell.');
 renderProviderStats();
+
+/* PWA install hint */
+(function(){
+  const hint = document.getElementById('installHint');
+  if(!hint) return;
+  const isStandalone = window.navigator.standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+  if(!isStandalone){
+    setTimeout(()=>{ hint.classList.add('visible'); }, 3000);
+    hint.addEventListener('click', ()=>{ hint.classList.remove('visible'); });
+  }
+})();
 </script>
 </body>
 </html>
