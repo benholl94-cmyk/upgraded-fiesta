@@ -18,7 +18,7 @@
     "has_timeout": true,
     "has_zero_staked_status": true
   },
-  "ref": "refs/heads/claude/claud-ai-code-teleport-nx73zr",
+  "ref": "refs/heads/main",
   "repository": "benholl94-cmyk/upgraded-fiesta",
   "run_id": "30055116397",
   "run_number": "715",
