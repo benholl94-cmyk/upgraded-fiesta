@@ -782,7 +782,7 @@ function defaultState() {
     keys: {
       groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
       githubToken: '', together: '', cohere: '', xai: '',
-      sambanova: '', scaleway: '', nebius: '', novita: '',
+      novita: '',
       openclawUrl: '', openclawToken: '', openclawModel: '',
       customUrl: '', customKey: '', customModel: ''
     },
@@ -977,7 +977,7 @@ function openAICompatible({ id, name, url, keyField, model, stream = true }) {
 openAICompatible({ id: 'cerebras', name: 'Cerebras · Llama-4-Scout', url: 'https://api.cerebras.ai/v1/chat/completions', keyField: 'cerebras', model: 'llama-4-scout' });
 
 /* OpenRouter — mit Key: Zugang zu 200+ Modellen */
-openAICompatible({ id: 'openrouter', name: 'OpenRouter · frei', url: 'https://openrouter.ai/api/v1/chat/completions', keyField: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' });
+openAICompatible({ id: 'openrouter', name: 'OpenRouter · mit Key', url: 'https://openrouter.ai/api/v1/chat/completions', keyField: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' });
 
 /* Together AI — freier Tier mit Key */
 openAICompatible({ id: 'together', name: 'Together · Llama-3.3-70B', url: 'https://api.together.xyz/v1/chat/completions', keyField: 'together', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', stream: false });
@@ -1637,6 +1637,9 @@ const TASK_AFFINITY = {
 
   /* chat: Pollinations zuerst (bestätigt, GPT-4o-large, ~1-3s) → HF Router → Featherless */
   chat:        ['pollinations', 'hf_router', 'openrouter_free', 'featherless'],
+
+  /* general: GitHub Models (GPT-4o-mini, mit Token) als erste Wahl für einfache Tasks */
+  general:     ['github_models', 'pollinations', 'hf_router', 'openrouter_free'],
 };
 
 function estimateComplexity(text) {

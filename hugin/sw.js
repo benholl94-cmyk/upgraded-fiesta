@@ -1,10 +1,12 @@
 /* HUGIN Service Worker — Cache-First, Offline-capable */
-const CACHE = 'hugin-v5';
+const CACHE = 'hugin-v6';
 const SHELL = [
   './',
   './index.html',
   './hugin.html',
   './manifest.json',
+  './icon-512.svg',
+  './icon-192.svg',
   './lite/',
   './lite/index.html',
 ];

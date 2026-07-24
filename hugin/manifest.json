@@ -11,19 +11,18 @@
   "lang": "de",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='18' d='M64 320 Q128 144 256 128 Q384 144 448 320 Q352 272 320 336 Q288 240 256 240 Q224 240 192 336 Q160 272 64 320Z'/%3E%3Ccircle cx='208' cy='208' r='12' fill='%233ef4e6'/%3E%3Ccircle cx='304' cy='208' r='12' fill='%233ef4e6'/%3E%3C/svg%3E",
+      "src": "./icon-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='7' d='M24 120 Q48 54 96 48 Q144 54 168 120 Q132 102 120 126 Q108 90 96 90 Q84 90 72 126 Q60 102 24 120Z'/%3E%3Ccircle cx='78' cy='78' r='5' fill='%233ef4e6'/%3E%3Ccircle cx='114' cy='78' r='5' fill='%233ef4e6'/%3E%3C/svg%3E",
+      "src": "./icon-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     }
   ],
   "categories": ["productivity", "utilities"],
-  "prefer_related_applications": false,
-  "handle_links": "preferred"
+  "prefer_related_applications": false
 }
