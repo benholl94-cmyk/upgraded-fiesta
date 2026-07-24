@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T15:48:13.373939+00:00",
+  "generated_at": "2026-07-24T14:26:42.880536+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -57,7 +57,7 @@
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 24959
+      "size_bytes": 27117
     },
     {
       "exists": true,
@@ -105,7 +105,7 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 37142
+      "size_bytes": 36956
     },
     {
       "exists": true,
