@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T18:34:20.961524+00:00",
+  "generated_at": "2026-07-24T18:53:17.739236+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -135,7 +135,7 @@
       "exists": true,
       "is_file": true,
       "path": ".github/workflows/hugin-pages.yml",
-      "size_bytes": 747
+      "size_bytes": 788
     },
     {
       "exists": true,
