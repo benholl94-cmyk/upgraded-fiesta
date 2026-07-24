@@ -1,0 +1,183 @@
+{
+  "actor": "benholl94-cmyk",
+  "event": "push",
+  "generated_at": "2026-07-24T00:23:08.903985+00:00",
+  "monitor_exit_code": 1,
+  "monitoring_report": {
+    "generated_at": "2026-07-24T00:23:08.885076+00:00",
+    "marker_failures": [],
+    "missing_files": [
+      {
+        "exists": false,
+        "is_file": false,
+        "path": "logs/automated-initialization-run.md",
+        "size_bytes": 0
+      }
+    ],
+    "ok": false,
+    "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
+    "platform_config": {
+      "endpoint_count": 4,
+      "endpoint_ids": [
+        "primary",
+        "gateway-local",
+        "openclaw",
+        "gateway-fallback"
+      ],
+      "exists": true,
+      "has_timeout": true,
+      "has_zero_staked_status": true
+    },
+    "required_files": [
+      {
+        "exists": true,
+        "is_file": true,
+        "path": ".codex/setup.sh",
+        "size_bytes": 149
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": ".codex/run-trigger.txt",
+        "size_bytes": 262
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": ".github/workflows/codex-setup.yml",
+        "size_bytes": 2894
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": ".github/workflows/rust-ci.yml",
+        "size_bytes": 369
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "scripts/codex_fullstack_setup.sh",
+        "size_bytes": 753
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "scripts/codex_fullstack_check.sh",
+        "size_bytes": 1024
+      },
+      {
+        "exists": false,
+        "is_file": false,
+        "path": "logs/automated-initialization-run.md",
+        "size_bytes": 0
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "docs/production-api-contract.md",
+        "size_bytes": 24959
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "docs/ui-control-plane-implementation.md",
+        "size_bytes": 2227
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "ui/public/platform-config.json",
+        "size_bytes": 1030
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "ui/src/endpoint-rotation.ts",
+        "size_bytes": 11336
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "ui/src/main.ts",
+        "size_bytes": 11623
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "ui/src/styles.css",
+        "size_bytes": 3086
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "ui/index.html",
+        "size_bytes": 445
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "ui/Dockerfile",
+        "size_bytes": 271
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "crates/hm-gateway/src/main.rs",
+        "size_bytes": 32949
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "docker-compose.yml",
+        "size_bytes": 1081
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "Cargo.toml",
+        "size_bytes": 1010
+      },
+      {
+        "exists": true,
+        "is_file": true,
+        "path": "Makefile",
+        "size_bytes": 330
+      }
+    ],
+    "source_markers": {
+      "endpoint_states_present": {
+        "degraded": true,
+        "offline": true,
+        "online": true,
+        "unknown": true,
+        "zero_staked": true
+      },
+      "gateway_agent_managed_present": true,
+      "gateway_routes_present": {
+        "GET /api/health": true,
+        "GET /gateway/health": true,
+        "GET /health": true,
+        "GET /tasks": true,
+        "POST /api/tasks": true,
+        "POST /gateway/tasks": true,
+        "POST /tasks": true
+      },
+      "gateway_zero_staked_present": true,
+      "ui_dispatch_present": true
+    }
+  },
+  "monitoring_stdout_tail": "{\n  \"generated_at\": \"2026-07-24T00:23:08.885076+00:00\",\n  \"marker_failures\": [],\n  \"missing_files\": [\n    {\n      \"exists\": false,\n      \"is_file\": false,\n      \"path\": \"logs/automated-initialization-run.md\",\n      \"size_bytes\": 0\n    }\n  ],\n  \"ok\": false,\n  \"platform\": \"Production-Master_Grade-Plattform-Fullstack-API_Agent_managed\",\n  \"platform_config\": {\n    \"endpoint_count\": 4,\n    \"endpoint_ids\": [\n      \"primary\",\n      \"gateway-local\",\n      \"openclaw\",\n      \"gateway-fallback\"\n    ],\n    \"exists\": true,\n    \"has_timeout\": true,\n    \"has_zero_staked_status\": true\n  },\n  \"required_files\": [\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \".codex/setup.sh\",\n      \"size_bytes\": 149\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \".codex/run-trigger.txt\",\n      \"size_bytes\": 262\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \".github/workflows/codex-setup.yml\",\n      \"size_bytes\": 2894\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \".github/workflows/rust-ci.yml\",\n      \"size_bytes\": 369\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"scripts/codex_fullstack_setup.sh\",\n      \"size_bytes\": 753\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"scripts/codex_fullstack_check.sh\",\n      \"size_bytes\": 1024\n    },\n    {\n      \"exists\": false,\n      \"is_file\": false,\n      \"path\": \"logs/automated-initialization-run.md\",\n      \"size_bytes\": 0\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"docs/production-api-contract.md\",\n      \"size_bytes\": 24959\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"docs/ui-control-plane-implementation.md\",\n      \"size_bytes\": 2227\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"ui/public/platform-config.json\",\n      \"size_bytes\": 1030\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"ui/src/endpoint-rotation.ts\",\n      \"size_bytes\": 11336\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"ui/src/main.ts\",\n      \"size_bytes\": 11623\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"ui/src/styles.css\",\n      \"size_bytes\": 3086\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"ui/index.html\",\n      \"size_bytes\": 445\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"ui/Dockerfile\",\n      \"size_bytes\": 271\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"crates/hm-gateway/src/main.rs\",\n      \"size_bytes\": 32949\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"docker-compose.yml\",\n      \"size_bytes\": 1081\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"Cargo.toml\",\n      \"size_bytes\": 1010\n    },\n    {\n      \"exists\": true,\n      \"is_file\": true,\n      \"path\": \"Makefile\",\n      \"size_bytes\": 330\n    }\n  ],\n  \"source_markers\": {\n    \"endpoint_states_present\": {\n      \"degraded\": true,\n      \"offline\": true,\n      \"online\": true,\n      \"unknown\": true,\n      \"zero_staked\": true\n    },\n    \"gateway_agent_managed_present\": true,\n    \"gateway_routes_present\": {\n      \"GET /api/health\": true,\n      \"GET /gateway/health\": true,\n      \"GET /health\": true,\n      \"GET /tasks\": true,\n      \"POST /api/tasks\": true,\n      \"POST /gateway/tasks\": true,\n      \"POST /tasks\": true\n    },\n    \"gateway_zero_staked_present\": true,\n    \"ui_dispatch_present\": true\n  }\n}\n",
+  "ok": false,
+  "ref": "refs/heads/claude/claud-ai-code-teleport-nx73zr",
+  "repository": "benholl94-cmyk/upgraded-fiesta",
+  "run_id": "30055991916",
+  "run_number": "717",
+  "setup_exit_code": 0,
+  "sha": "f91add2779692ee57c9c4dee2c9f6352fd0d352c",
+  "visibility_bridge": {
+    "manual_action_required": false,
+    "purpose": "make hidden CI status visible through repository files",
+    "report_path": "logs/visible-monitoring-report.json"
+  },
+  "workflow": "visible-monitoring"
+}
