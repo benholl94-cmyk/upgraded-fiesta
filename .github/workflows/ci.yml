@@ -97,7 +97,7 @@ jobs:
           if git diff --quiet .claude/persona/munin-state.json 2>/dev/null; then
             echo "No state change."
           else
-            git add .claude/persona/munin-state.json
+            git add -f .claude/persona/munin-state.json
             git commit -m "chore(munin): checkpoint nach CI-Erfolg [skip ci]"
             git push origin HEAD
           fi
