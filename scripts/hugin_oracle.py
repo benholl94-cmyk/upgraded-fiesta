@@ -177,10 +177,75 @@ class MistralAdapter(ProviderAdapter):
         return resp["choices"][0]["message"]["content"]
 
 
+class OllamaAdapter(ProviderAdapter):
+    """Key-freier lokaler Provider via Ollama (http://localhost:11434).
+    Kein API-Key erforderlich — vollständig lokal, Zero-Trust-konform.
+    Modell: env HUGIN_LOCAL_MODEL (default: llama3.2 → mistral → gemma2).
+    """
+    name    = "local"
+    env_key = ""
+
+    OLLAMA_URL = "http://localhost:11434"
+
+    def _detect_model(self) -> str:
+        override = os.environ.get("HUGIN_LOCAL_MODEL", "")
+        if override:
+            return override
+        try:
+            req  = urllib.request.Request(f"{self.OLLAMA_URL}/api/tags")
+            with urllib.request.urlopen(req, timeout=3) as r:
+                data   = json.loads(r.read())
+                models = [m["name"].split(":")[0] for m in data.get("models", [])]
+            for preferred in ("llama3.2", "llama3", "mistral", "gemma2", "qwen2.5"):
+                if preferred in models:
+                    return preferred
+            if models:
+                return models[0]
+        except Exception:
+            pass
+        return "llama3.2"
+
+    def is_available(self) -> bool:
+        try:
+            urllib.request.urlopen(
+                urllib.request.Request(f"{self.OLLAMA_URL}/api/tags"),
+                timeout=2,
+            )
+            return True
+        except Exception:
+            return False
+
+    def call(self, prompt: str, skill: str) -> str:
+        if not self.is_available():
+            raise RuntimeError(
+                "Ollama nicht erreichbar (localhost:11434).\n"
+                "Start: ollama serve\n"
+                "Dann Modell laden: ollama pull llama3.2\n"
+                "Oder setze HUGIN_LOCAL_MODEL=<modell-name>"
+            )
+        model = self._detect_model()
+        body  = {
+            "model": model,
+            "prompt": f"[{skill}] {prompt}",
+            "stream": False,
+            "options": {"temperature": 0.3, "num_predict": 2048},
+        }
+        resp = self._http_post(
+            f"{self.OLLAMA_URL}/api/generate",
+            {"Content-Type": "application/json"},
+            body,
+        )
+        return resp.get("response", str(resp))
+
+    def get_token(self) -> str:
+        return ""  # kein Token erforderlich
+
+
 PROVIDERS: dict[str, ProviderAdapter] = {
     "gemini":  GeminiAdapter(),
     "openai":  OpenAIAdapter(),
     "mistral": MistralAdapter(),
+    "local":   OllamaAdapter(),
 }
 
 
@@ -347,7 +412,17 @@ def cmd_test_gate(_args) -> None:
                 passed += 1
             else:
                 print(f"  {C['RD']}✗{C['R']} {label} — fälschlicherweise geblockt: {e}")
-    print(f"\n  {passed}/{len(tests)} Tests bestanden.\n")
+    print(f"\n  {passed}/{len(tests)} Tests bestanden.")
+
+    # Local-Provider Status
+    local = PROVIDERS["local"]
+    if local.is_available():
+        model = local._detect_model()
+        print(f"  {C['GR']}✓ local (Ollama){C['R']} erreichbar — Modell: {model}")
+        print(f"    Nutzung: python3 scripts/hugin_oracle.py query --provider local --skill research \"Frage\"")
+    else:
+        print(f"  {C['YL']}○ local (Ollama){C['R']} nicht aktiv — Start: ollama serve && ollama pull llama3.2")
+    print()
     if passed < len(tests):
         sys.exit(1)
 

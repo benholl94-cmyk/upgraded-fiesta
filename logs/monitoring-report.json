@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T00:10:35.341363+00:00",
+  "generated_at": "2026-07-24T00:30:08.398546+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -52,12 +52,6 @@
       "is_file": true,
       "path": "scripts/codex_fullstack_check.sh",
       "size_bytes": 1024
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "logs/automated-initialization-run.md",
-      "size_bytes": 2514
     },
     {
       "exists": true,
