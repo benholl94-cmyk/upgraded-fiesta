@@ -1,0 +1,14 @@
+{
+  "ts": "2026-07-24T00:38:17+00:00",
+  "message": "munin-link deployed",
+  "repo": {
+    "branch": "claude/claud-ai-code-teleport-nx73zr",
+    "unpushed": 0,
+    "dirty": true,
+    "tip": "d316614 feat(direct-write): atomares Write+Commit+Push Modul ohne PR-Overhead"
+  },
+  "links": {
+    "telegram": false,
+    "gateway": false
+  }
+}
