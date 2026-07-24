@@ -122,7 +122,7 @@ if __name__ == "__main__":
     try:
         req = json.loads(raw)
     except json.JSONDecodeError as e:
-        print(json.dumps({"ok": False, "output": f"JSON-Fehler: {e}"}))
+        print(json.dumps({"ok": False, "result": "", "message": f"JSON-Fehler: {e}"}))
         sys.exit(0)
 
     result = run_plugin(req)

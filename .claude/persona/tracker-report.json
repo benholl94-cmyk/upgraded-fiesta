@@ -1,0 +1,45 @@
+{
+  "generated": "2026-07-24T12:02:59.743738+00:00",
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "score": 100.0,
+  "rules": [
+    {
+      "rule": "plugin_response_fields",
+      "ok": true,
+      "issues": [],
+      "note": "PluginResponse serde erwartet 'result' + 'message'"
+    },
+    {
+      "rule": "gateway_cargo_deps",
+      "ok": true,
+      "issues": [],
+      "note": "Alle genutzten Crates müssen in Cargo.toml stehen"
+    },
+    {
+      "rule": "plugins_json_registered",
+      "ok": true,
+      "issues": [],
+      "note": "Plugin-Commands müssen existieren"
+    },
+    {
+      "rule": "env_vars_documented",
+      "ok": true,
+      "issues": [],
+      "note": "Alle HM_* Vars müssen in .env.production.example stehen"
+    },
+    {
+      "rule": "platform_config_port",
+      "ok": true,
+      "issues": [],
+      "note": "Primary endpoint muss auf 8080 (hm-gateway) zeigen"
+    },
+    {
+      "rule": "console_log_schema",
+      "ok": true,
+      "issues": [],
+      "note": "security_sentinel.py erwartet log['entries'] Schlüssel"
+    }
+  ]
+}
