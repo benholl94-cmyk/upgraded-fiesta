@@ -47,6 +47,9 @@ ui/package-lock.json
 
 # Daemon runtime output — written every 5s, never committed
 ui/public/platform-status.json
+
+# munin_link.py local runtime output (wrong REPO_ROOT would place it here)
+.claude/.claude/
 logs/
 .claude/persona/.dev-token
 
