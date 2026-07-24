@@ -378,6 +378,15 @@
     <label>Mistral Key <span class="pill">frei</span></label>
     <input type="password" id="key_mistral" placeholder="…" autocomplete="off">
 
+    <label>Together AI Key <span class="pill">frei · 70B Llama</span></label>
+    <input type="password" id="key_together" placeholder="…" autocomplete="off">
+
+    <label>Cohere Key <span class="pill">frei · Command-R+</span></label>
+    <input type="password" id="key_cohere" placeholder="…" autocomplete="off">
+
+    <label>xAI Key <span class="pill">Grok-3-mini</span></label>
+    <input type="password" id="key_xai" placeholder="xai-…" autocomplete="off">
+
     <label>Eigener OpenAI-kompatibler Endpunkt <span class="pill">optional</span></label>
     <input type="text" id="custom_url" placeholder="https://…/v1/chat/completions" autocomplete="off">
     <input type="password" id="custom_key" placeholder="Bearer-Key (optional)" style="margin-top:6px;" autocomplete="off">
@@ -509,7 +518,8 @@ function defaultState() {
     localEnabled: true,
     keys: {
       groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
-      githubToken: '',
+      githubToken: '', together: '', cohere: '', xai: '',
+      sambanova: '', scaleway: '',
       openclawUrl: '', openclawToken: '', openclawModel: '',
       customUrl: '', customKey: '', customModel: ''
     },
@@ -648,8 +658,17 @@ function openAICompatible({ id, name, url, keyField, model, stream = true }) {
 /* Cerebras — 1M Tokens/Tag frei, ~2600 tok/s */
 openAICompatible({ id: 'cerebras', name: 'Cerebras · Llama-4-Scout', url: 'https://api.cerebras.ai/v1/chat/completions', keyField: 'cerebras', model: 'llama-4-scout' });
 
-/* OpenRouter — freie :free Modell-Slots */
+/* OpenRouter — mit Key: Zugang zu 200+ Modellen */
 openAICompatible({ id: 'openrouter', name: 'OpenRouter · frei', url: 'https://openrouter.ai/api/v1/chat/completions', keyField: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' });
+
+/* Together AI — freier Tier mit Key */
+openAICompatible({ id: 'together', name: 'Together · Llama-3.3-70B', url: 'https://api.together.xyz/v1/chat/completions', keyField: 'together', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', stream: false });
+
+/* Cohere — Command R gratis mit Key */
+openAICompatible({ id: 'cohere', name: 'Cohere · Command-R', url: 'https://api.cohere.com/compatibility/v1/chat/completions', keyField: 'cohere', model: 'command-r-plus', stream: false });
+
+/* xAI Grok — Grok-3-mini mit Key */
+openAICompatible({ id: 'xai', name: 'xAI · Grok-3-mini', url: 'https://api.x.ai/v1/chat/completions', keyField: 'xai', model: 'grok-3-mini', stream: false });
 
 /* Mistral — freier Entwickler-Tier */
 openAICompatible({ id: 'mistral', name: 'Mistral · Small', url: 'https://api.mistral.ai/v1/chat/completions', keyField: 'mistral', model: 'mistral-small-latest' });
@@ -740,6 +759,66 @@ registerProvider({
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || '';
     if (!text) throw new Error('OpenRouter-free: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 5. Chutes.ai — keyless, DeepSeek-R1-0528 (Reasoning) */
+registerProvider({
+  id: 'chutes', name: 'Chutes · DeepSeek-R1', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://llm.chutes.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer chutes-public' },
+      body: JSON.stringify({ model: 'deepseek-ai/DeepSeek-R1-0528', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Chutes HTTP ' + res.status);
+    const data = await res.json();
+    const text = (data?.choices?.[0]?.message?.content || data?.choices?.[0]?.message?.reasoning_content || '');
+    if (!text) throw new Error('Chutes: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 6. SambaNova Cloud — Llama-4-Scout keyless public tier */
+registerProvider({
+  id: 'sambanova', name: 'SambaNova · Llama-4-Scout', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.sambanova || 'public') },
+      body: JSON.stringify({ model: 'Meta-Llama-4-Scout-17B-16E-Instruct', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('SambaNova HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('SambaNova: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 7. Scaleway Generative APIs — öffentlicher Endpunkt, kein Key */
+registerProvider({
+  id: 'scaleway', name: 'Scaleway · Llama-3.3-70B', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.scaleway.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.scaleway || 'public') },
+      body: JSON.stringify({ model: 'llama-3.3-70b-instruct', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Scaleway HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Scaleway: leere Antwort');
     if (onToken) onToken(text);
     return { text, latencyMs: performance.now() - t0 };
   }
@@ -1350,6 +1429,9 @@ document.getElementById('swCache').addEventListener('click', () => {
 document.getElementById('btnSaveKeys').addEventListener('click', () => {
   STATE.keys.githubToken = document.getElementById('key_github').value.trim();
   STATE.keys.groq = document.getElementById('key_groq').value.trim();
+  STATE.keys.together = document.getElementById('key_together').value.trim();
+  STATE.keys.cohere = document.getElementById('key_cohere').value.trim();
+  STATE.keys.xai = document.getElementById('key_xai').value.trim();
   STATE.keys.google = document.getElementById('key_google').value.trim();
   STATE.keys.cerebras = document.getElementById('key_cerebras').value.trim();
   STATE.keys.openrouter = document.getElementById('key_openrouter').value.trim();
@@ -1409,6 +1491,9 @@ function renderProviderStats() {
 /* Feldwerte beim Start vorbelegen */
 document.getElementById('key_github').value = STATE.keys.githubToken || '';
 document.getElementById('key_groq').value = STATE.keys.groq || '';
+document.getElementById('key_together').value = STATE.keys.together || '';
+document.getElementById('key_cohere').value = STATE.keys.cohere || '';
+document.getElementById('key_xai').value = STATE.keys.xai || '';
 document.getElementById('key_google').value = STATE.keys.google || '';
 document.getElementById('key_cerebras').value = STATE.keys.cerebras || '';
 document.getElementById('key_openrouter').value = STATE.keys.openrouter || '';
