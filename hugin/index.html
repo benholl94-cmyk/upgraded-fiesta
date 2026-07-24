@@ -310,6 +310,144 @@
   a{color:var(--cyan);}
   ::-webkit-scrollbar{width:0;height:0;}
 
+  /* ── Mode-Tab-Bar ── */
+  #modebar{
+    display:flex; gap:4px; padding:0 10px;
+    border-bottom:1px solid var(--line);
+    background:rgba(5,7,10,.82);
+    position:sticky; top:0; z-index:19;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  }
+  .modetab{
+    flex:1; padding:7px 4px; border:none; background:none;
+    font-size:10px; font-family:var(--mono); letter-spacing:.06em;
+    color:var(--dim); cursor:pointer; border-bottom:2px solid transparent;
+    -webkit-appearance:none; appearance:none;
+    transition:color .15s, border-color .15s;
+  }
+  .modetab.active{ color:var(--cyan); border-bottom-color:var(--cyan); }
+  .modetab:active{ color:var(--text); }
+
+  /* ── TermShell Panel ── */
+  #termshell{
+    display:none; flex-direction:column;
+    flex:1; overflow:hidden;
+    font-family:var(--mono); font-size:12.5px;
+  }
+  #termshell.visible{ display:flex; }
+
+  /* Multi-pane grid */
+  #ts-panes{
+    flex:1; overflow:hidden;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:1px;
+    background:rgba(62,244,230,.06);
+  }
+  #ts-panes.split2{ grid-template-columns:1fr 1fr; }
+  #ts-panes.split3{ grid-template-columns:1fr 1fr 1fr; }
+  #ts-panes.split4{ grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+
+  .ts-pane{
+    display:flex; flex-direction:column;
+    background:rgba(5,7,10,.92);
+    overflow:hidden;
+    position:relative;
+  }
+  .ts-pane-header{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 8px;
+    background:rgba(11,15,22,.85);
+    border-bottom:1px solid rgba(62,244,230,.1);
+    font-size:9px; letter-spacing:.05em; color:var(--dim);
+    flex:none;
+  }
+  .ts-pane-header .dot{ width:6px; height:6px; }
+  .ts-pane-name{ color:var(--cyan); font-weight:700; flex:1; }
+  .ts-pane-latency{ color:var(--amber); }
+  .ts-pane-body{
+    flex:1; overflow-y:auto; padding:8px;
+    color:var(--text); line-height:1.5;
+    white-space:pre-wrap; word-wrap:break-word;
+  }
+  .ts-pane-body .ts-thinking{color:var(--dim); font-size:10px; font-style:italic;}
+  .ts-pane-body code{ color:var(--green); }
+  .ts-pane.loading .ts-pane-body::after{
+    content:'▋'; animation:blink 1s steps(1) infinite; color:var(--cyan);
+  }
+  .ts-pane.done{ border:1px solid rgba(62,244,230,.15); }
+  .ts-pane.error{ border:1px solid rgba(255,79,109,.2); }
+  .ts-pane.error .ts-pane-header{ background:rgba(255,79,109,.08); }
+
+  /* TermShell output log (primary pane) */
+  #ts-log{
+    flex:1; overflow-y:auto; padding:10px 10px 4px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .ts-line{
+    display:flex; gap:6px; line-height:1.4;
+    white-space:pre-wrap; word-wrap:break-word;
+  }
+  .ts-line.prompt{ color:var(--cyan); }
+  .ts-line.out{ color:var(--text); }
+  .ts-line.err{ color:var(--red); }
+  .ts-line.info{ color:var(--amber); }
+  .ts-line.success{ color:var(--green); }
+  .ts-line.dim{ color:var(--dim); font-size:10px; }
+  .ts-ps1{ color:var(--magenta); flex:none; user-select:none; }
+  .ts-cmd{ color:var(--cyan); }
+
+  /* TermShell input */
+  #ts-inputrow{
+    display:flex; align-items:center; gap:6px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(62,244,230,.12);
+    background:rgba(5,7,10,.88);
+    flex:none;
+  }
+  #ts-ps{ color:var(--magenta); font-size:12px; flex:none; user-select:none; white-space:nowrap; }
+  #ts-input{
+    flex:1; background:none; border:none; outline:none;
+    color:var(--cyan); font-family:var(--mono); font-size:12.5px;
+    caret-color:var(--cyan);
+  }
+  #ts-send{
+    background:none; border:none; color:var(--cyan);
+    font-size:16px; cursor:pointer; padding:4px; flex:none;
+    -webkit-appearance:none; appearance:none;
+  }
+
+  /* Race-mode overlay */
+  #ts-race{
+    display:none; flex:1; flex-direction:column; overflow:hidden;
+  }
+  #ts-race.visible{ display:flex; }
+  #ts-race-header{
+    padding:6px 10px; border-bottom:1px solid var(--line);
+    font-size:10px; color:var(--dim); letter-spacing:.06em;
+    display:flex; gap:8px; align-items:center;
+  }
+  #ts-race-title{ color:var(--amber); flex:1; }
+
+  /* TermShell toolbar */
+  #ts-toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:4px 10px; border-bottom:1px solid rgba(62,244,230,.1);
+    background:rgba(5,7,10,.6); flex:none;
+    font-size:10px; color:var(--dim);
+  }
+  .ts-toolbtn{
+    background:none; border:1px solid rgba(62,244,230,.15); color:var(--cyan);
+    border-radius:3px; padding:2px 7px; font-size:12px; cursor:pointer;
+    transition:background .15s;
+  }
+  .ts-toolbtn:hover{ background:rgba(62,244,230,.12); }
+
+  /* hide chat footer in shell mode */
+  body.mode-shell footer{ display:none; }
+  body.mode-chat #main-chat{ display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  body.mode-shell #main-chat{ display:none; }
+
   /* ── Install hint (shown only before PWA install) ── */
   #installHint{
     display:none;
@@ -342,9 +480,34 @@
   <button class="iconbtn" id="btnDrawer" aria-label="Einstellungen">⚙</button>
 </header>
 
-<main>
+<div id="modebar">
+  <button class="modetab active" id="tab-chat" onclick="switchMode('chat')">💬 CHAT</button>
+  <button class="modetab" id="tab-shell" onclick="switchMode('shell')">⚡ SHELL</button>
+</div>
+
+<main id="main-chat">
   <div id="feed" role="log" aria-live="polite"></div>
 </main>
+
+<div id="termshell">
+  <div id="ts-toolbar">
+    <span id="ts-pane-label">Modus: <strong id="ts-mode-name">single</strong></span>
+    <div style="display:flex;gap:4px;">
+      <button class="ts-toolbtn" onclick="TS.setPanes(1)" title="Einzeln">▪</button>
+      <button class="ts-toolbtn" onclick="TS.setPanes(2)" title="Split 2">◫</button>
+      <button class="ts-toolbtn" onclick="TS.setPanes(3)" title="Split 3">⊞</button>
+      <button class="ts-toolbtn" onclick="TS.setPanes(4)" title="Split 4">⊟</button>
+      <button class="ts-toolbtn" onclick="TS.clearAll()" title="Löschen">✕</button>
+    </div>
+  </div>
+  <div id="ts-log" aria-live="polite"></div>
+  <div id="ts-panes"></div>
+  <div id="ts-inputrow">
+    <span id="ts-ps">HUGIN&gt;</span>
+    <input id="ts-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Befehl eingeben… (help für Hilfe)">
+    <button id="ts-send" onclick="TS.submit()">▶</button>
+  </div>
+</div>
 
 <footer>
   <div class="inputrow">
@@ -1828,6 +1991,391 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed:', err));
   });
 }
+
+/* ═══════════════════════════════════════════════════════════
+   HUGIN TERMSHELL — Multi-Provider Parallel Shell Engine
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+
+/* ── Mode switching ── */
+window.switchMode = function(mode){
+  document.body.className = 'mode-' + mode;
+  document.getElementById('tab-chat').classList.toggle('active', mode === 'chat');
+  document.getElementById('tab-shell').classList.toggle('active', mode === 'shell');
+  document.getElementById('termshell').classList.toggle('visible', mode === 'shell');
+  if(mode === 'shell') document.getElementById('ts-input').focus();
+};
+
+/* ── TermShell state ── */
+const TS_HIST = [];
+let tsHistIdx = -1;
+let tsPanes = 1;
+
+/* ── DOM helpers ── */
+const tsLog  = () => document.getElementById('ts-log');
+const tsPanesEl = () => document.getElementById('ts-panes');
+
+function tsLine(text, cls){
+  const el = document.createElement('div');
+  el.className = 'ts-line' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  tsLog().appendChild(el);
+  tsLog().scrollTop = tsLog().scrollHeight;
+  return el;
+}
+
+function tsPrint(text, cls){ tsLine(text, cls); }
+function tsPrintRaw(html){
+  const el = document.createElement('div');
+  el.className = 'ts-line';
+  el.innerHTML = html;
+  tsLog().appendChild(el);
+  tsLog().scrollTop = tsLog().scrollHeight;
+}
+
+/* ── Pane management ── */
+window.TS = {
+  setPanes(n){
+    tsPanes = Math.min(4, Math.max(1, n));
+    const el = tsPanesEl();
+    el.className = tsPanes === 1 ? '' : 'split' + tsPanes;
+    document.getElementById('ts-mode-name').textContent =
+      ['','single','split-2','split-3','quad'][tsPanes] || 'custom';
+    el.innerHTML = '';
+    tsPrint(`Pane-Modus: ${tsPanes} Fenster`, 'info');
+  },
+  clearAll(){
+    tsLog().innerHTML = '';
+    tsPanesEl().innerHTML = '';
+    tsPrint('Terminal geleert.', 'dim');
+  },
+  submit(){
+    const inp = document.getElementById('ts-input');
+    const cmd = inp.value.trim();
+    inp.value = '';
+    if(cmd) tsExec(cmd);
+  }
+};
+
+/* ── Input: arrow-key history + Enter ── */
+document.getElementById('ts-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); TS.submit(); return; }
+  if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    if(TS_HIST.length === 0) return;
+    tsHistIdx = Math.min(tsHistIdx + 1, TS_HIST.length - 1);
+    e.target.value = TS_HIST[TS_HIST.length - 1 - tsHistIdx] || '';
+    return;
+  }
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    tsHistIdx = Math.max(tsHistIdx - 1, -1);
+    e.target.value = tsHistIdx < 0 ? '' : (TS_HIST[TS_HIST.length - 1 - tsHistIdx] || '');
+    return;
+  }
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    const val = e.target.value;
+    const cmds = ['help','ls','status','clear','history','race','run','best','ping','version','providers','tasks'];
+    const match = cmds.find(c => c.startsWith(val));
+    if(match) e.target.value = match + ' ';
+  }
+});
+
+/* ── Active provider list ── */
+function liveProviders(){
+  return PROVIDERS.filter(p => p.id !== 'reflex');
+}
+
+/* ── Single pane for a provider ── */
+function makePaneFor(pid, query){
+  const pane = document.createElement('div');
+  pane.className = 'ts-pane';
+  const hdr = document.createElement('div');
+  hdr.className = 'ts-pane-header';
+  const provider = PROVIDERS.find(p => p.id === pid);
+  hdr.textContent = (provider ? provider.name : pid) + ' ⏳';
+  const body = document.createElement('div');
+  body.className = 'ts-pane-body';
+  const log = document.createElement('div');
+  log.className = 'ts-log';
+  body.appendChild(log);
+  pane.appendChild(hdr);
+  pane.appendChild(body);
+  tsPanesEl().appendChild(pane);
+
+  const t0 = Date.now();
+  function appendLine(text, cls){
+    const l = document.createElement('div');
+    l.className = 'ts-line' + (cls ? ' ' + cls : '');
+    l.textContent = text;
+    log.appendChild(l);
+    log.scrollTop = log.scrollHeight;
+  }
+  function appendToken(text){
+    let last = log.lastElementChild;
+    if(!last || !last.classList.contains('out')){
+      last = document.createElement('div');
+      last.className = 'ts-line out';
+      log.appendChild(last);
+    }
+    last.textContent += text;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  const messages = [{ role:'user', content: query }];
+  const timeout = PROVIDER_TIMEOUT[pid] ?? 25000;
+  withTimeout(
+    (provider || { call: () => Promise.reject(new Error('Unbekannt')) }).call(messages, tok => appendToken(tok)),
+    timeout, pid
+  ).then(res => {
+    const ms = Date.now() - t0;
+    hdr.textContent = (provider ? provider.name : pid) + ` ✓ ${ms}ms`;
+    hdr.style.color = 'var(--green)';
+    if(!log.lastElementChild || !log.lastElementChild.classList.contains('out')){
+      appendLine(res.text || '(keine Antwort)', 'out');
+    }
+  }).catch(err => {
+    const ms = Date.now() - t0;
+    hdr.textContent = (provider ? provider.name : pid) + ` ✗ ${ms}ms`;
+    hdr.style.color = 'var(--red)';
+    appendLine('Fehler: ' + err.message, 'err');
+  });
+}
+
+/* ── race command: all active providers in parallel panes ── */
+async function cmdRace(query){
+  const active = liveProviders().filter(p => p.ready());
+  if(!active.length){ tsPrint('Keine aktiven Provider.', 'err'); return; }
+  const n = Math.min(active.length, 4);
+  TS.setPanes(n);
+  tsPrint(`RACE: "${query}" → ${active.length} Provider (zeige ${n} Panes)`, 'info');
+  for(let i = 0; i < n; i++) makePaneFor(active[i].id, query);
+}
+
+/* ── run command: specific providers ── */
+async function cmdRun(args){
+  const parts = args.split(/\s+/);
+  const providerIds = [];
+  let queryStart = 0;
+  for(let i = 0; i < parts.length; i++){
+    if(PROVIDERS.find(p => p.id === parts[i])){ providerIds.push(parts[i]); queryStart = i+1; }
+    else { queryStart = i; break; }
+  }
+  const query = parts.slice(queryStart).join(' ');
+  if(!query){ tsPrint('Syntax: run [provider1] [provider2] … <prompt>', 'err'); return; }
+  const ids = providerIds.length ? providerIds : [liveProviders()[0]?.id].filter(Boolean);
+  const n = Math.min(ids.length, 4);
+  TS.setPanes(n);
+  tsPrint(`RUN: "${query}" → ${ids.slice(0,n).join(', ')}`, 'info');
+  for(let i = 0; i < n; i++) makePaneFor(ids[i], query);
+}
+
+/* ── best command: race + synthesis ── */
+async function cmdBest(query){
+  const active = liveProviders().filter(p => p.ready());
+  if(!active.length){ tsPrint('Keine aktiven Provider.', 'err'); return; }
+  tsPrint(`BEST: Racing ${active.length} Provider — wählt Erstantwort…`, 'info');
+  TS.setPanes(1);
+  const pane = document.createElement('div');
+  pane.className = 'ts-pane';
+  const hdr = document.createElement('div');
+  hdr.className = 'ts-pane-header';
+  hdr.textContent = 'Warte auf schnellsten Provider…';
+  const body = document.createElement('div');
+  body.className = 'ts-pane-body';
+  const logEl = document.createElement('div');
+  logEl.className = 'ts-log';
+  body.appendChild(logEl);
+  pane.appendChild(hdr);
+  pane.appendChild(body);
+  tsPanesEl().appendChild(pane);
+
+  const messages = [{ role:'user', content: query }];
+  let settled = false;
+  function appendToken(tok){
+    if(settled) return;
+    let last = logEl.lastElementChild;
+    if(!last || !last.classList.contains('out')){
+      last = document.createElement('div');
+      last.className = 'ts-line out';
+      logEl.appendChild(last);
+    }
+    last.textContent += tok;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  const races = active.map(p => {
+    const t0 = Date.now();
+    return withTimeout(p.call(messages, appendToken), PROVIDER_TIMEOUT[p.id] ?? 25000, p.id)
+      .then(res => ({ p, res, ms: Date.now()-t0 }));
+  });
+
+  Promise.any(races).then(({p, res, ms}) => {
+    settled = true;
+    hdr.textContent = `✓ ${p.name} — ${ms}ms (schnellster)`;
+    hdr.style.color = 'var(--green)';
+    if(!logEl.lastElementChild || !logEl.lastElementChild.classList.contains('out')){
+      const l = document.createElement('div');
+      l.className = 'ts-line out';
+      l.textContent = res.text || '';
+      logEl.appendChild(l);
+    }
+    tsPrint(`Gewinner: ${p.name} in ${ms}ms`, 'success');
+  }).catch(() => {
+    hdr.textContent = '✗ Alle Provider fehlgeschlagen';
+    hdr.style.color = 'var(--red)';
+    tsPrint('Alle Provider haben versagt.', 'err');
+  });
+}
+
+/* ── ls providers ── */
+function cmdLsProviders(){
+  tsPrint('VERFÜGBARE PROVIDER', 'ts-cmd');
+  tsPrint('─'.repeat(50), 'dim');
+  for(const p of PROVIDERS){
+    const ready = p.ready();
+    const ms = PROVIDER_TIMEOUT[p.id] ?? 20000;
+    const status = ready ? '✓ bereit' : '○ kein Key';
+    tsPrint(`  ${p.id.padEnd(20)} ${status.padEnd(12)} timeout:${ms/1000}s   ${p.name}`,
+      ready ? 'success' : 'dim');
+  }
+  tsPrint('─'.repeat(50), 'dim');
+  tsPrint(`Gesamt: ${PROVIDERS.filter(p=>p.ready()).length} bereit / ${PROVIDERS.length} registriert`, 'info');
+}
+
+/* ── status ── */
+function cmdStatus(){
+  tsPrint('SYSTEM STATUS', 'ts-cmd');
+  tsPrint('─'.repeat(50), 'dim');
+  const ready = PROVIDERS.filter(p => p.ready() && p.id !== 'reflex');
+  const keyed = PROVIDERS.filter(p => p.ready() && ['groq','google','github_models','together','cohere','xai','mistral','cerebras','openrouter'].includes(p.id));
+  tsPrint(`Provider bereit (keyless): ${ready.filter(p=>!['groq','google','github_models','together','cohere','xai','mistral','cerebras','openrouter'].includes(p.id)).length}`, 'info');
+  tsPrint(`Provider bereit (mit Key): ${keyed.length}`, keyed.length ? 'success' : 'dim');
+  tsPrint(`EMA-Scores:`, 'info');
+  const sc = STATE.providerScores || {};
+  for(const [k,v] of Object.entries(sc)){
+    tsPrint(`  ${k.padEnd(20)} ${(v*100).toFixed(1)}%`, 'dim');
+  }
+  tsPrint(`Pane-Modus: ${tsPanes}`, 'info');
+  tsPrint(`localEnabled: ${STATE.localEnabled}`, 'dim');
+  tsPrint('─'.repeat(50), 'dim');
+}
+
+/* ── ping — smoke test one provider ── */
+async function cmdPing(pid){
+  if(!pid){ tsPrint('Syntax: ping <provider-id>', 'err'); return; }
+  const p = PROVIDERS.find(x => x.id === pid);
+  if(!p){ tsPrint(`Provider nicht gefunden: ${pid}`, 'err'); return; }
+  tsPrint(`Pinging ${p.name}…`, 'info');
+  const t0 = Date.now();
+  try{
+    const res = await withTimeout(
+      p.call([{role:'user', content:'Antworte mit: PONG'}], ()=>{}),
+      PROVIDER_TIMEOUT[pid] ?? 20000, pid
+    );
+    const ms = Date.now() - t0;
+    tsPrint(`✓ ${p.name} — ${ms}ms — ${(res.text||'').slice(0,80)}`, 'success');
+  } catch(e){
+    tsPrint(`✗ ${p.name} — ${e.message}`, 'err');
+  }
+}
+
+/* ── history ── */
+function cmdHistory(){
+  if(!TS_HIST.length){ tsPrint('Verlauf leer.', 'dim'); return; }
+  tsPrint('VERLAUF', 'ts-cmd');
+  TS_HIST.forEach((h,i) => tsPrint(`  ${String(i+1).padStart(3)}  ${h}`, 'dim'));
+}
+
+/* ── tasks ── */
+function cmdTasks(query){
+  if(!query){ tsPrint('Syntax: tasks <prompt>', 'err'); return; }
+  const providers = liveProviders().filter(p => p.ready());
+  if(!providers.length){ tsPrint('Keine Provider bereit.', 'err'); return; }
+  const n = Math.min(providers.length, tsPanes);
+  const selected = providers.slice(0, n);
+  if(tsPanesEl().children.length === 0) TS.setPanes(n);
+  tsPrint(`TASKS: ${n} Provider arbeiten parallel…`, 'info');
+  selected.forEach(p => makePaneFor(p.id, query));
+}
+
+/* ── help ── */
+function cmdHelp(){
+  const lines = [
+    ['help',           'Diese Hilfe anzeigen'],
+    ['ls',             'Provider auflisten'],
+    ['status',         'Systemstatus anzeigen'],
+    ['ping <id>',      'Provider smoke-test'],
+    ['race <prompt>',  'Alle Provider parallel — schnellster gewinnt'],
+    ['run [id…] <p>',  'Bestimmte Provider parallel starten'],
+    ['best <prompt>',  'Race + Erstantwort in Pane'],
+    ['tasks <prompt>', 'Parallele Aufgabe in aktuellen Panes'],
+    ['history',        'Befehlsverlauf'],
+    ['clear',          'Terminal leeren'],
+    ['▪ ◫ ⊞ ⊟',      'Pane-Modus wählen (Toolbar-Buttons)'],
+    ['↑/↓',           'Verlauf navigieren'],
+    ['Tab',            'Befehl auto-vervollständigen'],
+  ];
+  tsPrint('HUGIN TERMSHELL — Befehle', 'ts-cmd');
+  tsPrint('─'.repeat(50), 'dim');
+  for(const [cmd, desc] of lines){
+    tsPrint(`  ${cmd.padEnd(22)} ${desc}`, 'dim');
+  }
+  tsPrint('─'.repeat(50), 'dim');
+  tsPrint('Beispiel: race Erkläre Quantenverschränkung', 'info');
+}
+
+/* ── version ── */
+function cmdVersion(){
+  tsPrint('HUGIN TERMSHELL v1.0.0', 'ts-cmd');
+  tsPrint('Multi-Provider Parallel Shell Engine', 'dim');
+  tsPrint(`Provider: ${PROVIDERS.length} registriert`, 'info');
+  tsPrint(`Aktiv (keyless): ${liveProviders().filter(p=>p.ready()).length}`, 'info');
+}
+
+/* ── main command dispatcher ── */
+function tsExec(raw){
+  if(!raw.trim()) return;
+  TS_HIST.push(raw);
+  tsHistIdx = -1;
+
+  tsPrint('HUGIN> ' + raw, 'prompt');
+
+  const [cmd, ...rest] = raw.trim().split(/\s+/);
+  const args = rest.join(' ');
+
+  switch(cmd.toLowerCase()){
+    case 'help': case '?': cmdHelp(); break;
+    case 'ls': case 'providers': cmdLsProviders(); break;
+    case 'status': cmdStatus(); break;
+    case 'clear': TS.clearAll(); break;
+    case 'history': cmdHistory(); break;
+    case 'version': cmdVersion(); break;
+    case 'race': if(args) cmdRace(args); else tsPrint('Syntax: race <prompt>', 'err'); break;
+    case 'run': if(args) cmdRun(args); else tsPrint('Syntax: run [id…] <prompt>', 'err'); break;
+    case 'best': if(args) cmdBest(args); else tsPrint('Syntax: best <prompt>', 'err'); break;
+    case 'ping': cmdPing(args); break;
+    case 'tasks': cmdTasks(args); break;
+    case 'chat': switchMode('chat'); break;
+    default:
+      /* treat unknown input as a direct chat in single pane */
+      TS.setPanes(1);
+      makePaneFor(candidateOrder(raw.length / 5)[0] || 'pollinations', raw);
+  }
+}
+
+/* ── startup banner ── */
+(function(){
+  tsPrint('╔══════════════════════════════════════════╗', 'ts-cmd');
+  tsPrint('║  HUGIN TERMSHELL  · Multi-Provider Shell ║', 'ts-cmd');
+  tsPrint('╚══════════════════════════════════════════╝', 'ts-cmd');
+  tsPrint('Tippe "help" für Befehlsübersicht | "race <prompt>" für Parallel-Mode', 'dim');
+  tsPrint(`${liveProviders().filter(p=>p.ready()).length} Provider bereit — Reflex-Kern autark`, 'success');
+  tsPrint('', 'dim');
+})();
+
+})(); /* end TermShell IIFE */
 </script>
 </body>
 </html>
