@@ -310,6 +310,50 @@
   a{color:var(--cyan);}
   ::-webkit-scrollbar{width:0;height:0;}
 
+  /* ── Exec-Log Strip — transparent live trace during any call ── */
+  #execlog{
+    display:none; flex-direction:column;
+    position:fixed; left:0; right:0;
+    bottom:calc(80px + env(safe-area-inset-bottom));
+    max-height:38vh; overflow:hidden;
+    z-index:30; pointer-events:none;
+    background:linear-gradient(to bottom, transparent 0%, rgba(5,7,10,.72) 18%);
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
+    transition:opacity .25s;
+  }
+  #execlog.active{ display:flex; }
+  #execlog-inner{
+    overflow-y:auto; padding:8px 12px 10px;
+    font-family:var(--mono); font-size:9.8px; line-height:1.55;
+    pointer-events:auto;
+  }
+  .el-line{
+    display:flex; gap:7px; align-items:baseline;
+    opacity:0; animation:el-fade .18s forwards;
+  }
+  @keyframes el-fade{ to{opacity:1;} }
+  .el-t{ color:rgba(62,244,230,.35); flex:none; font-size:8.5px; }
+  .el-icon{ flex:none; font-size:10px; width:14px; text-align:center; }
+  .el-msg{ color:rgba(200,220,230,.6); flex:1; }
+  .el-line.step .el-msg{ color:var(--cyan); }
+  .el-line.ok   .el-msg{ color:var(--green); }
+  .el-line.fail .el-msg{ color:var(--red); }
+  .el-line.info .el-msg{ color:var(--amber); }
+  .el-line.tok  .el-msg{ color:rgba(150,200,255,.45); font-size:9px; }
+
+  /* header subtitle animation states */
+  .sub.pulse{ animation:sub-pulse 1.2s ease-in-out infinite; }
+  @keyframes sub-pulse{
+    0%,100%{ opacity:.7; }
+    50%{ opacity:1; text-shadow:0 0 8px rgba(62,244,230,.4); }
+  }
+  .sub.done{ animation:sub-done .4s ease-out forwards; }
+  @keyframes sub-done{
+    0%{ color:var(--green); text-shadow:0 0 12px rgba(0,255,128,.5); }
+    100%{ color:inherit; text-shadow:none; }
+  }
+
   /* ── Mode-Tab-Bar ── */
   #modebar{
     display:flex; gap:4px; padding:0 10px;
@@ -447,6 +491,8 @@
   body.mode-shell footer{ display:none; }
   body.mode-chat #main-chat{ display:flex; flex-direction:column; flex:1; overflow:hidden; }
   body.mode-shell #main-chat{ display:none; }
+  /* exec log: in shell mode, sit above shell input */
+  body.mode-shell #execlog{ bottom:calc(52px + env(safe-area-inset-bottom)); }
 
   /* ── Install hint (shown only before PWA install) ── */
   #installHint{
@@ -518,6 +564,11 @@
 </footer>
 
 <div id="installHint"><span>⬆</span> Zu Homescreen hinzufügen → Overlay aktiv</div>
+
+<!-- Live Execution Log Strip -->
+<div id="execlog" aria-hidden="true">
+  <div id="execlog-inner"></div>
+</div>
 
 <div id="drawer" role="dialog" aria-modal="true" aria-label="Einstellungen">
   <div class="panel">
@@ -1637,8 +1688,46 @@ async function routeAndCall(messages, onToken, onProvider) {
 const feed = document.getElementById('feed');
 const input = document.getElementById('input');
 const statusline = document.getElementById('statusline');
+const subtitleEl = document.getElementById('subtitle');
+const execlogEl = document.getElementById('execlog');
+const execlogInner = document.getElementById('execlog-inner');
 
 function setStatus(t) { statusline.textContent = t; }
+
+/* ── Exec Log ── */
+let execLogTimer = null;
+function elLog(msg, cls = '') {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8) + '.' + String(now.getMilliseconds()).padStart(3,'0');
+  const icons = { step:'›', ok:'✓', fail:'✗', info:'◈', tok:'·', '':'·' };
+  const icon = icons[cls] || '·';
+  const line = document.createElement('div');
+  line.className = 'el-line' + (cls ? ' ' + cls : '');
+  line.innerHTML = `<span class="el-t">${ts}</span><span class="el-icon">${icon}</span><span class="el-msg">${msg}</span>`;
+  execlogInner.appendChild(line);
+  execlogInner.scrollTop = execlogInner.scrollHeight;
+}
+function elStart() {
+  execlogInner.innerHTML = '';
+  execlogEl.classList.add('active');
+  clearTimeout(execLogTimer);
+}
+function elStop(delayMs = 1800) {
+  execLogTimer = setTimeout(() => {
+    execlogEl.classList.remove('active');
+  }, delayMs);
+}
+
+/* ── Subtitle live state ── */
+const SUBTITLE_DEFAULT = 'Gedanke fliegt — Erinnerung bleibt · v2.1.0 SYNTHESE';
+function subSet(text, state) {
+  subtitleEl.textContent = text;
+  subtitleEl.className = 'sub' + (state ? ' ' + state : '');
+  if(state === 'done') setTimeout(() => {
+    subtitleEl.textContent = SUBTITLE_DEFAULT;
+    subtitleEl.className = 'sub';
+  }, 1600);
+}
 
 function addMsg(role, text) {
   const div = document.createElement('div');
@@ -1666,6 +1755,21 @@ async function send() {
   const text = input.value.trim();
   if (!text) return;
   input.value = ''; input.style.height = 'auto';
+
+  /* ── Boot exec log ── */
+  elStart();
+  const t0 = Date.now();
+  const taskType = classifyTask(text);
+  const complexity = estimateComplexity(text);
+  elLog(`INPUT  ${text.length > 60 ? text.slice(0,57)+'…' : text}`, 'info');
+  elLog(`CLASSIFY  task=${taskType}  complexity=${complexity}`, 'step');
+
+  /* Auto-switch header to active state */
+  subSet('routing…', 'pulse');
+
+  /* Ensure we're in chat mode to display the response */
+  if(document.body.classList.contains('mode-shell')) switchMode('chat');
+
   addMsg('user', text);
   history.push({ role: 'user', content: text });
 
@@ -1676,23 +1780,56 @@ async function send() {
   const cursor = shell.querySelector('[data-role=cursor]');
 
   let acc = '';
+  let tokenCount = 0;
+  let lastTokLog = 0;
+
   try {
     const { text: full, provider } = await routeAndCall(
       history,
-      (piece) => { acc += piece; txt.textContent = acc; feed.scrollTop = feed.scrollHeight; },
-      (prov, phase, latency) => {
-        dot.className = 'dot ' + (phase === 'fehler' ? 'err' : (prov.kind === 'local' ? 'local' : 'cloud'));
-        label.textContent = phase === 'versuch' ? ('frage ' + prov.name)
-          : phase === 'erfolg' ? (prov.name + ' · ' + Math.round(latency) + 'ms')
-          : (prov.name + ' fehlgeschlagen — weiche aus');
+      (piece) => {
+        acc += piece;
+        txt.textContent = acc;
+        feed.scrollTop = feed.scrollHeight;
+        tokenCount++;
+        /* log token bursts every 20 tokens without flooding */
+        if(tokenCount - lastTokLog >= 20) {
+          elLog(`streaming  ${tokenCount} tokens  +${(Date.now()-t0)}ms`, 'tok');
+          lastTokLog = tokenCount;
+        }
+      },
+      (prov, phase, latency, errMsg) => {
+        if(phase === 'versuch'){
+          dot.className = 'dot ' + (prov.kind === 'local' ? 'local' : 'cloud');
+          label.textContent = 'frage ' + prov.name;
+          elLog(`TRY    ${prov.name}  (${prov.id})`, 'step');
+          subSet(prov.name + '…', 'pulse');
+        } else if(phase === 'erfolg'){
+          dot.className = 'dot ' + (prov.kind === 'local' ? 'local' : 'cloud');
+          label.textContent = prov.name + ' · ' + Math.round(latency) + 'ms';
+          elLog(`OK     ${prov.name}  ${Math.round(latency)}ms`, 'ok');
+        } else {
+          dot.className = 'dot err';
+          label.textContent = prov.name + ' fehlgeschlagen — weiche aus';
+          elLog(`FAIL   ${prov.name}  ${errMsg || ''}`, 'fail');
+          subSet('fallback…', 'pulse');
+        }
       }
     );
     if (!acc) txt.textContent = full;
     history.push({ role: 'assistant', content: full || acc });
+
+    const totalMs = Date.now() - t0;
+    elLog(`DONE   ${tokenCount} tokens  ${totalMs}ms  provider=${provider?.name || '?'}`, 'ok');
+    subSet('✓ ' + (provider?.name || 'done') + '  ' + totalMs + 'ms', 'done');
+    elStop(2200);
+
   } catch (e) {
     dot.className = 'dot err';
     label.textContent = 'kein Anbieter erreichbar';
     txt.textContent = 'Fehler: ' + e.message;
+    elLog(`ERROR  ${e.message}`, 'fail');
+    subSet('✗ Fehler', 'done');
+    elStop(3500);
   } finally {
     cursor.remove();
     renderProviderStats();
