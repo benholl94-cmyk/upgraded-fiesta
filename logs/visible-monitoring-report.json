@@ -4,7 +4,7 @@
   "generated_at": "2026-07-24T18:18:52.598333+00:00",
   "monitor_exit_code": 999,
   "monitoring_report": {
-    "generated_at": "2026-07-24T18:11:29.672622+00:00",
+    "generated_at": "2026-07-24T18:21:31.664161+00:00",
     "marker_failures": [],
     "missing_files": [],
     "ok": true,
@@ -44,7 +44,7 @@
         "exists": true,
         "is_file": true,
         "path": ".github/workflows/rust-ci.yml",
-        "size_bytes": 369
+        "size_bytes": 657
       },
       {
         "exists": true,
