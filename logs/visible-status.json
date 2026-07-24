@@ -1,7 +1,7 @@
 {
   "actor": "benholl94-cmyk",
   "connector_visibility_workaround": true,
-  "generated_at": "2026-07-24T16:47:25.397654+00:00",
+  "generated_at": "2026-07-24T16:51:44.780095+00:00",
   "marker_failures": [],
   "missing_files": [],
   "monitor_ok": true,
@@ -18,11 +18,11 @@
     "has_timeout": true,
     "has_zero_staked_status": true
   },
-  "ref": "refs/heads/claude/claud-ai-code-teleport-nx73zr",
+  "ref": "refs/heads/main",
   "repository": "benholl94-cmyk/upgraded-fiesta",
-  "run_id": "30110409760",
-  "run_number": "749",
-  "sha": "606c65e005a4487d8b2f764481b69564d9301530",
+  "run_id": "30110695441",
+  "run_number": "750",
+  "sha": "6d8ac539a40921c39080a7e4ec70b0d1d70c0209",
   "source": "scripts/write_visible_status.py",
   "status_file_visible_via_contents_api": true,
   "workflow": "visible-status"
