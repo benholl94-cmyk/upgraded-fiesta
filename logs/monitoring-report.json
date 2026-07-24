@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T18:23:56.818610+00:00",
+  "generated_at": "2026-07-24T18:31:54.113004+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -124,6 +124,30 @@
       "is_file": true,
       "path": "Makefile",
       "size_bytes": 330
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/secret-scan.yml",
+      "size_bytes": 511
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/hugin-pages.yml",
+      "size_bytes": 747
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "hugin/manifest.json",
+      "size_bytes": 916
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "plugins/autonomy_pulse_plugin.py",
+      "size_bytes": 1163
     }
   ],
   "source_markers": {
