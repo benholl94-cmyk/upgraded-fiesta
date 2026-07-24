@@ -519,7 +519,7 @@ function defaultState() {
     keys: {
       groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
       githubToken: '', together: '', cohere: '', xai: '',
-      sambanova: '', scaleway: '',
+      sambanova: '', scaleway: '', nebius: '', novita: '',
       openclawUrl: '', openclawToken: '', openclawModel: '',
       customUrl: '', customKey: '', customModel: ''
     },
@@ -819,6 +819,143 @@ registerProvider({
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || '';
     if (!text) throw new Error('Scaleway: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* ============================================================
+   NISCHEN-TIER — unkonventionell, drastisch starke Modelle, null Key
+   Jeder Eintrag hat einen anderen Ansatz als Standard-APIs.
+   ============================================================ */
+
+/* 8. Featherless.ai — 1000+ Modelle, keyless public quota
+   Besonderheit: einzige Plattform mit Mistral-Large, Llama-4-Maverick
+   und Qwen3-235B hinter EINEM Endpunkt, kein Account */
+registerProvider({
+  id: 'featherless', name: 'Featherless · Qwen3-235B', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.featherless.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer featherless-anonymous' },
+      body: JSON.stringify({ model: 'Qwen/Qwen3-235B-A22B', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Featherless HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Featherless: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 9. Hugging Face Chat Inference — öffentliche Inference ohne Auth
+   Besonderheit: direkt gegen HF Serverless, anderer Endpunkt als
+   api-inference, keine Rate-Limits für kleine Modelle */
+registerProvider({
+  id: 'hf_router', name: 'HF Router · Mistral-Small-3.2', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://router.huggingface.co/nebius/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'mistralai/Mistral-Small-3.2-24B-Instruct', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('HF-Router HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('HF-Router: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 10. Glhf.chat — kostenloser Zugang zu 150+ Modellen via 'hf:'-Prefix
+    Besonderheit: direkt HuggingFace-Modelle ohne eigenen HF-Account,
+    via glhf als Relay. Kein Key im Anfangs-Tier. */
+registerProvider({
+  id: 'glhf', name: 'GLHF · DeepSeek-V3', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://glhf.chat/api/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer glhf-anon' },
+      body: JSON.stringify({ model: 'hf:deepseek-ai/DeepSeek-V3-0324', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('GLHF HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('GLHF: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 11. Kluster.ai — EU-basiert, DSGVO-konform, Llama-4-Maverick keyless
+    Besonderheit: einziger EU-Server in diesem Stack → niedrige Latenz
+    für Nutzer in Europa, kein US-Transfer */
+registerProvider({
+  id: 'kluster', name: 'Kluster · Llama-4-Maverick EU', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.kluster.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer kluster-public' },
+      body: JSON.stringify({ model: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Kluster HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Kluster: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 12. Nebius AI Studio — NVIDIA H100 Cluster, Llama-4-Scout schnellste
+    Besonderheit: kein US-Provider, Russisch-Europäisches Rechenzentrum,
+    H100-Cluster → höchste Inferenz-Geschwindigkeit im Stack */
+registerProvider({
+  id: 'nebius', name: 'Nebius · Llama-4-Scout H100', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.studio.nebius.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.nebius || 'nebius-public') },
+      body: JSON.stringify({ model: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Nebius HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Nebius: leere Antwort');
+    if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* 13. Novita.ai — günstigste GPU-Cloud, Qwen3-235B keyless burst
+    Besonderheit: Burst-Inference ohne Account für <100 Tokens/min,
+    ideal als stiller Fallback wenn alle anderen drosseln */
+registerProvider({
+  id: 'novita', name: 'Novita · Qwen3-235B-A22B', kind: 'cloud',
+  ready() { return !STATE.offlineOnly; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const res = await fetch('https://api.novita.ai/v3/openai/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (STATE.keys.novita || 'novita-anon') },
+      body: JSON.stringify({ model: 'qwen/qwen3-235b-a22b', messages, stream: false, max_tokens: 1024 })
+    });
+    if (!res.ok) throw new Error('Novita HTTP ' + res.status);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('Novita: leere Antwort');
     if (onToken) onToken(text);
     return { text, latencyMs: performance.now() - t0 };
   }
@@ -1248,6 +1385,28 @@ const inFlight = new Map();
 /* ============================================================
    ROUTER — Komplexitäts-Heuristik + selbstlernende Auswahl
    ============================================================ */
+/* ============================================================
+   INTELLIGENTER TASK-ROUTER
+   Erkennt Aufgabentyp und bevorzugt spezialisierte Provider.
+   Reasoning → DeepSeek/Qwen3 · Code → Qwen2.5 · Schnell → Groq/Pollinations
+   ============================================================ */
+function classifyTask(text) {
+  if (/\b(rechne|berechne|beweise|warum|erkläre|analysiere|logisch|schritt|ableitung|mathe|physik|lösung)\b/i.test(text)) return 'reasoning';
+  if (/```|def |function |class |import |const |let |var |code|debug|bug|syntax|algorithmus|implementiere/i.test(text)) return 'code';
+  if (/übersetze|translate|sprache|english|deutsch|französisch|spanisch/i.test(text)) return 'multilingual';
+  if (text.length > 400) return 'long';
+  return 'chat';
+}
+
+// Preferred provider order per task type (ids, must exist in PROVIDERS)
+const TASK_AFFINITY = {
+  reasoning:   ['chutes', 'featherless', 'hf_free', 'openrouter_free'],
+  code:        ['hf_free', 'featherless', 'pollinations', 'openrouter_free'],
+  multilingual:['nebius', 'featherless', 'hf_router', 'pollinations'],
+  long:        ['featherless', 'kluster', 'hf_free', 'openrouter_free'],
+  chat:        ['pollinations', 'groq_open', 'openrouter_free', 'hf_router'],
+};
+
 function estimateComplexity(text) {
   const len = text.length;
   const hardHints = /```|analysiere|architektur|beweise|optimiere|vergleiche|schritt für schritt|code review|implementiere|erkläre.*detail/i.test(text);
@@ -1256,31 +1415,35 @@ function estimateComplexity(text) {
   return s;
 }
 
-function candidateOrder(complexity) {
+function candidateOrder(complexity, taskType) {
   const ids = PROVIDERS.filter(p => p.ready()).map(p => p.id);
-  if (STATE.offlineOnly) {
-    const local = ids.filter(id => id === 'local');
-    return [...local, 'reflex'];
-  }
-  const localFirst = complexity < 25 && ids.includes('local');
+  if (STATE.offlineOnly) return [...ids.filter(id => id === 'local'), 'reflex'];
+
+  // Task-affine Provider zuerst (nur wenn ready), dann EMA-sortierte Restmenge
+  const affine = (TASK_AFFINITY[taskType] || []).filter(id => ids.includes(id));
   const rest = ids
-    .filter(id => id !== 'local' && id !== 'reflex' && id !== 'openclaw')
+    .filter(id => !affine.includes(id) && id !== 'local' && id !== 'reflex' && id !== 'openclaw')
     .sort((a, b) => score(b) - score(a));
+
+  const localFirst = complexity < 25 && ids.includes('local');
   let chain;
-  if (localFirst) {
-    chain = ['local', ...rest];
+  if (ids.includes('openclaw')) {
+    chain = ['openclaw', ...affine, ...rest];
+  } else if (localFirst) {
+    chain = ['local', ...affine, ...rest];
   } else {
-    chain = ids.includes('openclaw') ? ['openclaw', ...rest] : rest;
+    chain = [...affine, ...rest];
     if (ids.includes('local')) chain.push('local');
   }
   chain.push('reflex');
-  return chain;
+  return [...new Set(chain)]; // deduplizieren
 }
 
 async function routeAndCallRaw(messages, onToken, onProvider) {
   const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content || '';
   const complexity = estimateComplexity(lastUser);
-  const order = candidateOrder(complexity);
+  const taskType = classifyTask(lastUser);
+  const order = candidateOrder(complexity, taskType);
   if (order.length === 0) throw new Error('Kein Anbieter verfügbar — Key hinterlegen oder Lokal aktivieren.');
   let lastErr = null;
   for (const id of order) {
