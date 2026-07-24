@@ -29,12 +29,16 @@ function parsePayload(input: string): unknown {
 function App(): React.ReactElement {
   const [config, setConfig] = useState<PlatformConfig | null>(null);
   const [health, setHealth] = useState<EndpointHealth[]>([]);
-  const [taskType, setTaskType] = useState("analyze");
-  const [objective, setObjective] = useState("Produktionsbereitschaft validieren");
+  const [taskType, setTaskType] = useState("echo");
+  const [objective, setObjective] = useState("ping");
   const [payload, setPayload] = useState("{}");
   const [result, setResult] = useState<DispatchResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [memoryText, setMemoryText] = useState("");
   const [memoryQuery, setMemoryQuery] = useState("");
   const [memoryRecords, setMemoryRecords] = useState<MemoryRecord[]>([]);
@@ -125,6 +129,32 @@ function App(): React.ReactElement {
     } finally { setMemoryBusy(false); }
   }
 
+  async function sendChat(): Promise<void> {
+    if (!config || chatMessage.trim().length === 0) return;
+    const msg = chatMessage.trim();
+    setChatMessage("");
+    setChatHistory(h => [...h, { role: "user", text: msg }]);
+    setChatBusy(true); setChatError(null);
+    try {
+      const res = await dispatchWithRotation(config, {
+        taskType: "llm-chat",
+        objective: "chat",
+        payload: { message: msg },
+      });
+      const body = res.response as Record<string, unknown> | null;
+      const pluginResult = body?.plugin_result as Record<string, unknown> | undefined;
+      const reply =
+        (pluginResult?.result as Record<string, unknown>)?.reply as string
+        ?? pluginResult?.message as string
+        ?? JSON.stringify(pluginResult ?? body ?? res);
+      setChatHistory(h => [...h, { role: "assistant", text: reply }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "chat_dispatch_failed";
+      setChatError(msg);
+      setChatHistory(h => [...h, { role: "assistant", text: `[Fehler: ${msg}]` }]);
+    } finally { setChatBusy(false); }
+  }
+
   // Aktiver Knoten: aus Daemon-Status wenn verfügbar, sonst erste config-Endpoint
   const liveActiveLabel = liveStatus
     ? (liveStatus.endpoints.find(ep => ep.id === liveStatus.activeId)?.label ?? liveStatus.activeId ?? "—")
@@ -202,7 +232,7 @@ function App(): React.ReactElement {
       E("h2", null, "Aufgaben-Dispatch"),
       E("label", null, "Aufgabentyp",
         E("select", { value: taskType, onChange: (ev: React.ChangeEvent<HTMLSelectElement>) => setTaskType(ev.target.value) },
-          ["analyze","build","test","deploy","generate","document","monitor"].map(t =>
+          ["echo", "ops-tool", "llm-chat", "ollama-chat", "claude-tool"].map(t =>
             E("option", { key: t, value: t }, t)
           )
         )
@@ -238,9 +268,49 @@ function App(): React.ReactElement {
       )
     ),
 
+    /* ── LLM Chat ── */
+    E("section", { className: "panel" },
+      E("h2", null, "LLM Chat"),
+      E("p", { style: { fontSize: "0.75rem", color: "#5e82a0", marginBottom: "0.75rem" } },
+        "Sendet Nachrichten via task_type llm-chat ans Gateway. Benötigt HM_LLM_ENABLE=true + HM_LLM_API_URL/KEY/MODEL im Gateway."
+      ),
+      E("div", { className: "endpointList", style: { marginBottom: "0.75rem", maxHeight: "18rem", overflowY: "auto" } },
+        chatHistory.length === 0
+          ? E("p", { style: { color: "#5e82a0", fontSize: "0.85rem" } }, "Noch keine Nachrichten.")
+          : chatHistory.map((msg, i) =>
+              E("article", { key: i, className: `endpoint ${msg.role === "assistant" ? "online" : "unknown"}`,
+                             style: { flexDirection: "column", alignItems: "flex-start", gap: "0.25rem" } },
+                E("strong", null, msg.role === "user" ? "Du" : "Assistent"),
+                E("span", { style: { whiteSpace: "pre-wrap", wordBreak: "break-word" } }, msg.text)
+              )
+            )
+      ),
+      E("label", null, "Nachricht",
+        E("textarea", {
+          value: chatMessage,
+          onChange: (ev: React.ChangeEvent<HTMLTextAreaElement>) => setChatMessage(ev.target.value),
+          onKeyDown: (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); void sendChat(); }
+          },
+          rows: 2, placeholder: "Nachricht eingeben (Enter = Senden, Shift+Enter = Zeilenumbruch)",
+          disabled: chatBusy || !config,
+        })
+      ),
+      E("div", { className: "actions" },
+        E("button", { className: "primary", onClick: sendChat,
+                      disabled: chatBusy || !config || chatMessage.trim().length === 0 },
+          chatBusy ? "…" : "Senden"
+        ),
+        chatHistory.length > 0
+          ? E("button", { onClick: () => setChatHistory([]) }, "Verlauf löschen")
+          : null
+      ),
+      chatError ? E("pre", { className: "error" }, chatError) : null
+    ),
+
     /* ── Result ── */
     E("section", { className: "panel" },
-      E("h2", null, "Letztes Ergebnis"),
+      E("h2", null, "Letztes Task-Ergebnis"),
       E("pre", null, JSON.stringify(result ?? { status: "idle" }, null, 2))
     ),
 

@@ -123,10 +123,11 @@ against the real crates.io) would need, nothing sandbox-specific added.
 
 **Still open, and genuinely needs a human** (no way to fabricate these
 honestly from this sandbox):
-1. Reconcile the two divergent compose files noted in Phase 0's gaps: decide
-   whether `deploy/fullstack-compose.yml` should be deleted, or updated to
-   actually run `crates/hm-gateway` instead of the placeholder Python script
-   — changes what "deploy" means for anyone currently using that file.
+1. ~~Reconcile the two divergent compose files~~ — done: `deploy/fullstack-compose.yml`
+   now uses `build: { context: ., dockerfile: Dockerfile }` (the real Rust gateway)
+   and `Dockerfile.ui` (multi-stage node:22→nginx:1.27 build for the UI). The
+   placeholder `deploy/gateway_service.py` is still present for historical reference
+   but is no longer referenced by any compose file.
 2. ~~Fix the Dockerfile packaging gap~~ — done above.
 3. Stand up `deploy/hm-gateway.service` for real on one non-sandbox host
    (a VPS, a spare machine, a cloud VM) and confirm `systemd-analyze verify`
@@ -215,10 +216,13 @@ credentials, then this environment or a real deployment target to test
 from):
 1. An operator picks a real provider/model and sets
    `HM_LLM_ENABLE=true`/`HM_LLM_API_URL`/`HM_LLM_API_KEY`/`HM_LLM_MODEL` for
-   real.
-2. Wire the UI's existing chat-shaped panel (if any) or add a minimal one to
-   `ui/` that calls `POST /tasks` with `taskType: "llm-chat"` and renders
-   `plugin_result`.
+   real (via `.env` loaded by `deploy/fullstack-compose.yml`).
+2. ~~Wire the UI~~ — done: `ui/src/main.ts` now has a full LLM Chat panel
+   that dispatches `taskType: "llm-chat"` with `payload: { message }`, renders
+   the assistant reply from `plugin_result.result.reply`, maintains a scrollable
+   conversation history, and supports Enter-to-send + Shift+Enter for newlines.
+   Task-type dropdown also fixed to real plugin types (echo, ops-tool, llm-chat,
+   ollama-chat, claude-tool).
 3. Verify live: a real prompt round-trips through gateway → agent → plugin →
    real LLM API → response, with the outcome recorded in memory per the
    existing `Agent::dispatch` behavior from Phase 0 — no mocked responses.
