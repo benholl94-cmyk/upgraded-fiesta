@@ -56,10 +56,11 @@ def _load_keys_file() -> dict[str, str]:
 
 
 def _resolve_key(provider: dict, keys_file: dict[str, str]) -> str:
-    """Resolves the API key for a provider. Ollama needs none."""
-    if provider["name"] == "ollama":
+    """Resolves the API key for a provider. Providers with no key_env need none."""
+    if not provider.get("key_env"):
+        # No key required (Ollama, Pollinations, etc.)
         return ""
-    key_env = provider.get("key_env", "")
+    key_env = provider["key_env"]
     # 1. Keys file (preferred — never in env on production)
     if provider["name"] in keys_file:
         return keys_file[provider["name"]]
@@ -70,12 +71,10 @@ def _resolve_key(provider: dict, keys_file: dict[str, str]) -> str:
 
 
 def _resolve_url(provider: dict) -> str:
-    url = provider["url"]
-    # Expand Ollama URL env var if present
     if provider["name"] == "ollama":
         base = os.environ.get("HM_OLLAMA_URL", "http://localhost:11434")
         return f"{base}/v1/chat/completions"
-    return url
+    return provider["url"]
 
 
 def _resolve_model(provider: dict) -> str:
@@ -161,7 +160,9 @@ def check_and_rotate(*, dry_run: bool = False) -> Optional[dict]:
         key = _resolve_key(provider, keys_file)
         model = _resolve_model(provider)
 
-        if not key and provider["name"] != "ollama":
+        # Skip only when a key IS required (key_env set) but not found.
+        # Providers with key_env=="" need no key (Ollama, Pollinations, etc.).
+        if not key and provider.get("key_env"):
             results.append({"provider": provider["name"], "ok": False, "detail": "no key configured"})
             continue
 

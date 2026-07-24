@@ -9,6 +9,33 @@
     "note": "Local inference — no key, no cost, no network egress. Requires Ollama running on the host."
   },
   {
+    "name": "pollinations-openai",
+    "url": "https://text.pollinations.ai/openai/chat/completions",
+    "key": "",
+    "model": "openai",
+    "free": true,
+    "key_env": "",
+    "note": "Pollinations AI — completely free, no key, no signup. Routes to GPT-4o-mini. https://text.pollinations.ai"
+  },
+  {
+    "name": "pollinations-llama",
+    "url": "https://text.pollinations.ai/openai/chat/completions",
+    "key": "",
+    "model": "llama",
+    "free": true,
+    "key_env": "",
+    "note": "Pollinations AI — Llama 3.1-70B, completely free, no key, no signup."
+  },
+  {
+    "name": "pollinations-mistral",
+    "url": "https://text.pollinations.ai/openai/chat/completions",
+    "key": "",
+    "model": "mistral",
+    "free": true,
+    "key_env": "",
+    "note": "Pollinations AI — Mistral, completely free, no key, no signup."
+  },
+  {
     "name": "huggingface",
     "url": "https://api-inference.huggingface.co/v1/chat/completions",
     "key": "",

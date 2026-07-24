@@ -22,5 +22,11 @@
     "task_type": "llm-key-check",
     "payload": {},
     "interval_secs": 3600
+  },
+  {
+    "name": "knowledge-loop",
+    "task_type": "knowledge-loop",
+    "payload": {},
+    "interval_secs": 3600
   }
 ]

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Hacker News Top Stories (API)",
+    "url": "https://hacker-news.firebaseio.com/v0/topstories.json",
+    "tags": ["hn", "tech", "news"],
+    "max_chars": 2000,
+    "enabled": true,
+    "note": "Official HN Firebase API — public, no key, no scraping. Returns top story IDs."
+  },
+  {
+    "name": "GitHub Trending (public page)",
+    "url": "https://github.com/trending",
+    "tags": ["github", "trending", "code"],
+    "max_chars": 3000,
+    "enabled": false,
+    "note": "Set enabled:true to activate. Publicly accessible, read-only."
+  },
+  {
+    "name": "Rust Blog",
+    "url": "https://blog.rust-lang.org/",
+    "tags": ["rust", "release", "language"],
+    "max_chars": 3000,
+    "enabled": false,
+    "note": "Official Rust language blog. Publicly accessible."
+  },
+  {
+    "name": "HuggingFace Papers (latest)",
+    "url": "https://huggingface.co/papers",
+    "tags": ["ai", "ml", "papers", "research"],
+    "max_chars": 4000,
+    "enabled": false,
+    "note": "HuggingFace daily paper highlights. Publicly accessible."
+  }
+]
