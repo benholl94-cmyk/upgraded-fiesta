@@ -517,7 +517,7 @@ function defaultState() {
   return {
     version: 2,
     offlineOnly: false,
-    localEnabled: true,
+    localEnabled: false,
     keys: {
       groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
       githubToken: '', together: '', cohere: '', xai: '',
@@ -536,6 +536,12 @@ if (!STATE.version || STATE.version < 2) {
   const base = defaultState();
   STATE = Object.assign(base, STATE, { keys: Object.assign(base.keys, STATE.keys || {}) });
   STATE.version = 2;
+  StateStore.save(STATE);
+}
+// v2→v3: localEnabled war fälschlicherweise true per Default — auf false zurücksetzen
+// wenn kein echtes WebGPU im Browser verfügbar ist (iPhone Safari, Desktop ohne GPU)
+if (STATE.localEnabled && !('gpu' in navigator)) {
+  STATE.localEnabled = false;
   StateStore.save(STATE);
 }
 
@@ -1438,11 +1444,16 @@ function classifyTask(text) {
 
 // Preferred provider order per task type (ids, must exist in PROVIDERS)
 const TASK_AFFINITY = {
-  reasoning:   ['chutes', 'featherless', 'hf_free', 'openrouter_free'],
-  code:        ['hf_free', 'featherless', 'pollinations', 'openrouter_free'],
+  // reasoning → DeepSeek-R1 zuerst (stark aber langsam), dann Qwen3-235B
+  reasoning:   ['chutes', 'featherless', 'openrouter_free', 'hf_free'],
+  // code → Qwen3-235B (coding-spezialisiert), dann HF Serverless
+  code:        ['featherless', 'hf_free', 'openrouter_free', 'pollinations'],
+  // multilingual → Nebius H100 (schnell, viele Sprachen), dann Featherless
   multilingual:['nebius', 'featherless', 'hf_router', 'pollinations'],
-  long:        ['featherless', 'kluster', 'hf_free', 'openrouter_free'],
-  chat:        ['pollinations', 'groq_open', 'openrouter_free', 'hf_router'],
+  // long → Kluster EU + Featherless für großen Kontext
+  long:        ['kluster', 'featherless', 'openrouter_free', 'hf_free'],
+  // chat → Pollinations zuerst (schnellster keyloser), dann Groq Open LPU
+  chat:        ['groq_open', 'pollinations', 'hf_router', 'openrouter_free'],
 };
 
 function estimateComplexity(text) {
