@@ -30,32 +30,40 @@ services:
       retries: 10
 
   gateway:
-    image: python:3.13-alpine
-    working_dir: /app
-    command: ["python", "/app/deploy/gateway_service.py"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      HM_OWNER_TOKEN: "${HM_OWNER_TOKEN:?HM_OWNER_TOKEN is required}"
+      HM_GATEWAY_BIND: "0.0.0.0:8080"
+      HM_STORAGE_BACKEND: "${HM_STORAGE_BACKEND:-local}"
+      HM_STORAGE_ROOT: /data/storage
+      HM_CRON_CONFIG: /app/config/cron.json
+      HM_LLM_ENABLE: "${HM_LLM_ENABLE:-false}"
+      HM_LLM_API_URL: "${HM_LLM_API_URL:-}"
+      HM_LLM_API_KEY: "${HM_LLM_API_KEY:-}"
+      HM_LLM_MODEL: "${HM_LLM_MODEL:-}"
+    volumes:
+      - gwdata:/data/storage
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      APP_ENV: ${APP_ENV:-production}
-      PORT: 8080
-    volumes:
-      - ./:/app:ro
     ports:
       - "${GATEWAY_BIND:-0.0.0.0}:${GATEWAY_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2).read()"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 15
+      start_period: 30s
     restart: unless-stopped
 
   ui:
-    image: nginx:1.27-alpine
-    volumes:
-      - ./ui/index.html:/usr/share/nginx/html/index.html:ro
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
     depends_on:
       gateway:
         condition: service_healthy
@@ -66,3 +74,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  gwdata:
