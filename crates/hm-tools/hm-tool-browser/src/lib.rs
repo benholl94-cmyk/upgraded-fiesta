@@ -40,8 +40,7 @@ pub struct BrowserRequest {
 }
 
 fn default_cdp_url() -> String {
-    std::env::var("HM_BROWSER_CDP_URL")
-        .unwrap_or_else(|_| "ws://localhost:9222".to_string())
+    std::env::var("HM_BROWSER_CDP_URL").unwrap_or_else(|_| "ws://localhost:9222".to_string())
 }
 
 /// Ergebnis einer Browser-Operation.
@@ -74,12 +73,14 @@ fn cdp_http_get(host: &str, port: u16, path: &str) -> Result<String, String> {
     let addr = format!("{host}:{port}");
     let mut stream = TcpStream::connect(&addr)
         .map_err(|e| format!("cannot connect to CDP at {addr}: {e}. Is Chromium running with --remote-debugging-port={port}?"))?;
-    let request = format!(
-        "GET {path} HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n"
-    );
-    stream.write_all(request.as_bytes()).map_err(|e| e.to_string())?;
+    let request = format!("GET {path} HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n");
+    stream
+        .write_all(request.as_bytes())
+        .map_err(|e| e.to_string())?;
     let mut response = String::new();
-    stream.read_to_string(&mut response).map_err(|e| e.to_string())?;
+    stream
+        .read_to_string(&mut response)
+        .map_err(|e| e.to_string())?;
     if let Some(pos) = response.find("\r\n\r\n") {
         Ok(response[pos + 4..].to_string())
     } else {
@@ -120,12 +121,10 @@ fn navigate(req: &BrowserRequest) -> Result<BrowserResult, String> {
 fn screenshot(_req: &BrowserRequest) -> Result<BrowserResult, String> {
     // Screenshot via CDP erfordert WebSocket (nicht plain HTTP).
     // Ohne externe WS-Bibliothek geben wir eine klare Fehlermeldung zurück.
-    Err(
-        "screenshot requires a WebSocket connection to CDP. \
+    Err("screenshot requires a WebSocket connection to CDP. \
          Add a WebSocket client (e.g. tungstenite) to this crate \
          or run: chromium --headless --screenshot --virtual-time-budget=5000 <url>"
-            .to_string(),
-    )
+        .to_string())
 }
 
 fn evaluate(req: &BrowserRequest) -> Result<BrowserResult, String> {
@@ -142,8 +141,8 @@ fn evaluate(req: &BrowserRequest) -> Result<BrowserResult, String> {
 fn extract_text(req: &BrowserRequest) -> Result<BrowserResult, String> {
     let (host, port) = parse_cdp_host_port(&req.cdp_url);
     let body = cdp_http_get(&host, port, "/json/list")?;
-    let tabs: Value = serde_json::from_str(&body)
-        .map_err(|e| format!("CDP /json/list parse error: {e}"))?;
+    let tabs: Value =
+        serde_json::from_str(&body).map_err(|e| format!("CDP /json/list parse error: {e}"))?;
     let count = tabs.as_array().map(|a| a.len()).unwrap_or(0);
     Ok(BrowserResult {
         operation: "extract_text".to_string(),

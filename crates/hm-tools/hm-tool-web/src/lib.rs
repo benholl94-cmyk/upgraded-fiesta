@@ -16,10 +16,9 @@ use std::net::TcpStream;
 
 /// Blockliste für private/lokale Adressbereiche (SSRF-Schutz).
 const BLOCKED_PREFIXES: &[&str] = &[
-    "127.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.",
-    "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.",
-    "172.27.", "172.28.", "172.29.", "172.30.", "172.31.", "169.254.", "::1",
-    "fd", "fe80",
+    "127.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.", "172.20.", "172.21.",
+    "172.22.", "172.23.", "172.24.", "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
+    "172.30.", "172.31.", "169.254.", "::1", "fd", "fe80",
 ];
 
 #[derive(Debug, Deserialize)]
@@ -50,7 +49,9 @@ pub struct FetchResult {
 
 /// SSRF-Prüfung: blockiert Requests zu privaten/lokalen Adressen.
 fn is_blocked_host(host: &str) -> bool {
-    BLOCKED_PREFIXES.iter().any(|prefix| host.starts_with(prefix))
+    BLOCKED_PREFIXES
+        .iter()
+        .any(|prefix| host.starts_with(prefix))
         || host == "localhost"
         || host == "0.0.0.0"
 }
@@ -93,11 +94,9 @@ pub fn fetch(req: &FetchRequest) -> Result<FetchResult, String> {
     let url = req.url.trim();
 
     if url.starts_with("https://") {
-        return Err(
-            "HTTPS not supported in this build (no TLS library). \
+        return Err("HTTPS not supported in this build (no TLS library). \
              Use http:// or add a TLS-capable HTTP client crate."
-                .to_string(),
-        );
+            .to_string());
     }
 
     let (host, port, path) = parse_host_port(url)?;
@@ -109,8 +108,8 @@ pub fn fetch(req: &FetchRequest) -> Result<FetchResult, String> {
     }
 
     let addr = format!("{host}:{port}");
-    let mut stream = TcpStream::connect(&addr)
-        .map_err(|e| format!("connection failed to {addr}: {e}"))?;
+    let mut stream =
+        TcpStream::connect(&addr).map_err(|e| format!("connection failed to {addr}: {e}"))?;
 
     let http_request = format!(
         "{method} {path} HTTP/1.0\r\n\
@@ -211,7 +210,7 @@ pub fn run_plugin() {
         Ok(result) => {
             let status = result.status;
             let value = serde_json::to_value(&result).unwrap_or(Value::Null);
-            write_response(status >= 200 && status < 300, value, "ok");
+            write_response((200..300).contains(&status), value, "ok");
         }
         Err(e) => write_response(false, Value::Null, &e),
     }

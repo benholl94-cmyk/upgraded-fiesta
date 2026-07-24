@@ -145,7 +145,7 @@ impl SessionStore {
                 updated_at: s.updated_at,
             })
             .collect();
-        summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        summaries.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
         summaries
     }
 
@@ -191,9 +191,7 @@ mod tests {
     async fn append_message_updates_session() {
         let store = SessionStore::new();
         let id = store.create("chat").await;
-        let ok = store
-            .append(&id, Message::new("user", "Hallo MUNIN"))
-            .await;
+        let ok = store.append(&id, Message::new("user", "Hallo MUNIN")).await;
         assert!(ok);
         let session = store.get(&id).await.unwrap();
         assert_eq!(session.messages.len(), 1);

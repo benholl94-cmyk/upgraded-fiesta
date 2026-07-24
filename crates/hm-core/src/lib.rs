@@ -1,7 +1,7 @@
-/// Gemeinsame Typen und Hilfsfunktionen für den gesamten hm-Workspace.
-///
-/// Alle Crates können dieses Crate als Dependency einbinden um einheitliche
-/// Fehlertypen, Versionsinfos und Config-Hilfsfunktionen zu verwenden.
+//! Gemeinsame Typen und Hilfsfunktionen für den gesamten hm-Workspace.
+//!
+//! Alle Crates können dieses Crate als Dependency einbinden um einheitliche
+//! Fehlertypen, Versionsinfos und Config-Hilfsfunktionen zu verwenden.
 
 /// Workspace-weite Version (gespiegelt aus `Cargo.toml`).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -28,9 +28,9 @@ impl std::fmt::Display for HmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Config(s) => write!(f, "config error: {s}"),
-            Self::Io(s)     => write!(f, "I/O error: {s}"),
-            Self::Auth(s)   => write!(f, "auth error: {s}"),
-            Self::Other(s)  => write!(f, "{s}"),
+            Self::Io(s) => write!(f, "I/O error: {s}"),
+            Self::Auth(s) => write!(f, "auth error: {s}"),
+            Self::Other(s) => write!(f, "{s}"),
         }
     }
 }
@@ -51,11 +51,8 @@ impl From<anyhow::Error> for HmError {
 
 /// Liest eine Pflicht-Umgebungsvariable oder gibt einen `HmError::Config` zurück.
 pub fn require_env(key: &str) -> Result<String, HmError> {
-    std::env::var(key).map_err(|_| {
-        HmError::Config(format!(
-            "required environment variable {key} is not set"
-        ))
-    })
+    std::env::var(key)
+        .map_err(|_| HmError::Config(format!("required environment variable {key} is not set")))
 }
 
 /// Liest eine optionale Umgebungsvariable, gibt `None` zurück wenn nicht gesetzt.

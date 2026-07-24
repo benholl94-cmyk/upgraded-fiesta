@@ -368,7 +368,7 @@
       "id": "crate:hm-core",
       "label": "hm-core",
       "path": "crates/hm-core",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
@@ -403,28 +403,28 @@
       "id": "crate:hm-channel-telegram",
       "label": "hm-channel-telegram",
       "path": "crates/hm-channels/hm-channel-telegram",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
       "id": "crate:hm-channel-discord",
       "label": "hm-channel-discord",
       "path": "crates/hm-channels/hm-channel-discord",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
       "id": "crate:hm-channel-slack",
       "label": "hm-channel-slack",
       "path": "crates/hm-channels/hm-channel-slack",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
       "id": "crate:hm-channel-whatsapp",
       "label": "hm-channel-whatsapp",
       "path": "crates/hm-channels/hm-channel-whatsapp",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
@@ -438,21 +438,21 @@
       "id": "crate:hm-tool-browser",
       "label": "hm-tool-browser",
       "path": "crates/hm-tools/hm-tool-browser",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
       "id": "crate:hm-tool-web",
       "label": "hm-tool-web",
       "path": "crates/hm-tools/hm-tool-web",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
       "id": "crate:hm-tool-media",
       "label": "hm-tool-media",
       "path": "crates/hm-tools/hm-tool-media",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {
@@ -501,7 +501,7 @@
       "id": "crate:hm-cli",
       "label": "hm-cli",
       "path": "crates/hm-cli",
-      "status": "real",
+      "status": "stub",
       "type": "crate"
     },
     {

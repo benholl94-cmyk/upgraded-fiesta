@@ -43,11 +43,7 @@ impl JobState {
 ///
 /// Verwendet eine raw TCP-Verbindung ohne externe HTTP-Bibliothek,
 /// konsistent mit dem Rest des Workspace.
-fn submit_task(
-    gateway_url: &str,
-    token: &str,
-    job: &CronJob,
-) -> Result<(), anyhow::Error> {
+fn submit_task(gateway_url: &str, token: &str, job: &CronJob) -> Result<(), anyhow::Error> {
     use std::io::{Read, Write};
     use std::net::TcpStream;
 
@@ -99,7 +95,10 @@ pub async fn run(
 ) {
     let mut states: Vec<JobState> = jobs
         .into_iter()
-        .map(|job| JobState { job, last_run: None })
+        .map(|job| JobState {
+            job,
+            last_run: None,
+        })
         .collect();
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));

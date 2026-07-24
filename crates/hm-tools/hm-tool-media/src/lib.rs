@@ -50,8 +50,8 @@ const SIGNATURES: &[(&[u8], &str)] = &[
     (b"\x89PNG\r\n\x1A\n", "png"),
     (b"GIF87a", "gif"),
     (b"GIF89a", "gif"),
-    (b"RIFF", "wav/avi"),  // Erstes Segment — für sicheres Matching WAVE/AVI unterscheiden
-    (b"ftyp", "mp4/mov"),  // an Byte-Offset 4 — vereinfachte Prüfung
+    (b"RIFF", "wav/avi"), // Erstes Segment — für sicheres Matching WAVE/AVI unterscheiden
+    (b"ftyp", "mp4/mov"), // an Byte-Offset 4 — vereinfachte Prüfung
     (b"\x1A\x45\xDF\xA3", "webm/mkv"),
     (b"ID3", "mp3"),
     (b"\xFF\xFB", "mp3"),
@@ -80,7 +80,10 @@ pub fn detect_format(path: &Path) -> String {
     }
 
     // Texterkennung: wenn alle Bytes druckbar sind → text
-    if header.iter().all(|b| b.is_ascii_graphic() || b.is_ascii_whitespace()) {
+    if header
+        .iter()
+        .all(|b| b.is_ascii_graphic() || b.is_ascii_whitespace())
+    {
         return "text".to_string();
     }
 
@@ -134,8 +137,10 @@ pub fn execute(req: &MediaRequest) -> Result<MediaResult, String> {
         MediaOperation::Probe => {
             let output = Command::new("ffprobe")
                 .args([
-                    "-v", "quiet",
-                    "-print_format", "json",
+                    "-v",
+                    "quiet",
+                    "-print_format",
+                    "json",
                     "-show_format",
                     "-show_streams",
                     &req.path,
@@ -143,8 +148,7 @@ pub fn execute(req: &MediaRequest) -> Result<MediaResult, String> {
                 .output()
                 .map_err(|e| format!("ffprobe not available: {e}. Install ffmpeg."))?;
 
-            let probe_json: Value = serde_json::from_slice(&output.stdout)
-                .unwrap_or(Value::Null);
+            let probe_json: Value = serde_json::from_slice(&output.stdout).unwrap_or(Value::Null);
 
             let format = probe_json
                 .pointer("/format/format_name")
