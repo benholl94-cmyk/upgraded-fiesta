@@ -29,10 +29,35 @@ from pathlib import Path
 
 REPO_ROOT    = Path(__file__).parent.parent.parent.parent
 STATUS_FILE  = REPO_ROOT / ".claude" / "persona" / "munin-link-status.json"
+_DEV_TOKEN_FILE = REPO_ROOT / ".claude" / "persona" / ".dev-token"  # gitignored
 GATEWAY_URL  = os.environ.get("HM_GATEWAY_URL", "http://localhost:8080")
 OWNER_TOKEN  = os.environ.get("HM_OWNER_TOKEN", "")
 TG_TOKEN     = os.environ.get("MUNIN_TELEGRAM_TOKEN", "")
 TG_CHAT      = os.environ.get("MUNIN_TELEGRAM_CHAT_ID", "")
+GH_TOKEN     = os.environ.get("GITHUB_TOKEN", os.environ.get("MUNIN_GH_TOKEN", ""))
+GH_REPO      = "benholl94-cmyk/upgraded-fiesta"
+GH_NOTIF_ISSUE = int(os.environ.get("MUNIN_NOTIF_ISSUE", "0"))  # GitHub Issue # als Bus
+
+
+def _load_dev_token() -> str:
+    """Lädt oder generiert einen lokalen Dev-Token (nie committen)."""
+    global OWNER_TOKEN
+    if OWNER_TOKEN:
+        return OWNER_TOKEN
+    if _DEV_TOKEN_FILE.exists():
+        OWNER_TOKEN = _DEV_TOKEN_FILE.read_text().strip()
+        return OWNER_TOKEN
+    return ""
+
+
+def _ensure_dev_token() -> str:
+    """Generiert einmalig einen Dev-Token für lokale Gateway-Tests."""
+    import secrets
+    token = secrets.token_hex(32)
+    _DEV_TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _DEV_TOKEN_FILE.write_text(token + "\n")
+    _DEV_TOKEN_FILE.chmod(0o600)
+    return token
 
 C = {"B": "\033[1m", "GR": "\033[92m", "YL": "\033[93m",
      "RD": "\033[91m", "DM": "\033[2m", "CY": "\033[96m", "R": "\033[0m"}
@@ -140,6 +165,88 @@ def _gateway_post(path: str, data: dict) -> dict | None:
         return None
 
 
+def _gh_api(method: str, path: str, data: dict | None = None) -> dict | None:
+    """GitHub API — verwendet GITHUB_TOKEN oder MUNIN_GH_TOKEN."""
+    if not GH_TOKEN:
+        return None
+    url  = f"https://api.github.com{path}"
+    body = json.dumps(data).encode() if data else None
+    req  = urllib.request.Request(
+        url, data=body, method=method,
+        headers={
+            "Authorization": f"Bearer {GH_TOKEN}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read())
+    except Exception:
+        return None
+
+
+def cmd_gh_notify(args: list[str]) -> None:
+    """GitHub-Issue als Notification-Bus — kein Telegram-Token nötig.
+    MUNIN postet Statusupdates als Issue-Kommentar → iPhone bekommt GitHub-Notification.
+
+    Setup:
+      1. Erstelle ein Issue im Repo (z.B. 'MUNIN Status-Bus')
+      2. export MUNIN_NOTIF_ISSUE=<issue-nummer>
+      3. export MUNIN_GH_TOKEN=<github-pat-mit-issues-scope>
+      4. Aktiviere GitHub-Notifications auf deinem iPhone
+    """
+    message = args[0] if args else "MUNIN: Status-Update"
+    if not GH_TOKEN:
+        print(f"{C['YL']}⚠{C['R']} MUNIN_GH_TOKEN nicht gesetzt — GitHub-Notification nicht möglich.")
+        print("  export MUNIN_GH_TOKEN=<github-personal-access-token>")
+        print("  Scope: issues:write")
+        return
+    if not GH_NOTIF_ISSUE:
+        # Issue automatisch erstellen
+        result = _gh_api("POST", f"/repos/{GH_REPO}/issues", {
+            "title": "🤖 MUNIN Status-Bus",
+            "body": "Dieses Issue dient als Notification-Kanal für MUNIN.\n"
+                    "Kommentare hier = MUNIN-Status-Updates → iPhone-Notification.",
+            "labels": [],
+        })
+        if result:
+            issue_num = result["number"]
+            print(f"{C['GR']}✓{C['R']} Status-Bus Issue erstellt: #{issue_num}")
+            print(f"  export MUNIN_NOTIF_ISSUE={issue_num}")
+        else:
+            print(f"{C['RD']}Fehler:{C['R']} Issue konnte nicht erstellt werden.", file=sys.stderr)
+        return
+
+    st     = git_status()
+    body   = (f"**MUNIN** `{datetime.now(timezone.utc).strftime('%H:%M UTC')}`\n\n"
+              f"{message}\n\n"
+              f"```\nbranch: {st['branch']}\ntip: {st['tip']}\n```")
+    result = _gh_api("POST", f"/repos/{GH_REPO}/issues/{GH_NOTIF_ISSUE}/comments", {"body": body})
+    if result:
+        print(f"{C['GR']}✓{C['R']} GitHub-Notification → iPhone: #{GH_NOTIF_ISSUE}")
+    else:
+        print(f"{C['RD']}Fehler:{C['R']} Kommentar konnte nicht gepostet werden.", file=sys.stderr)
+
+
+def cmd_init_token(_args: list[str]) -> None:
+    """Generiert einen lokalen Dev-Token für Gateway-Tests.
+    Dieser Token wird in .claude/persona/.dev-token gespeichert (gitignored).
+    Beim Gateway-Start: export HM_OWNER_TOKEN=$(cat .claude/persona/.dev-token)
+    """
+    existing = _load_dev_token()
+    if existing:
+        print(f"{C['YL']}⚠{C['R']} Dev-Token existiert bereits.")
+        print(f"  Laden: export HM_OWNER_TOKEN=$(cat .claude/persona/.dev-token)")
+        return
+    token = _ensure_dev_token()
+    print(f"{C['GR']}✓{C['R']} Dev-Token generiert: {_DEV_TOKEN_FILE}")
+    print(f"  Laden: export HM_OWNER_TOKEN=$(cat .claude/persona/.dev-token)")
+    print(f"  Gateway: HM_OWNER_TOKEN=... HM_GATEWAY_ALLOW_NO_AUTH=false cargo run -p hm-gateway")
+    print(f"  {C['YL']}Niemals committen — bereits in .gitignore{C['R']}")
+
+
 def cmd_gateway_cmd(args: list[str]) -> None:
     """Befehl über Gateway-Task-Queue einreichen (Hardware → Chat-Brücke)."""
     if not args:
@@ -194,6 +301,8 @@ COMMANDS = {
     "repo-status":  cmd_repo_status,
     "broadcast":    cmd_broadcast,
     "telegram":     cmd_telegram,
+    "gh-notify":    cmd_gh_notify,
+    "init-token":   cmd_init_token,
     "gateway-cmd":  cmd_gateway_cmd,
     "health":       cmd_health,
 }
