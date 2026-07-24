@@ -1,6 +1,6 @@
 {
   "created": "2026-07-24T12:02:25.837226+00:00",
-  "updated": "2026-07-24T12:02:59.691350+00:00",
+  "updated": "2026-07-24T12:11:29.655932+00:00",
   "files": {
     "crates/hm-agent/src/lib.rs": {
       "path": "crates/hm-agent/src/lib.rs",
@@ -375,11 +375,10 @@
       "path": "plugins/claude_tool_plugin.py",
       "kategorie": "plugin",
       "sha256": "f088a7cc337f3bed931aa2d5c9cbde5313d85026da0e948e8b0cd5ebc1e7648f",
-      "git_blob": "b967b2de23b4a8c0b097e044aa347f3dca1d3f29",
+      "git_blob": "c3e77b0e19b8d78b7796095efd6b61d7b54e83cb",
       "size": 4306,
-      "mtime": 1784894556.5280523,
-      "last_seen": "2026-07-24T12:02:59.679802+00:00",
-      "status": "MODIFIED"
+      "mtime": 1784894644.9736564,
+      "last_seen": "2026-07-24T12:09:18.580575+00:00"
     },
     "plugins/echo_plugin.py": {
       "path": "plugins/echo_plugin.py",
@@ -403,11 +402,10 @@
       "path": "plugins/ollama_plugin.py",
       "kategorie": "plugin",
       "sha256": "7b1d011a00df6294609e1d625081629da3fff1d7d125df51164c23e26426e29b",
-      "git_blob": "3f683fea034ae0d0f2f3f51a1954a339d26b7a83",
+      "git_blob": "109f5d50b71ee7cf4010aedce06c324467755bcb",
       "size": 6413,
-      "mtime": 1784894574.700052,
-      "last_seen": "2026-07-24T12:02:59.682380+00:00",
-      "status": "MODIFIED"
+      "mtime": 1784894644.9736564,
+      "last_seen": "2026-07-24T12:09:18.583556+00:00"
     },
     "scripts/ashell_fullstack_up.py": {
       "path": "scripts/ashell_fullstack_up.py",
@@ -557,10 +555,10 @@
       "path": "scripts/repo_tracker.py",
       "kategorie": "script",
       "sha256": "a5a7057d8295be599a81481973d629090914ee80ba21c73a458270701620eaa7",
-      "git_blob": "untracked",
+      "git_blob": "84ed2013b11251ef34b5fc1d95de7e3aa7ef062a",
       "size": 14916,
-      "mtime": 1784894540.612053,
-      "last_seen": "2026-07-24T12:02:25.773729+00:00"
+      "mtime": 1784894644.9736564,
+      "last_seen": "2026-07-24T12:09:18.586620+00:00"
     },
     "scripts/rotation-daemon.py": {
       "path": "scripts/rotation-daemon.py",
@@ -700,11 +698,12 @@
     ".claude/persona/munin-state.json": {
       "path": ".claude/persona/munin-state.json",
       "kategorie": "persona",
-      "sha256": "1653c7656ce37792e5470f37074fbcb3a59c9d045a1c336a1cc2ae9fd4948404",
-      "git_blob": "fe8be2e3fff1ac0b492954376a3d45185fb78c92",
-      "size": 5893,
-      "mtime": 1784857038.926065,
-      "last_seen": "2026-07-24T12:02:25.813552+00:00"
+      "sha256": "6e0b0016cf7093289c62270589f8a534bf84fb1100329a1e67a014602933fd53",
+      "git_blob": "92e6508cbbf3f2fb354163953767182fe8877b3c",
+      "size": 6464,
+      "mtime": 1784895069.4005315,
+      "last_seen": "2026-07-24T12:11:29.639332+00:00",
+      "status": "TOUCHED"
     },
     ".claude/persona/munin.json": {
       "path": ".claude/persona/munin.json",
@@ -799,22 +798,52 @@
     ".claude/persona/repo-index.json": {
       "path": ".claude/persona/repo-index.json",
       "kategorie": "persona",
-      "sha256": "7938955cec1b72167b37d1257e1fd8d2a746efa72755ba0357dbd68e99ad0065",
-      "git_blob": "untracked",
-      "size": 33250,
-      "mtime": 1784894545.8381763,
-      "last_seen": "2026-07-24T12:02:59.688782+00:00",
-      "status": "NEW"
+      "sha256": "7ab94724deba3468eb1ef7396ccc4deb122f3060f3fc54b73f9b1bca05a529f9",
+      "git_blob": "da0c81ab3f7d0908fc601ed3b5d0282e17cb1c61",
+      "size": 35246,
+      "mtime": 1784895069.4005315,
+      "last_seen": "2026-07-24T12:11:29.642083+00:00",
+      "status": "MODIFIED"
     },
     ".claude/persona/tracker-report.json": {
       "path": ".claude/persona/tracker-report.json",
       "kategorie": "persona",
-      "sha256": "76840e9e4a45e05744c33bac9e02cfebb04182c3062c9e9f8378904eed099290",
-      "git_blob": "untracked",
-      "size": 1195,
-      "mtime": 1784894549.3320076,
-      "last_seen": "2026-07-24T12:02:59.691260+00:00",
-      "status": "NEW"
+      "sha256": "cb4c99422c8e7c6d246e7bfab1e618dbdd1aa3faf2b775c774fe776c90989583",
+      "git_blob": "fbfb5ca809a17df3760e1958ddff95eaa0d6ae3f",
+      "size": 1064,
+      "mtime": 1784895069.4005315,
+      "last_seen": "2026-07-24T12:11:29.644615+00:00",
+      "status": "MODIFIED"
+    },
+    "scripts/autonomy_core.py": {
+      "path": "scripts/autonomy_core.py",
+      "kategorie": "script",
+      "sha256": "989869259adb339347737b5207293565f7fb0d2df5dd04a891104b7ef166b26d",
+      "git_blob": "fd09b597d49f4cd0286e96ea1f655d9158ffec03",
+      "size": 15751,
+      "mtime": 1784895069.2825499,
+      "last_seen": "2026-07-24T12:11:29.647023+00:00",
+      "status": "TOUCHED"
+    },
+    ".claude/persona/autonomy-state.json": {
+      "path": ".claude/persona/autonomy-state.json",
+      "kategorie": "persona",
+      "sha256": "12efe796e24d23a03684d1e4ba5dd13a2461da6660795d5027bb37ab345f8a5d",
+      "git_blob": "9bbcb5328c1bfa61eb283c3cef438656e32ba54c",
+      "size": 592,
+      "mtime": 1784895069.4005315,
+      "last_seen": "2026-07-24T12:11:29.650077+00:00",
+      "status": "TOUCHED"
+    },
+    ".claude/persona/console-log.json": {
+      "path": ".claude/persona/console-log.json",
+      "kategorie": "persona",
+      "sha256": "319d1b08c1539fa74be836279b298097ad5d801a62d18d6b4ac4fcdd5d898e54",
+      "git_blob": "d4404009250b6a341954f3c9dcbfed88a887c920",
+      "size": 195,
+      "mtime": 1784895069.2825499,
+      "last_seen": "2026-07-24T12:11:29.652430+00:00",
+      "status": "TOUCHED"
     }
   }
 }
