@@ -50,6 +50,10 @@ ui/public/platform-status.json
 logs/
 .claude/persona/.dev-token
 
+# LLM runtime state — enthält API-Keys wenn ein bezahlter Provider aktiv ist
+config/llm-active.json
+config/knowledge-loop-state.json
+
 # Autonomy core live-state — kontinuierlich vom laufenden Daemon aktualisiert
 .claude/persona/repo-index.json
 .claude/persona/tracker-report.json

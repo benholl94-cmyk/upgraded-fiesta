@@ -18,7 +18,11 @@
     "crates/hm-gateway/src/main.rs",
     "docker-compose.yml",
     "Cargo.toml",
-    "Makefile"
+    "Makefile",
+    ".github/workflows/secret-scan.yml",
+    ".github/workflows/hugin-pages.yml",
+    "hugin/manifest.json",
+    "plugins/autonomy_pulse_plugin.py"
   ],
   "required_endpoint_states": [
     "online",
