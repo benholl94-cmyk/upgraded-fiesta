@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {
+      "ts": "2026-07-24T12:09:29.264541+00:00",
+      "type": "autonomy_start",
+      "interval": 60,
+      "msg": "Autonomy Core gestartet — Pulse alle 60s"
+    }
+  ]
+}

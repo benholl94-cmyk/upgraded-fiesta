@@ -118,8 +118,28 @@
     "claimedAt": "2026-07-24T01:25:00+00:00",
     "authorityLevel": "MASTER",
     "securityScore": "96.6% SECURE",
-    "watchActive": true,
-    "watchPID": 12088,
+    "watchActive": false,
+    "watchPID": null,
     "watchStarted": "2026-07-24T01:25:30+00:00"
+  },
+  "autonomyCore": {
+    "active": true,
+    "pulse_count": 2,
+    "last_pulse": "2026-07-24T12:09:29.264979+00:00",
+    "audit_score": 100.0,
+    "security_score": 96.6,
+    "uptime_since": "2026-07-24T12:09:18.531045+00:00",
+    "open_alerts": 0
+  },
+  "autonomyProcesses": {
+    "autonomy_core_pid": 21302,
+    "repo_tracker_pid": 21670,
+    "started": "2026-07-24T12:09:00+00:00",
+    "interval_secs": 60,
+    "logs": [
+      "/tmp/autonomy.log",
+      "/tmp/tracker.log"
+    ],
+    "note": "Läuft in dieser Session — neu starten bei nächstem Session-Start"
   }
 }
