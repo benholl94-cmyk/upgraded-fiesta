@@ -806,6 +806,20 @@ if (STATE.localEnabled && !('gpu' in navigator)) {
   StateStore.save(STATE);
 }
 
+/* Stale Cooldowns aus vorherigen Sessions löschen —
+   EMA-Lernraten (successEMA/latencyEMA) bleiben erhalten. */
+(function clearStaleCooldowns() {
+  const now = Date.now();
+  let changed = false;
+  for (const id of Object.keys(STATE.stats || {})) {
+    if (STATE.stats[id].cooldownUntil && STATE.stats[id].cooldownUntil > now) {
+      STATE.stats[id].cooldownUntil = 0;
+      changed = true;
+    }
+  }
+  if (changed) StateStore.save(STATE);
+})();
+
 /* ---------- EMA-Lernzustand pro Anbieter ---------- */
 const EMA_ALPHA = 0.35;
 
@@ -1516,26 +1530,6 @@ const ReflexKernel = (() => {
 
 function reflexAnswer(q) { return ReflexKernel.answer(q); }
 
-/* --- Pollinations.ai — kostenlos, kein Key, sofort nutzbar --- */
-registerProvider({
-  id: 'pollinations', name: 'Pollinations · kostenlos', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'openai-large', messages, stream: false, seed: -1 })
-    });
-    if (!res.ok) throw new Error('Pollinations HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Pollinations: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
 registerProvider({
   id: 'reflex', name: 'Reflex · autarker Kern', kind: 'local',
   ready() { return true; },
@@ -1828,6 +1822,16 @@ let history = [
 async function send() {
   const text = input.value.trim();
   if (!text) return;
+
+  /* SHELL-Befehle im CHAT-Feld → an TERMSHELL weiterleiten */
+  if (/^(race|run|best|tasks|ls|status|ping|history|clear|version|help)\b/i.test(text)) {
+    input.value = ''; input.style.height = 'auto';
+    switchMode('shell');
+    const tsInput = document.getElementById('ts-input');
+    if (tsInput) { tsInput.value = text; TS.submit(); }
+    return;
+  }
+
   input.value = ''; input.style.height = 'auto';
 
   const t0 = Date.now();
