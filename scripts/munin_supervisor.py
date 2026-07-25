@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""munin_supervisor.py -- Aufsicht über den Agenten, nicht über das Repo.
+
+Prüft, ob die Arbeit im Workspace die Verfassung des Masters einhält
+(`.claude/persona/constitution.json`, `.claude/persona/munin.json`). Der
+Adressat der Ausgabe ist der **Master**, nicht der Agent -- ein Agent, der
+sein eigenes Verhalten bewertet, ist kein Audit.
+
+Kernprinzip: **Behauptungen werden nachgerechnet, nicht geglaubt.**
+Wenn der Agent sagt "Tests grün", führt der Supervisor sie aus. Wenn er sagt
+"index.html synchron", vergleicht der Supervisor die Bytes. Wenn CLAUDE.md
+sagt "Crate ist ein Stub", zählt der Supervisor die Funktionen.
+
+    python3 scripts/munin_supervisor.py                 # einmalig, Text
+    python3 scripts/munin_supervisor.py --json          # maschinenlesbar
+    python3 scripts/munin_supervisor.py --watch 300     # Dauerloop, alle 300s
+    python3 scripts/munin_supervisor.py --quick         # ohne Testlauf
+
+Exit: 0 = sauber, 1 = DRIFT/RISK, 2 = VIOLATION (Verfassungsbruch).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+PERSONA = REPO / ".claude" / "persona"
+
+VIOLATION = "VIOLATION"   # Verfassungsbruch
+DRIFT = "DRIFT"           # Doku behauptet etwas anderes als die Realität
+RISK = "RISK"             # noch kein Bruch, aber eine offene Flanke
+OK = "OK"
+
+_SEVERITY_RANK = {VIOLATION: 2, DRIFT: 1, RISK: 1, OK: 0}
+
+
+@dataclass
+class Finding:
+    rule: str
+    severity: str
+    detail: str
+    evidence: str = ""
+    source: str = ""          # welche Regel des Masters verletzt wurde
+
+    def __str__(self) -> str:
+        head = f"[{self.severity:9}] {self.rule}: {self.detail}"
+        if self.evidence:
+            head += f"\n              ↳ {self.evidence}"
+        if self.source:
+            head += f"\n              ↳ Regel: {self.source}"
+        return head
+
+
+@dataclass
+class Report:
+    ts: str
+    findings: list[Finding] = field(default_factory=list)
+
+    @property
+    def worst(self) -> str:
+        return max((f.severity for f in self.findings), key=lambda s: _SEVERITY_RANK[s],
+                   default=OK)
+
+    def exit_code(self) -> int:
+        return {OK: 0, RISK: 1, DRIFT: 1, VIOLATION: 2}[self.worst]
+
+
+def run(*args: str, cwd: Path = REPO) -> subprocess.CompletedProcess:
+    return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
+
+def _load(name: str) -> dict:
+    p = PERSONA / name
+    if not p.is_file():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Prüfungen
+# ---------------------------------------------------------------------------
+
+SECRET_PATTERNS = (
+    (r"sk-[A-Za-z0-9]{20,}", "OpenAI-artiger Key"),
+    (r"gh[pousr]_[A-Za-z0-9]{30,}", "GitHub-Token"),
+    (r"AIza[0-9A-Za-z_\-]{30,}", "Google-API-Key"),
+    (r"-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----", "privater Schlüssel"),
+    (r"xox[baprs]-[A-Za-z0-9-]{10,}", "Slack-Token"),
+)
+
+
+def check_secrets() -> list[Finding]:
+    """noSecrets: Kein Commit von API-Keys, Tokens, .env-Dateien."""
+    out: list[Finding] = []
+    tracked = run("git", "ls-files").stdout.splitlines()
+
+    for path in tracked:
+        if re.search(r"(^|/)\.env($|\.)", path) and not path.endswith(".example"):
+            out.append(Finding(
+                "secret-file-tracked", VIOLATION,
+                f"{path} ist eingecheckt", source="munin.json → constraints.noSecrets"))
+
+    # Nur den Diff der unveröffentlichten Commits scannen -- Historie ist
+    # nicht mehr änderbar und würde bei jedem Lauf erneut feuern.
+    diff = run("git", "diff", "origin/HEAD...HEAD", "--unified=0").stdout
+    for pattern, label in SECRET_PATTERNS:
+        for m in re.finditer(pattern, diff):
+            out.append(Finding(
+                "secret-in-diff", VIOLATION,
+                f"{label} in noch nicht gemergtem Diff",
+                evidence=m.group(0)[:12] + "…",
+                source="munin.json → constraints.noSecrets"))
+    return out
+
+
+def check_hugin_sync() -> list[Finding]:
+    """Synergie-Regel hugin_index_sync: index.html ist eine Bytekopie."""
+    a, b = REPO / "hugin" / "hugin.html", REPO / "hugin" / "index.html"
+    if not (a.is_file() and b.is_file()):
+        return [Finding("hugin-sync", RISK, "hugin.html oder index.html fehlt")]
+    if a.read_bytes() != b.read_bytes():
+        return [Finding(
+            "hugin-sync", VIOLATION,
+            "index.html ist keine Bytekopie von hugin.html",
+            evidence="Fix: cp hugin/hugin.html hugin/index.html",
+            source="CLAUDE.md → synergy rule hugin_index_sync")]
+    return []
+
+
+def check_git_identity() -> list[Finding]:
+    """gitIdentity: die Verfassung schreibt die Committer-Identität vor.
+
+    Diese Prüfung existiert wegen einer realen Kollision: die Harness verlangt
+    noreply@anthropic.com, die Verfassung verlangt die Owner-Adresse. Beide
+    gleichzeitig sind unmöglich. Die Verfassung sagt für genau diesen Fall
+    "Kollision melden, nie selbst auflösen" -- also meldet der Supervisor sie,
+    statt eine Seite zu bevorzugen.
+    """
+    want = (_load("munin.json").get("gitIdentity") or {}).get("email")
+    if not want:
+        return []
+    have = run("git", "config", "user.email").stdout.strip()
+    if have == want:
+        return []
+    return [Finding(
+        "git-identity-collision", VIOLATION,
+        f"Committer-Mail ist {have or '(leer)'}, Verfassung verlangt {want}",
+        evidence="Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com — "
+                 "die beiden Anforderungen schließen sich aus.",
+        source="constitution.json → onConflict: 'Kollision sofort melden. "
+               "Nie selbst auflösen ohne Befehl.'")]
+
+
+def check_unpushed() -> list[Finding]:
+    """noGitHubWithoutCommand: ungepushte Arbeit ist der erwartete Zustand,
+    aber der Master soll wissen, dass etwas wartet."""
+    r = run("git", "rev-list", "origin/HEAD..HEAD", "--count")
+    n = int(r.stdout.strip() or 0) if r.returncode == 0 else 0
+    if not n:
+        return []
+    tips = run("git", "log", "--oneline", "origin/HEAD..HEAD").stdout.strip()
+    return [Finding(
+        "unpushed-work", RISK,
+        f"{n} Commit(s) lokal, nicht auf dem Remote",
+        evidence=tips.replace("\n", " | "),
+        source="munin.json → constraints.noGitHubWithoutCommand (Push braucht Befehl)")]
+
+
+# CLAUDE.md-Behauptungen, die messbar sind. Bewusst als kleine, per Auge
+# auditierbare Tabelle statt als NLP über den Fließtext.
+STUB_CLAIMS = (
+    "hm-core", "hm-cli", "hm-cron", "hm-sessions",
+    "hm-tools/hm-tool-browser", "hm-tools/hm-tool-media", "hm-tools/hm-tool-web",
+    "hm-channels/hm-channel-telegram", "hm-channels/hm-channel-discord",
+    "hm-channels/hm-channel-slack", "hm-channels/hm-channel-whatsapp",
+)
+STUB_MAX_FUNCTIONS = 3
+
+
+def check_doc_drift() -> list[Finding]:
+    """CLAUDE.md nennt diese Crates 'intentional placeholders' / 'stubs'.
+    Wenn sie das nicht mehr sind, ist die autoritative Quelle falsch -- und
+    die Verfassung stellt den git-Workspace über jeden anderen Kontext."""
+    out: list[Finding] = []
+    claude_md = (REPO / "CLAUDE.md")
+    if not claude_md.is_file():
+        return []
+    text = claude_md.read_text(encoding="utf-8", errors="replace")
+    for crate in STUB_CLAIMS:
+        src = REPO / "crates" / crate / "src"
+        if not src.is_dir():
+            continue
+        name = crate.split("/")[-1]
+        # CLAUDE.md nennt Crate-Familien als Glob ("hm-channel-*"), nicht
+        # einzeln. Nur auf den vollen Namen zu prüfen liesse genau die
+        # Familien durchrutschen, um die es geht.
+        family = re.sub(r"-(telegram|discord|slack|whatsapp|browser|media|web|exec)$",
+                        "-*", name)
+        if name not in text and family not in text:
+            continue
+        code = "\n".join(f.read_text(encoding="utf-8", errors="replace")
+                         for f in src.rglob("*.rs"))
+        fns = len(re.findall(r"\bpub (?:async )?fn\b", code))
+        if fns > STUB_MAX_FUNCTIONS:
+            out.append(Finding(
+                "doc-drift", DRIFT,
+                f"CLAUDE.md nennt {name} einen Platzhalter, gemessen: {fns} pub fn",
+                evidence=f"crates/{crate}/src",
+                source="constitution: der git-Workspace ist die autoritative Quelle — "
+                       "eine veraltete CLAUDE.md untergräbt genau das"))
+    return out
+
+
+PROVIDER_HOSTS = (
+    "api.openai.com", "generativelanguage.googleapis.com", "api.mistral.ai",
+    "api.groq.com", "api.anthropic.com", "openrouter.ai",
+)
+# Die PWA ruft Provider bewusst direkt aus dem Browser -- sie ist kein
+# Server-seitiger Pfad und fällt nicht unter das Oracle-Gate.
+ORACLE_EXEMPT = ("hugin/", "scripts/hugin_oracle.py", "docs/", "CLAUDE.md",
+                 "scripts/munin_supervisor.py", "tests/")
+
+
+def check_oracle_gate() -> list[Finding]:
+    """Alle serverseitigen Provider-Calls laufen durch hugin_oracle.py."""
+    out: list[Finding] = []
+    for path in run("git", "ls-files", "*.py", "*.rs", "*.sh").stdout.splitlines():
+        if any(path.startswith(x) for x in ORACLE_EXEMPT):
+            continue
+        f = REPO / path
+        if not f.is_file():
+            continue
+        body = f.read_text(encoding="utf-8", errors="replace")
+        for host in PROVIDER_HOSTS:
+            if host in body:
+                out.append(Finding(
+                    "oracle-gate-bypass", RISK,
+                    f"{path} nennt {host} direkt",
+                    source="CLAUDE.md → Oracle-Gate: externe Provider nur via "
+                           "scripts/hugin_oracle.py"))
+    return out
+
+
+def check_repo_structure() -> list[Finding]:
+    r = run("python3", "scripts/validate_repo.py")
+    if r.returncode == 0:
+        return []
+    return [Finding("repo-structure", VIOLATION, "validate_repo.py schlägt fehl",
+                    evidence=(r.stdout + r.stderr).strip()[:300])]
+
+
+def check_claims() -> list[Finding]:
+    """Behauptung 'Tests grün' wird nachgerechnet, nicht geglaubt."""
+    r = run("python3", "-m", "pytest", "tests/", "-q", "--timeout=120")
+    if r.returncode == 0:
+        return []
+    tail = (r.stdout + r.stderr).strip().splitlines()
+    return [Finding("claim-tests-pass", VIOLATION,
+                    "Testsuite ist rot — jede Behauptung 'Tests grün' ist damit falsch",
+                    evidence=" | ".join(tail[-3:])[:400],
+                    source="constitution: 'Transparenz: Wissenslücken werden benannt, "
+                           "nicht kaschiert'")]
+
+
+CHECKS = (
+    ("secrets", check_secrets),
+    ("hugin-sync", check_hugin_sync),
+    ("git-identity", check_git_identity),
+    ("unpushed", check_unpushed),
+    ("doc-drift", check_doc_drift),
+    ("oracle-gate", check_oracle_gate),
+    ("repo-structure", check_repo_structure),
+)
+
+
+def audit(quick: bool = False) -> Report:
+    rep = Report(ts=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    for _name, fn in CHECKS:
+        try:
+            rep.findings.extend(fn())
+        except Exception as exc:                      # ein kaputter Check darf
+            rep.findings.append(Finding(              # das Audit nicht killen
+                _name, RISK, f"Prüfung selbst fehlgeschlagen: {exc}"))
+    if not quick:
+        rep.findings.extend(check_claims())
+    return rep
+
+
+def render(rep: Report) -> str:
+    if not rep.findings:
+        return f"{rep.ts}  SAUBER — keine Abweichung von der Verfassung."
+    lines = [f"{rep.ts}  {rep.worst} — {len(rep.findings)} Befund(e)", ""]
+    order = {VIOLATION: 0, DRIFT: 1, RISK: 2, OK: 3}
+    for f in sorted(rep.findings, key=lambda x: order[x.severity]):
+        lines.append(str(f))
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--json", action="store_true", help="maschinenlesbar")
+    p.add_argument("--quick", action="store_true", help="ohne Testlauf")
+    p.add_argument("--watch", type=int, metavar="SEK",
+                   help="Dauerloop: alle SEK Sekunden erneut prüfen")
+    p.add_argument("--write", action="store_true",
+                   help="Bericht nach .claude/persona/supervisor-report.json schreiben")
+    a = p.parse_args(argv)
+
+    while True:
+        rep = audit(quick=a.quick)
+        if a.json:
+            print(json.dumps({"ts": rep.ts, "worst": rep.worst,
+                              "findings": [asdict(f) for f in rep.findings]},
+                             indent=2, ensure_ascii=False))
+        else:
+            print(render(rep))
+        if a.write:
+            out = PERSONA / "supervisor-report.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps({"ts": rep.ts, "worst": rep.worst,
+                                       "findings": [asdict(f) for f in rep.findings]},
+                                      indent=2, ensure_ascii=False) + "\n",
+                           encoding="utf-8")
+        if not a.watch:
+            return rep.exit_code()
+        sys.stdout.flush()
+        time.sleep(max(10, a.watch))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
