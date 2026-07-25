@@ -8,8 +8,12 @@ on:
 jobs:
   broadcast:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: MUNIN Status Broadcast
         run: python3 .claude/skills/munin-link/scripts/munin_link.py broadcast "CI-Scheduler: stündlicher Status-Check"
@@ -23,5 +27,5 @@ jobs:
           else
             git add .claude/persona/munin-link-status.json
             git commit -m "chore(munin): hourly status broadcast [skip ci]"
-            git push origin HEAD
+            git push origin main
           fi

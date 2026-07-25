@@ -27,7 +27,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT    = Path(__file__).parent.parent.parent.parent
+REPO_ROOT    = Path(__file__).parent.parent.parent.parent.parent
 STATUS_FILE  = REPO_ROOT / ".claude" / "persona" / "munin-link-status.json"
 _DEV_TOKEN_FILE = REPO_ROOT / ".claude" / "persona" / ".dev-token"  # gitignored
 GATEWAY_URL  = os.environ.get("HM_GATEWAY_URL", "http://localhost:8080")

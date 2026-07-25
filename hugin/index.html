@@ -10,7 +10,79 @@
 <meta name="apple-mobile-web-app-title" content="HUGIN">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='22' d='M64 320 Q128 144 256 128 Q384 144 448 320 Q352 272 320 336 Q288 240 256 240 Q224 240 192 336 Q160 272 64 320Z'/%3E%3Ccircle cx='208' cy='208' r='14' fill='%233ef4e6'/%3E%3Ccircle cx='304' cy='208' r='14' fill='%233ef4e6'/%3E%3C/svg%3E">
-<title>HUGIN · Autark</title>
+<title>HUGIN · Admin</title>
+<script>
+/* ── ADMIN GATE v2 ───────────────────────────────────────────────
+   SHA-256 via Web Crypto API (browser built-in, kein CDN).
+   Kein Plaintext-Token je im Source-Code oder Commit-History.
+   One-Time-Seal: nach erstem Setup wird ?admin= permanent gesperrt.
+   Mechanismus:
+     1. Beim ersten Aufruf mit ?admin=TOKEN:
+        - SHA-256 von TOKEN wird berechnet (async, blocking via Promise)
+        - Stimmt mit ADMIN_SHA256 überein → TOKEN in localStorage,
+          Seal-Flag gesetzt, URL bereinigt
+     2. Bei jedem weiteren Aufruf: gespeicherter Token wird erneut
+        via SHA-256 verifiziert
+     3. Nach dem Seal: ?admin= Parameter wird komplett ignoriert
+        (verhindert Token-Rotation-Angriffe)
+   ────────────────────────────────────────────────────────────── */
+(function(){
+  const ADMIN_SHA256 = '467d9c07c1e93eb77d63c39ba7f1bac3d99e3ad1f6d89427346c916e96fda18c';
+  const KEY_TOKEN  = 'hugin_admin_v2';
+  const KEY_SEALED = 'hugin_admin_v2_sealed';
+
+  function buf2hex(buf){
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function sha256(str){
+    const enc = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', enc);
+    return buf2hex(hash);
+  }
+
+  async function boot(){
+    const sealed = localStorage.getItem(KEY_SEALED) === '1';
+    const p = new URLSearchParams(location.search);
+
+    /* Seal gesetzt → ?admin= wird komplett ignoriert */
+    if(!sealed && p.has('admin')){
+      const tok = p.get('admin');
+      const h = await sha256(tok);
+      if(h === ADMIN_SHA256){
+        localStorage.setItem(KEY_TOKEN, tok);
+        localStorage.setItem(KEY_SEALED, '1');
+        history.replaceState(null, '', location.pathname);
+      } else {
+        /* Falsches Token → Lite-Version */
+        location.replace('./lite/');
+        return;
+      }
+    }
+
+    /* Token aus Storage prüfen */
+    const stored = localStorage.getItem(KEY_TOKEN);
+    if(!stored){
+      location.replace('./lite/');
+      return;
+    }
+    const h2 = await sha256(stored);
+    if(h2 !== ADMIN_SHA256){
+      /* Manipulierter Storage-Wert */
+      localStorage.removeItem(KEY_TOKEN);
+      localStorage.removeItem(KEY_SEALED);
+      location.replace('./lite/');
+      return;
+    }
+    window.__HUGIN_ADMIN = true;
+    /* Verstecktes DOM-Flag entfernen (Seite bleibt unsichtbar bis hier) */
+    document.documentElement.style.visibility = 'visible';
+  }
+
+  /* Seite zunächst unsichtbar halten bis Gate-Check abgeschlossen */
+  document.documentElement.style.visibility = 'hidden';
+  boot().catch(() => location.replace('./lite/'));
+})();
+</script>
 <style>
   :root{
     --void:#05070a;
@@ -310,6 +382,166 @@
   a{color:var(--cyan);}
   ::-webkit-scrollbar{width:0;height:0;}
 
+  /* ── Tab activity indicator — pulses on active tab during task ── */
+  .modetab.running::after{
+    content:''; display:inline-block;
+    width:5px; height:5px; border-radius:50%;
+    background:var(--cyan); margin-left:5px;
+    animation:tab-blink .7s ease-in-out infinite;
+    vertical-align:middle;
+  }
+  @keyframes tab-blink{ 0%,100%{opacity:.3;} 50%{opacity:1;box-shadow:0 0 6px var(--cyan);} }
+
+  /* header subtitle animation states */
+  .sub.pulse{ animation:sub-pulse 1.2s ease-in-out infinite; }
+  @keyframes sub-pulse{
+    0%,100%{ opacity:.7; }
+    50%{ opacity:1; text-shadow:0 0 8px rgba(62,244,230,.4); }
+  }
+  .sub.done{ animation:sub-done .4s ease-out forwards; }
+  @keyframes sub-done{
+    0%{ color:var(--green); text-shadow:0 0 12px rgba(0,255,128,.5); }
+    100%{ color:inherit; text-shadow:none; }
+  }
+
+  /* ── Mode-Tab-Bar ── */
+  #modebar{
+    display:flex; gap:4px; padding:0 10px;
+    border-bottom:1px solid var(--line);
+    background:rgba(5,7,10,.82);
+    position:sticky; top:0; z-index:19;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  }
+  .modetab{
+    flex:1; padding:7px 4px; border:none; background:none;
+    font-size:10px; font-family:var(--mono); letter-spacing:.06em;
+    color:var(--dim); cursor:pointer; border-bottom:2px solid transparent;
+    -webkit-appearance:none; appearance:none;
+    transition:color .15s, border-color .15s;
+  }
+  .modetab.active{ color:var(--cyan); border-bottom-color:var(--cyan); }
+  .modetab:active{ color:var(--text); }
+
+  /* ── TermShell Panel ── */
+  #termshell{
+    display:none; flex-direction:column;
+    flex:1; overflow:hidden;
+    font-family:var(--mono); font-size:12.5px;
+  }
+  #termshell.visible{ display:flex; }
+
+  /* Multi-pane grid */
+  #ts-panes{
+    flex:1; overflow:hidden;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:1px;
+    background:rgba(62,244,230,.06);
+  }
+  #ts-panes.split2{ grid-template-columns:1fr 1fr; }
+  #ts-panes.split3{ grid-template-columns:1fr 1fr 1fr; }
+  #ts-panes.split4{ grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+
+  .ts-pane{
+    display:flex; flex-direction:column;
+    background:rgba(5,7,10,.92);
+    overflow:hidden;
+    position:relative;
+  }
+  .ts-pane-header{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 8px;
+    background:rgba(11,15,22,.85);
+    border-bottom:1px solid rgba(62,244,230,.1);
+    font-size:9px; letter-spacing:.05em; color:var(--dim);
+    flex:none;
+  }
+  .ts-pane-header .dot{ width:6px; height:6px; }
+  .ts-pane-name{ color:var(--cyan); font-weight:700; flex:1; }
+  .ts-pane-latency{ color:var(--amber); }
+  .ts-pane-body{
+    flex:1; overflow-y:auto; padding:8px;
+    color:var(--text); line-height:1.5;
+    white-space:pre-wrap; word-wrap:break-word;
+  }
+  .ts-pane-body .ts-thinking{color:var(--dim); font-size:10px; font-style:italic;}
+  .ts-pane-body code{ color:var(--green); }
+  .ts-pane.loading .ts-pane-body::after{
+    content:'▋'; animation:blink 1s steps(1) infinite; color:var(--cyan);
+  }
+  .ts-pane.done{ border:1px solid rgba(62,244,230,.15); }
+  .ts-pane.error{ border:1px solid rgba(255,79,109,.2); }
+  .ts-pane.error .ts-pane-header{ background:rgba(255,79,109,.08); }
+
+  /* TermShell output log (primary pane) */
+  #ts-log{
+    flex:1; overflow-y:auto; padding:10px 10px 4px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .ts-line{
+    display:flex; gap:6px; line-height:1.4;
+    white-space:pre-wrap; word-wrap:break-word;
+  }
+  .ts-line.prompt{ color:var(--cyan); }
+  .ts-line.out{ color:var(--text); }
+  .ts-line.err{ color:var(--red); }
+  .ts-line.info{ color:var(--amber); }
+  .ts-line.success{ color:var(--green); }
+  .ts-line.dim{ color:var(--dim); font-size:10px; }
+  .ts-ps1{ color:var(--magenta); flex:none; user-select:none; }
+  .ts-cmd{ color:var(--cyan); }
+
+  /* TermShell input */
+  #ts-inputrow{
+    display:flex; align-items:center; gap:6px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    border-top:1px solid rgba(62,244,230,.12);
+    background:rgba(5,7,10,.88);
+    flex:none;
+  }
+  #ts-ps{ color:var(--magenta); font-size:12px; flex:none; user-select:none; white-space:nowrap; }
+  #ts-input{
+    flex:1; background:none; border:none; outline:none;
+    color:var(--cyan); font-family:var(--mono); font-size:12.5px;
+    caret-color:var(--cyan);
+  }
+  #ts-send{
+    background:none; border:none; color:var(--cyan);
+    font-size:16px; cursor:pointer; padding:4px; flex:none;
+    -webkit-appearance:none; appearance:none;
+  }
+
+  /* Race-mode overlay */
+  #ts-race{
+    display:none; flex:1; flex-direction:column; overflow:hidden;
+  }
+  #ts-race.visible{ display:flex; }
+  #ts-race-header{
+    padding:6px 10px; border-bottom:1px solid var(--line);
+    font-size:10px; color:var(--dim); letter-spacing:.06em;
+    display:flex; gap:8px; align-items:center;
+  }
+  #ts-race-title{ color:var(--amber); flex:1; }
+
+  /* TermShell toolbar */
+  #ts-toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:4px 10px; border-bottom:1px solid rgba(62,244,230,.1);
+    background:rgba(5,7,10,.6); flex:none;
+    font-size:10px; color:var(--dim);
+  }
+  .ts-toolbtn{
+    background:none; border:1px solid rgba(62,244,230,.15); color:var(--cyan);
+    border-radius:3px; padding:2px 7px; font-size:12px; cursor:pointer;
+    transition:background .15s;
+  }
+  .ts-toolbtn:hover{ background:rgba(62,244,230,.12); }
+
+  /* hide chat footer in shell mode */
+  body.mode-shell footer{ display:none; }
+  body.mode-chat #main-chat{ display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  body.mode-shell #main-chat{ display:none; }
+
   /* ── Install hint (shown only before PWA install) ── */
   #installHint{
     display:none;
@@ -338,13 +570,41 @@
   <div class="headline">
     <h1>HUGIN</h1>
     <div class="sub" id="subtitle">Gedanke fliegt — Erinnerung bleibt · v2.1.0 SYNTHESE</div>
+    <div style="display:inline-flex;align-items:center;gap:5px;margin-top:3px;">
+      <span style="font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:#ffb84d;background:rgba(255,184,77,.1);border:1px solid rgba(255,184,77,.35);border-radius:3px;padding:1px 6px;">ADMIN</span>
+    </div>
   </div>
   <button class="iconbtn" id="btnDrawer" aria-label="Einstellungen">⚙</button>
 </header>
 
-<main>
+<div id="modebar">
+  <button class="modetab active" id="tab-chat" onclick="switchMode('chat')">💬 CHAT</button>
+  <button class="modetab" id="tab-shell" onclick="switchMode('shell')">⚡ SHELL</button>
+</div>
+
+<main id="main-chat">
   <div id="feed" role="log" aria-live="polite"></div>
 </main>
+
+<div id="termshell">
+  <div id="ts-toolbar">
+    <span id="ts-pane-label">Modus: <strong id="ts-mode-name">single</strong></span>
+    <div style="display:flex;gap:4px;">
+      <button class="ts-toolbtn" onclick="TS.setPanes(1)" title="Einzeln">▪</button>
+      <button class="ts-toolbtn" onclick="TS.setPanes(2)" title="Split 2">◫</button>
+      <button class="ts-toolbtn" onclick="TS.setPanes(3)" title="Split 3">⊞</button>
+      <button class="ts-toolbtn" onclick="TS.setPanes(4)" title="Split 4">⊟</button>
+      <button class="ts-toolbtn" onclick="TS.clearAll()" title="Löschen">✕</button>
+    </div>
+  </div>
+  <div id="ts-log" aria-live="polite"></div>
+  <div id="ts-panes"></div>
+  <div id="ts-inputrow">
+    <span id="ts-ps">HUGIN&gt;</span>
+    <input id="ts-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Befehl eingeben… (help für Hilfe)">
+    <button id="ts-send" onclick="TS.submit()">▶</button>
+  </div>
+</div>
 
 <footer>
   <div class="inputrow">
@@ -355,6 +615,7 @@
 </footer>
 
 <div id="installHint"><span>⬆</span> Zu Homescreen hinzufügen → Overlay aktiv</div>
+
 
 <div id="drawer" role="dialog" aria-modal="true" aria-label="Einstellungen">
   <div class="panel">
@@ -521,7 +782,7 @@ function defaultState() {
     keys: {
       groq: '', google: '', cerebras: '', openrouter: '', mistral: '',
       githubToken: '', together: '', cohere: '', xai: '',
-      sambanova: '', scaleway: '', nebius: '', novita: '',
+      novita: '',
       openclawUrl: '', openclawToken: '', openclawModel: '',
       customUrl: '', customKey: '', customModel: ''
     },
@@ -544,6 +805,20 @@ if (STATE.localEnabled && !('gpu' in navigator)) {
   STATE.localEnabled = false;
   StateStore.save(STATE);
 }
+
+/* Stale Cooldowns aus vorherigen Sessions löschen —
+   EMA-Lernraten (successEMA/latencyEMA) bleiben erhalten. */
+(function clearStaleCooldowns() {
+  const now = Date.now();
+  let changed = false;
+  for (const id of Object.keys(STATE.stats || {})) {
+    if (STATE.stats[id].cooldownUntil && STATE.stats[id].cooldownUntil > now) {
+      STATE.stats[id].cooldownUntil = 0;
+      changed = true;
+    }
+  }
+  if (changed) StateStore.save(STATE);
+})();
 
 /* ---------- EMA-Lernzustand pro Anbieter ---------- */
 const EMA_ALPHA = 0.35;
@@ -702,7 +977,7 @@ function openAICompatible({ id, name, url, keyField, model, stream = true }) {
 openAICompatible({ id: 'cerebras', name: 'Cerebras · Llama-4-Scout', url: 'https://api.cerebras.ai/v1/chat/completions', keyField: 'cerebras', model: 'llama-4-scout' });
 
 /* OpenRouter — mit Key: Zugang zu 200+ Modellen */
-openAICompatible({ id: 'openrouter', name: 'OpenRouter · frei', url: 'https://openrouter.ai/api/v1/chat/completions', keyField: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' });
+openAICompatible({ id: 'openrouter', name: 'OpenRouter · mit Key', url: 'https://openrouter.ai/api/v1/chat/completions', keyField: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' });
 
 /* Together AI — freier Tier mit Key */
 openAICompatible({ id: 'together', name: 'Together · Llama-3.3-70B', url: 'https://api.together.xyz/v1/chat/completions', keyField: 'together', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', stream: false });
@@ -1255,26 +1530,6 @@ const ReflexKernel = (() => {
 
 function reflexAnswer(q) { return ReflexKernel.answer(q); }
 
-/* --- Pollinations.ai — kostenlos, kein Key, sofort nutzbar --- */
-registerProvider({
-  id: 'pollinations', name: 'Pollinations · kostenlos', kind: 'cloud',
-  ready() { return !STATE.offlineOnly; },
-  async call(messages, onToken) {
-    const t0 = performance.now();
-    const res = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'openai-large', messages, stream: false, seed: -1 })
-    });
-    if (!res.ok) throw new Error('Pollinations HTTP ' + res.status);
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Pollinations: leere Antwort');
-    if (onToken) onToken(text);
-    return { text, latencyMs: performance.now() - t0 };
-  }
-});
-
 registerProvider({
   id: 'reflex', name: 'Reflex · autarker Kern', kind: 'local',
   ready() { return true; },
@@ -1382,6 +1637,9 @@ const TASK_AFFINITY = {
 
   /* chat: Pollinations zuerst (bestätigt, GPT-4o-large, ~1-3s) → HF Router → Featherless */
   chat:        ['pollinations', 'hf_router', 'openrouter_free', 'featherless'],
+
+  /* general: GitHub Models (GPT-4o-mini, mit Token) als erste Wahl für einfache Tasks */
+  general:     ['github_models', 'pollinations', 'hf_router', 'openrouter_free'],
 };
 
 function estimateComplexity(text) {
@@ -1416,6 +1674,28 @@ function candidateOrder(complexity, taskType) {
   return [...new Set(chain)]; // deduplizieren
 }
 
+/* ── Response Validation Gate ──────────────────────────────────
+   Schützt gegen: leere Antworten, Error-JSON-Passthrough,
+   abgeschnittene Code-Blöcke (ungerade ``` Fences), zu kurze
+   Antworten auf lange Prompts. Kein Nutzer-Output bei Fail —
+   silent retry mit nächstem Provider.
+   ────────────────────────────────────────────────────────────── */
+function validateResponse(text, promptLen) {
+  if (!text || text.length < 3)
+    return { ok: false, reason: 'empty' };
+  // Error-JSON passthrough (Provider schickt Fehlerobjekt als Text)
+  if (/^\{"error"/.test(text.trim()) || /^Error:/.test(text.trim()))
+    return { ok: false, reason: 'error_passthrough' };
+  // Abgeschnittene Code-Blöcke: ungerade ``` Zählung
+  const fences = (text.match(/```/g) || []).length;
+  if (fences > 0 && fences % 2 !== 0)
+    return { ok: false, reason: 'truncated_code' };
+  // Zu kurze Antwort bei langer Anfrage (Antwort-Verweigerung oder Timeout-Artefakt)
+  if (promptLen > 80 && text.length < 8)
+    return { ok: false, reason: 'too_short' };
+  return { ok: true };
+}
+
 async function routeAndCallRaw(messages, onToken, onProvider) {
   const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content || '';
   const complexity = estimateComplexity(lastUser);
@@ -1426,12 +1706,23 @@ async function routeAndCallRaw(messages, onToken, onProvider) {
   for (const id of order) {
     const provider = PROVIDERS.find(p => p.id === id);
     onProvider && onProvider(provider, 'versuch');
+    let accumulated = '';
+    const wrappedOnToken = onToken ? (tok) => { accumulated += tok; onToken(tok); } : (tok) => { accumulated += tok; };
     try {
       const ms = PROVIDER_TIMEOUT[id] ?? 20000;
-      const { text, latencyMs } = await withTimeout(provider.call(messages, onToken), ms, provider.name);
+      const { text, latencyMs } = await withTimeout(provider.call(messages, wrappedOnToken), ms, provider.name);
+      const finalText = accumulated || text || '';
+      const vResult = validateResponse(finalText, lastUser.length);
+      if (!vResult.ok) {
+        // Validation failed — treat as soft error, try next provider silently
+        updateStat(id, false, latencyMs ?? 0);
+        onProvider && onProvider(provider, 'fehler', 0, `validation:${vResult.reason}`);
+        lastErr = new Error(`${provider.name}: ${vResult.reason}`);
+        continue;
+      }
       updateStat(id, true, latencyMs);
       onProvider && onProvider(provider, 'erfolg', latencyMs);
-      return { text, provider };
+      return { text: finalText, provider };
     } catch (e) {
       updateStat(id, false, 9999);
       onProvider && onProvider(provider, 'fehler', 0, e.message);
@@ -1474,8 +1765,40 @@ async function routeAndCall(messages, onToken, onProvider) {
 const feed = document.getElementById('feed');
 const input = document.getElementById('input');
 const statusline = document.getElementById('statusline');
+const subtitleEl = document.getElementById('subtitle');
 
 function setStatus(t) { statusline.textContent = t; }
+
+/* ── Subtitle live state ── */
+const SUBTITLE_DEFAULT = 'Gedanke fliegt — Erinnerung bleibt · v2.1.0 SYNTHESE';
+function subSet(text, state) {
+  subtitleEl.textContent = text;
+  subtitleEl.className = 'sub' + (state ? ' ' + state : '');
+  if(state === 'done') setTimeout(() => {
+    subtitleEl.textContent = SUBTITLE_DEFAULT;
+    subtitleEl.className = 'sub';
+  }, 1400);
+}
+
+/* ── Permanent Exec Log → writes into SHELL ts-log ── */
+function execLog(msg, cls) {
+  const logEl = document.getElementById('ts-log');
+  if(!logEl) return;
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8) + '.' + String(now.getMilliseconds()).padStart(3,'0');
+  const line = document.createElement('div');
+  line.className = 'ts-line' + (cls ? ' ' + cls : ' dim');
+  line.textContent = ts + '  ' + msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+/* ── Tab: mark running state on SHELL tab ── */
+function setTabRunning(on) {
+  const tab = document.getElementById('tab-shell');
+  if(!tab) return;
+  tab.classList.toggle('running', on);
+}
 
 function addMsg(role, text) {
   const div = document.createElement('div');
@@ -1502,10 +1825,35 @@ let history = [
 async function send() {
   const text = input.value.trim();
   if (!text) return;
+
+  /* SHELL-Befehle im CHAT-Feld → an TERMSHELL weiterleiten */
+  if (/^(race|run|best|tasks|ls|status|ping|history|clear|version|help)\b/i.test(text)) {
+    input.value = ''; input.style.height = 'auto';
+    switchMode('shell');
+    const tsInput = document.getElementById('ts-input');
+    if (tsInput) { tsInput.value = text; TS.submit(); }
+    return;
+  }
+
   input.value = ''; input.style.height = 'auto';
+
+  const t0 = Date.now();
+  const taskType = classifyTask(text);
+  const complexity = estimateComplexity(text);
+
+  /* 1 — Header: zeigt aktiven State */
+  subSet('routing…', 'pulse');
+  setTabRunning(true);
+
+  /* 2 — Tab-Switch: CHAT → SHELL (Durchführungs-Log sichtbar) */
+  switchMode('shell');
+  execLog(`▶ INPUT  "${text.length > 55 ? text.slice(0,52)+'…' : text}"`, 'ts-cmd');
+  execLog(`  CLASSIFY  task=${taskType}  complexity=${complexity}`, '');
+
   addMsg('user', text);
   history.push({ role: 'user', content: text });
 
+  /* Bot-Antwort-Element vorbereiten (im Chat-Feed, noch unsichtbar) */
   const shell = addBotShell();
   const dot = shell.querySelector('[data-role=dot]');
   const label = shell.querySelector('[data-role=label]');
@@ -1513,23 +1861,55 @@ async function send() {
   const cursor = shell.querySelector('[data-role=cursor]');
 
   let acc = '';
+
   try {
     const { text: full, provider } = await routeAndCall(
       history,
-      (piece) => { acc += piece; txt.textContent = acc; feed.scrollTop = feed.scrollHeight; },
-      (prov, phase, latency) => {
-        dot.className = 'dot ' + (phase === 'fehler' ? 'err' : (prov.kind === 'local' ? 'local' : 'cloud'));
-        label.textContent = phase === 'versuch' ? ('frage ' + prov.name)
-          : phase === 'erfolg' ? (prov.name + ' · ' + Math.round(latency) + 'ms')
-          : (prov.name + ' fehlgeschlagen — weiche aus');
+      (piece) => {
+        acc += piece;
+        txt.textContent = acc;
+      },
+      (prov, phase, latency, errMsg) => {
+        if(phase === 'versuch'){
+          dot.className = 'dot ' + (prov.kind === 'local' ? 'local' : 'cloud');
+          label.textContent = 'frage ' + prov.name;
+          execLog(`  TRY    ${prov.name}`, 'step');
+          subSet(prov.name + '…', 'pulse');
+        } else if(phase === 'erfolg'){
+          dot.className = 'dot ' + (prov.kind === 'local' ? 'local' : 'cloud');
+          label.textContent = prov.name + ' · ' + Math.round(latency) + 'ms';
+          execLog(`  OK     ${prov.name}  ${Math.round(latency)}ms`, 'success');
+        } else {
+          dot.className = 'dot err';
+          label.textContent = prov.name + ' fehlgeschlagen — weiche aus';
+          execLog(`  FAIL   ${prov.name}  ${errMsg || ''}`, 'err');
+          subSet('fallback…', 'pulse');
+        }
       }
     );
     if (!acc) txt.textContent = full;
     history.push({ role: 'assistant', content: full || acc });
+
+    const totalMs = Date.now() - t0;
+    execLog(`  DONE   ${provider?.name || '?'}  ${totalMs}ms`, 'success');
+
+    /* Header: Done-Flash */
+    subSet('✓ ' + (provider?.name || '') + ' · ' + totalMs + 'ms', 'done');
+
+    /* 3 — Tab-Switch: SHELL → CHAT (Response sichtbar) */
+    setTimeout(() => {
+      setTabRunning(false);
+      switchMode('chat');
+      feed.scrollTop = feed.scrollHeight;
+    }, 520);
+
   } catch (e) {
     dot.className = 'dot err';
     label.textContent = 'kein Anbieter erreichbar';
     txt.textContent = 'Fehler: ' + e.message;
+    execLog(`  ERROR  ${e.message}`, 'err');
+    subSet('✗ kein Anbieter', 'done');
+    setTimeout(() => { setTabRunning(false); switchMode('chat'); }, 800);
   } finally {
     cursor.remove();
     renderProviderStats();
@@ -1828,6 +2208,391 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed:', err));
   });
 }
+
+/* ═══════════════════════════════════════════════════════════
+   HUGIN TERMSHELL — Multi-Provider Parallel Shell Engine
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+
+/* ── Mode switching ── */
+window.switchMode = function(mode){
+  document.body.className = 'mode-' + mode;
+  document.getElementById('tab-chat').classList.toggle('active', mode === 'chat');
+  document.getElementById('tab-shell').classList.toggle('active', mode === 'shell');
+  document.getElementById('termshell').classList.toggle('visible', mode === 'shell');
+  if(mode === 'shell') document.getElementById('ts-input').focus();
+};
+
+/* ── TermShell state ── */
+const TS_HIST = [];
+let tsHistIdx = -1;
+let tsPanes = 1;
+
+/* ── DOM helpers ── */
+const tsLog  = () => document.getElementById('ts-log');
+const tsPanesEl = () => document.getElementById('ts-panes');
+
+function tsLine(text, cls){
+  const el = document.createElement('div');
+  el.className = 'ts-line' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  tsLog().appendChild(el);
+  tsLog().scrollTop = tsLog().scrollHeight;
+  return el;
+}
+
+function tsPrint(text, cls){ tsLine(text, cls); }
+function tsPrintRaw(html){
+  const el = document.createElement('div');
+  el.className = 'ts-line';
+  el.innerHTML = html;
+  tsLog().appendChild(el);
+  tsLog().scrollTop = tsLog().scrollHeight;
+}
+
+/* ── Pane management ── */
+window.TS = {
+  setPanes(n){
+    tsPanes = Math.min(4, Math.max(1, n));
+    const el = tsPanesEl();
+    el.className = tsPanes === 1 ? '' : 'split' + tsPanes;
+    document.getElementById('ts-mode-name').textContent =
+      ['','single','split-2','split-3','quad'][tsPanes] || 'custom';
+    el.innerHTML = '';
+    tsPrint(`Pane-Modus: ${tsPanes} Fenster`, 'info');
+  },
+  clearAll(){
+    tsLog().innerHTML = '';
+    tsPanesEl().innerHTML = '';
+    tsPrint('Terminal geleert.', 'dim');
+  },
+  submit(){
+    const inp = document.getElementById('ts-input');
+    const cmd = inp.value.trim();
+    inp.value = '';
+    if(cmd) tsExec(cmd);
+  }
+};
+
+/* ── Input: arrow-key history + Enter ── */
+document.getElementById('ts-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); TS.submit(); return; }
+  if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    if(TS_HIST.length === 0) return;
+    tsHistIdx = Math.min(tsHistIdx + 1, TS_HIST.length - 1);
+    e.target.value = TS_HIST[TS_HIST.length - 1 - tsHistIdx] || '';
+    return;
+  }
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    tsHistIdx = Math.max(tsHistIdx - 1, -1);
+    e.target.value = tsHistIdx < 0 ? '' : (TS_HIST[TS_HIST.length - 1 - tsHistIdx] || '');
+    return;
+  }
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    const val = e.target.value;
+    const cmds = ['help','ls','status','clear','history','race','run','best','ping','version','providers','tasks'];
+    const match = cmds.find(c => c.startsWith(val));
+    if(match) e.target.value = match + ' ';
+  }
+});
+
+/* ── Active provider list ── */
+function liveProviders(){
+  return PROVIDERS.filter(p => p.id !== 'reflex');
+}
+
+/* ── Single pane for a provider ── */
+function makePaneFor(pid, query){
+  const pane = document.createElement('div');
+  pane.className = 'ts-pane';
+  const hdr = document.createElement('div');
+  hdr.className = 'ts-pane-header';
+  const provider = PROVIDERS.find(p => p.id === pid);
+  hdr.textContent = (provider ? provider.name : pid) + ' ⏳';
+  const body = document.createElement('div');
+  body.className = 'ts-pane-body';
+  const log = document.createElement('div');
+  log.className = 'ts-log';
+  body.appendChild(log);
+  pane.appendChild(hdr);
+  pane.appendChild(body);
+  tsPanesEl().appendChild(pane);
+
+  const t0 = Date.now();
+  function appendLine(text, cls){
+    const l = document.createElement('div');
+    l.className = 'ts-line' + (cls ? ' ' + cls : '');
+    l.textContent = text;
+    log.appendChild(l);
+    log.scrollTop = log.scrollHeight;
+  }
+  function appendToken(text){
+    let last = log.lastElementChild;
+    if(!last || !last.classList.contains('out')){
+      last = document.createElement('div');
+      last.className = 'ts-line out';
+      log.appendChild(last);
+    }
+    last.textContent += text;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  const messages = [{ role:'user', content: query }];
+  const timeout = PROVIDER_TIMEOUT[pid] ?? 25000;
+  withTimeout(
+    (provider || { call: () => Promise.reject(new Error('Unbekannt')) }).call(messages, tok => appendToken(tok)),
+    timeout, pid
+  ).then(res => {
+    const ms = Date.now() - t0;
+    hdr.textContent = (provider ? provider.name : pid) + ` ✓ ${ms}ms`;
+    hdr.style.color = 'var(--green)';
+    if(!log.lastElementChild || !log.lastElementChild.classList.contains('out')){
+      appendLine(res.text || '(keine Antwort)', 'out');
+    }
+  }).catch(err => {
+    const ms = Date.now() - t0;
+    hdr.textContent = (provider ? provider.name : pid) + ` ✗ ${ms}ms`;
+    hdr.style.color = 'var(--red)';
+    appendLine('Fehler: ' + err.message, 'err');
+  });
+}
+
+/* ── race command: all active providers in parallel panes ── */
+async function cmdRace(query){
+  const active = liveProviders().filter(p => p.ready());
+  if(!active.length){ tsPrint('Keine aktiven Provider.', 'err'); return; }
+  const n = Math.min(active.length, 4);
+  TS.setPanes(n);
+  tsPrint(`RACE: "${query}" → ${active.length} Provider (zeige ${n} Panes)`, 'info');
+  for(let i = 0; i < n; i++) makePaneFor(active[i].id, query);
+}
+
+/* ── run command: specific providers ── */
+async function cmdRun(args){
+  const parts = args.split(/\s+/);
+  const providerIds = [];
+  let queryStart = 0;
+  for(let i = 0; i < parts.length; i++){
+    if(PROVIDERS.find(p => p.id === parts[i])){ providerIds.push(parts[i]); queryStart = i+1; }
+    else { queryStart = i; break; }
+  }
+  const query = parts.slice(queryStart).join(' ');
+  if(!query){ tsPrint('Syntax: run [provider1] [provider2] … <prompt>', 'err'); return; }
+  const ids = providerIds.length ? providerIds : [liveProviders()[0]?.id].filter(Boolean);
+  const n = Math.min(ids.length, 4);
+  TS.setPanes(n);
+  tsPrint(`RUN: "${query}" → ${ids.slice(0,n).join(', ')}`, 'info');
+  for(let i = 0; i < n; i++) makePaneFor(ids[i], query);
+}
+
+/* ── best command: race + synthesis ── */
+async function cmdBest(query){
+  const active = liveProviders().filter(p => p.ready());
+  if(!active.length){ tsPrint('Keine aktiven Provider.', 'err'); return; }
+  tsPrint(`BEST: Racing ${active.length} Provider — wählt Erstantwort…`, 'info');
+  TS.setPanes(1);
+  const pane = document.createElement('div');
+  pane.className = 'ts-pane';
+  const hdr = document.createElement('div');
+  hdr.className = 'ts-pane-header';
+  hdr.textContent = 'Warte auf schnellsten Provider…';
+  const body = document.createElement('div');
+  body.className = 'ts-pane-body';
+  const logEl = document.createElement('div');
+  logEl.className = 'ts-log';
+  body.appendChild(logEl);
+  pane.appendChild(hdr);
+  pane.appendChild(body);
+  tsPanesEl().appendChild(pane);
+
+  const messages = [{ role:'user', content: query }];
+  let settled = false;
+  function appendToken(tok){
+    if(settled) return;
+    let last = logEl.lastElementChild;
+    if(!last || !last.classList.contains('out')){
+      last = document.createElement('div');
+      last.className = 'ts-line out';
+      logEl.appendChild(last);
+    }
+    last.textContent += tok;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  const races = active.map(p => {
+    const t0 = Date.now();
+    return withTimeout(p.call(messages, appendToken), PROVIDER_TIMEOUT[p.id] ?? 25000, p.id)
+      .then(res => ({ p, res, ms: Date.now()-t0 }));
+  });
+
+  Promise.any(races).then(({p, res, ms}) => {
+    settled = true;
+    hdr.textContent = `✓ ${p.name} — ${ms}ms (schnellster)`;
+    hdr.style.color = 'var(--green)';
+    if(!logEl.lastElementChild || !logEl.lastElementChild.classList.contains('out')){
+      const l = document.createElement('div');
+      l.className = 'ts-line out';
+      l.textContent = res.text || '';
+      logEl.appendChild(l);
+    }
+    tsPrint(`Gewinner: ${p.name} in ${ms}ms`, 'success');
+  }).catch(() => {
+    hdr.textContent = '✗ Alle Provider fehlgeschlagen';
+    hdr.style.color = 'var(--red)';
+    tsPrint('Alle Provider haben versagt.', 'err');
+  });
+}
+
+/* ── ls providers ── */
+function cmdLsProviders(){
+  tsPrint('VERFÜGBARE PROVIDER', 'ts-cmd');
+  tsPrint('─'.repeat(50), 'dim');
+  for(const p of PROVIDERS){
+    const ready = p.ready();
+    const ms = PROVIDER_TIMEOUT[p.id] ?? 20000;
+    const status = ready ? '✓ bereit' : '○ kein Key';
+    tsPrint(`  ${p.id.padEnd(20)} ${status.padEnd(12)} timeout:${ms/1000}s   ${p.name}`,
+      ready ? 'success' : 'dim');
+  }
+  tsPrint('─'.repeat(50), 'dim');
+  tsPrint(`Gesamt: ${PROVIDERS.filter(p=>p.ready()).length} bereit / ${PROVIDERS.length} registriert`, 'info');
+}
+
+/* ── status ── */
+function cmdStatus(){
+  tsPrint('SYSTEM STATUS', 'ts-cmd');
+  tsPrint('─'.repeat(50), 'dim');
+  const ready = PROVIDERS.filter(p => p.ready() && p.id !== 'reflex');
+  const keyed = PROVIDERS.filter(p => p.ready() && ['groq','google','github_models','together','cohere','xai','mistral','cerebras','openrouter'].includes(p.id));
+  tsPrint(`Provider bereit (keyless): ${ready.filter(p=>!['groq','google','github_models','together','cohere','xai','mistral','cerebras','openrouter'].includes(p.id)).length}`, 'info');
+  tsPrint(`Provider bereit (mit Key): ${keyed.length}`, keyed.length ? 'success' : 'dim');
+  tsPrint(`EMA-Scores:`, 'info');
+  const sc = STATE.providerScores || {};
+  for(const [k,v] of Object.entries(sc)){
+    tsPrint(`  ${k.padEnd(20)} ${(v*100).toFixed(1)}%`, 'dim');
+  }
+  tsPrint(`Pane-Modus: ${tsPanes}`, 'info');
+  tsPrint(`localEnabled: ${STATE.localEnabled}`, 'dim');
+  tsPrint('─'.repeat(50), 'dim');
+}
+
+/* ── ping — smoke test one provider ── */
+async function cmdPing(pid){
+  if(!pid){ tsPrint('Syntax: ping <provider-id>', 'err'); return; }
+  const p = PROVIDERS.find(x => x.id === pid);
+  if(!p){ tsPrint(`Provider nicht gefunden: ${pid}`, 'err'); return; }
+  tsPrint(`Pinging ${p.name}…`, 'info');
+  const t0 = Date.now();
+  try{
+    const res = await withTimeout(
+      p.call([{role:'user', content:'Antworte mit: PONG'}], ()=>{}),
+      PROVIDER_TIMEOUT[pid] ?? 20000, pid
+    );
+    const ms = Date.now() - t0;
+    tsPrint(`✓ ${p.name} — ${ms}ms — ${(res.text||'').slice(0,80)}`, 'success');
+  } catch(e){
+    tsPrint(`✗ ${p.name} — ${e.message}`, 'err');
+  }
+}
+
+/* ── history ── */
+function cmdHistory(){
+  if(!TS_HIST.length){ tsPrint('Verlauf leer.', 'dim'); return; }
+  tsPrint('VERLAUF', 'ts-cmd');
+  TS_HIST.forEach((h,i) => tsPrint(`  ${String(i+1).padStart(3)}  ${h}`, 'dim'));
+}
+
+/* ── tasks ── */
+function cmdTasks(query){
+  if(!query){ tsPrint('Syntax: tasks <prompt>', 'err'); return; }
+  const providers = liveProviders().filter(p => p.ready());
+  if(!providers.length){ tsPrint('Keine Provider bereit.', 'err'); return; }
+  const n = Math.min(providers.length, tsPanes);
+  const selected = providers.slice(0, n);
+  if(tsPanesEl().children.length === 0) TS.setPanes(n);
+  tsPrint(`TASKS: ${n} Provider arbeiten parallel…`, 'info');
+  selected.forEach(p => makePaneFor(p.id, query));
+}
+
+/* ── help ── */
+function cmdHelp(){
+  const lines = [
+    ['help',           'Diese Hilfe anzeigen'],
+    ['ls',             'Provider auflisten'],
+    ['status',         'Systemstatus anzeigen'],
+    ['ping <id>',      'Provider smoke-test'],
+    ['race <prompt>',  'Alle Provider parallel — schnellster gewinnt'],
+    ['run [id…] <p>',  'Bestimmte Provider parallel starten'],
+    ['best <prompt>',  'Race + Erstantwort in Pane'],
+    ['tasks <prompt>', 'Parallele Aufgabe in aktuellen Panes'],
+    ['history',        'Befehlsverlauf'],
+    ['clear',          'Terminal leeren'],
+    ['▪ ◫ ⊞ ⊟',      'Pane-Modus wählen (Toolbar-Buttons)'],
+    ['↑/↓',           'Verlauf navigieren'],
+    ['Tab',            'Befehl auto-vervollständigen'],
+  ];
+  tsPrint('HUGIN TERMSHELL — Befehle', 'ts-cmd');
+  tsPrint('─'.repeat(50), 'dim');
+  for(const [cmd, desc] of lines){
+    tsPrint(`  ${cmd.padEnd(22)} ${desc}`, 'dim');
+  }
+  tsPrint('─'.repeat(50), 'dim');
+  tsPrint('Beispiel: race Erkläre Quantenverschränkung', 'info');
+}
+
+/* ── version ── */
+function cmdVersion(){
+  tsPrint('HUGIN TERMSHELL v1.0.0', 'ts-cmd');
+  tsPrint('Multi-Provider Parallel Shell Engine', 'dim');
+  tsPrint(`Provider: ${PROVIDERS.length} registriert`, 'info');
+  tsPrint(`Aktiv (keyless): ${liveProviders().filter(p=>p.ready()).length}`, 'info');
+}
+
+/* ── main command dispatcher ── */
+function tsExec(raw){
+  if(!raw.trim()) return;
+  TS_HIST.push(raw);
+  tsHistIdx = -1;
+
+  tsPrint('HUGIN> ' + raw, 'prompt');
+
+  const [cmd, ...rest] = raw.trim().split(/\s+/);
+  const args = rest.join(' ');
+
+  switch(cmd.toLowerCase()){
+    case 'help': case '?': cmdHelp(); break;
+    case 'ls': case 'providers': cmdLsProviders(); break;
+    case 'status': cmdStatus(); break;
+    case 'clear': TS.clearAll(); break;
+    case 'history': cmdHistory(); break;
+    case 'version': cmdVersion(); break;
+    case 'race': if(args) cmdRace(args); else tsPrint('Syntax: race <prompt>', 'err'); break;
+    case 'run': if(args) cmdRun(args); else tsPrint('Syntax: run [id…] <prompt>', 'err'); break;
+    case 'best': if(args) cmdBest(args); else tsPrint('Syntax: best <prompt>', 'err'); break;
+    case 'ping': cmdPing(args); break;
+    case 'tasks': cmdTasks(args); break;
+    case 'chat': switchMode('chat'); break;
+    default:
+      /* treat unknown input as a direct chat in single pane */
+      TS.setPanes(1);
+      makePaneFor(candidateOrder(raw.length / 5)[0] || 'pollinations', raw);
+  }
+}
+
+/* ── startup banner ── */
+(function(){
+  tsPrint('╔══════════════════════════════════════════╗', 'ts-cmd');
+  tsPrint('║  HUGIN TERMSHELL  · Multi-Provider Shell ║', 'ts-cmd');
+  tsPrint('╚══════════════════════════════════════════╝', 'ts-cmd');
+  tsPrint('Tippe "help" für Befehlsübersicht | "race <prompt>" für Parallel-Mode', 'dim');
+  tsPrint(`${liveProviders().filter(p=>p.ready()).length} Provider bereit — Reflex-Kern autark`, 'success');
+  tsPrint('', 'dim');
+})();
+
+})(); /* end TermShell IIFE */
 </script>
 </body>
 </html>
