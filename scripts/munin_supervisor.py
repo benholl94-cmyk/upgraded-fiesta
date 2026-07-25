@@ -106,7 +106,13 @@ def check_secrets() -> list[Finding]:
     tracked = run("git", "ls-files").stdout.splitlines()
 
     for path in tracked:
-        if re.search(r"(^|/)\.env($|\.)", path) and not path.endswith(".example"):
+        # Nicht nur ".env" am Pfadanfang: im Repo lag ein getracktes
+        # ".container_self_cycle_int+ext_.env", das die erste Fassung dieses
+        # Musters durchgelassen hat. Jede Datei, die auf .env endet oder so
+        # heisst, zaehlt.
+        base = path.rsplit("/", 1)[-1]
+        looks_env = base == ".env" or base.endswith(".env") or base.startswith(".env.")
+        if looks_env and not path.endswith((".example", ".sample", ".template")):
             out.append(Finding(
                 "secret-file-tracked", VIOLATION,
                 f"{path} ist eingecheckt", source="munin.json → constraints.noSecrets"))
@@ -252,6 +258,52 @@ def check_oracle_gate() -> list[Finding]:
     return out
 
 
+ARCHIVE_SUFFIXES = (".zip", ".tar.gz", ".tgz", ".bin", ".7z", ".rar")
+# Ab hier lohnt das Melden; darunter ist ein Binaerblob meist Absicht
+# (Icons, kleine Fixtures) und wuerde nur Rauschen erzeugen.
+ARCHIVE_MIN_BYTES = 50 * 1024
+
+
+def check_dead_data() -> list[Finding]:
+    """Rest-tote Daten: was im Index liegt, aber dort nicht hingehoert.
+
+    Der teuerste Fall ist 'getrackt obwohl in .gitignore' -- ein
+    .gitignore-Eintrag entfernt eine bereits committete Datei nicht aus dem
+    Index. Die Regel sieht dann erfuellt aus und ist es nicht.
+    """
+    out: list[Finding] = []
+
+    ignored = [p for p in run("git", "ls-files", "-i", "-c",
+                              "--exclude-standard").stdout.splitlines() if p]
+    if ignored:
+        shown = ", ".join(ignored[:4]) + ("…" if len(ignored) > 4 else "")
+        out.append(Finding(
+            "tracked-but-ignored", VIOLATION,
+            f"{len(ignored)} Datei(en) sind getrackt, obwohl .gitignore sie ausschliesst",
+            evidence=f"{shown} — Fix: git rm --cached <pfad>",
+            source=".gitignore ist damit wirkungslos: der Eintrag suggeriert Schutz, "
+                   "der Index widerlegt ihn"))
+
+    big: list[str] = []
+    for path in run("git", "ls-files").stdout.splitlines():
+        if not path.endswith(ARCHIVE_SUFFIXES):
+            continue
+        f = REPO / path
+        try:
+            if f.is_file() and f.stat().st_size >= ARCHIVE_MIN_BYTES:
+                big.append(f"{path} ({f.stat().st_size // 1024}K)")
+        except OSError:
+            continue
+    if big:
+        out.append(Finding(
+            "archive-in-index", RISK,
+            f"{len(big)} Archiv(e)/Binary(s) im Index",
+            evidence=", ".join(big[:3]) + ("…" if len(big) > 3 else ""),
+            source="git ist kein Blob-Store: Archive blaehen jeden Clone dauerhaft auf, "
+                   "auch nach dem Loeschen"))
+    return out
+
+
 def check_repo_structure() -> list[Finding]:
     r = run("python3", "scripts/validate_repo.py")
     if r.returncode == 0:
@@ -279,6 +331,7 @@ CHECKS = (
     ("git-identity", check_git_identity),
     ("unpushed", check_unpushed),
     ("doc-drift", check_doc_drift),
+    ("dead-data", check_dead_data),
     ("oracle-gate", check_oracle_gate),
     ("repo-structure", check_repo_structure),
 )

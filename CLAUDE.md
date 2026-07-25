@@ -97,6 +97,27 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+## Supervisor and known dead data
+
+`scripts/munin_supervisor.py` audits the *agent's work* against `.claude/persona/constitution.json` and `.claude/persona/munin.json`. Its principle is that claims get recomputed rather than believed: "tests pass" runs the suite, "index.html is synced" compares bytes, "that crate is a stub" counts `pub fn`. Run it before calling anything done:
+
+```sh
+python3 scripts/munin_supervisor.py --quick      # skip the test run
+python3 scripts/munin_supervisor.py --watch 300  # continuous
+```
+
+Exit `0` clean / `1` DRIFT·RISK / `2` VIOLATION.
+
+**Known dead data as of 2026-07-25** — measured, not yet removed, because deleting tracked files is a Master decision:
+
+| What | Size | Why it matters |
+|---|---|---|
+| 31 files tracked despite `.gitignore` | 348K | A `.gitignore` entry does **not** untrack an already-committed file. The rule looks satisfied and isn't. Fix is `git rm --cached <path>`. |
+| `self_space_workspace_/` | 474 files, 7.7M | Container-mirror archives and runtime logs from 2026-07-06/08. Includes `.container_self_cycle_int+ext_.env` — **verified to contain no secrets** (12 lines, zero `KEY=value` pairs, no matches against any secret pattern), but an `.env` in the index is still the wrong shape. |
+| 16 archives ≥50K in the index | — | Includes `hugin/hugin-package.zip` and `verify-backup-20260707.bin`. Git is not a blob store; these inflate every clone permanently, and deleting them later does not shrink history. |
+
+The supervisor reports all three on every run (`tracked-but-ignored`, `secret-file-tracked`, `archive-in-index`), so they cannot quietly become normal.
+
 ## Architecture: hm-gateway
 
 `crates/hm-gateway` is the only real HTTP surface. It is a **hand-rolled async TCP server on raw tokio** — no axum/hyper/warp — that manually parses HTTP requests off `TcpListener`/`TcpStream`. When touching routing or request parsing, read the whole `match (method, path)` block in `main.rs`; there is no framework layer abstracting it away.
@@ -127,7 +148,30 @@ Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_
 
 ## Architecture: rest of the Rust workspace
 
-Most other workspace members are **intentional placeholders**, not partial implementations — `hm-core`, `hm-cli`, `hm-cron`, `hm-sessions`, and three of the four `hm-tools/hm-tool-*` crates (`hm-tool-browser`, `hm-tool-media`, `hm-tool-web`) are single-function/single-constant stubs. The four `hm-channels/hm-channel-*` crates (telegram/discord/slack/whatsapp) only load and validate a bot token via `hm_auth::load_bot_token`; **none makes real calls to any chat platform** — that requires real bot credentials to build and live-test responsibly, per `AGENTS.md`'s "surface gaps" rule. Don't mistake the presence of a crate for a working feature; check line count/content before assuming behavior exists.
+**This section was measured, not remembered** (2026-07-25). An earlier revision called most of these crates "intentional placeholders"; that had drifted from reality and is corrected below. `scripts/munin_supervisor.py` re-checks these claims on every run (`doc-drift` rule) — if you change a crate, the supervisor will tell you this table is stale before anyone reads it wrong.
+
+| Crate | `pub fn` | Tests | Reality |
+|---|---|---|---|
+| `hm-gateway` | 0¹ | 7 | Real. The only HTTP surface, 997 lines. |
+| `hm-vector` | 8 | 7 | Real. NSW/ANN index. |
+| `hm-storage` | 6 | 13 | Real. Local + remote backends. |
+| `hm-memory` | 7 | 8 | Real. |
+| `hm-sessions` | 13 | 5 | **Real** — not a stub. |
+| `hm-cli` | 0¹ | 0 | **Real CLI**, 233 lines: `GatewayClient` + `Status`/`Tasks`/`Memory`/`Storage` subcommands. |
+| `hm-channel-telegram` | 7 | 2 | **Sends for real** — `send_message()` opens a `TcpStream` to the Bot API. |
+| `hm-channel-whatsapp` / `-discord` / `-slack` | 6 / 6 / 5 | 4 / 4 / 3 | Same shape as telegram; each carries real transport code. |
+| `hm-tool-media` / `-browser` / `-web` | 3 / 2 / 2 | 4 / 3 / 5 | Thin but tested; `-web` has 10 network references. |
+| `hm-tool-exec` | 0¹ | 4 | Real, allowlist-only (see above). |
+| `hm-agent` | 3 | 2 | Real. Dispatch + memory write-through. |
+| `hm-auth` | 3 | 10 | Real. |
+| `hm-cron` | 2 | 3 | Thin. |
+| `hm-core` | 2 | 3 | Thin. |
+| `hm-plugins` | 4 | 0 | Real protocol, **no tests**. |
+| `hm-sdk` | 0 | 0 | **Genuinely a stub** — 20 lines, type definitions only. |
+
+¹ `pub fn` 0 means the crate is a binary whose logic sits in `fn main` and private helpers, not that it is empty — read the line count next to it.
+
+What has **not** changed: none of the channel crates has been live-tested against a real chat platform, because that needs real bot credentials (per `AGENTS.md`'s "surface gaps" rule). "Has working transport code" and "verified to work" are different claims — the table asserts the first, not the second.
 
 `hm-memory` (semantic-ish "remember"/"recall" store), `hm-vector`, `hm-agent` (see above), and `hm-tool-exec` are the crates with real logic. `hm-agent` used to be a stub too and, unlike the rest of this list, wasn't even a dependency of anything in the workspace — check `cargo tree` or a crate's `Cargo.toml`, not just file existence, before assuming a crate is unused.
 
@@ -143,7 +187,7 @@ Key piece: `ui/src/endpoint-rotation.ts`. The UI is designed to fail over across
 
 ## The `ghm-core` pip package
 
-`ghm_core/cli.py` is a real console-script CLI (`pip install -e .`), separate from the Rust CLI (`hm-cli`, which is just a stub). Subcommands follow one hard rule established across this codebase: **anything that sends data off the machine or starts a network-reachable process must disclose exactly what it's about to do and require explicit consent before acting**, and must refuse loudly (nonzero exit + machine-readable reason) rather than silently no-op or silently act when run non-interactively without `--yes`. See `cmd_report_diagnostics` and `cmd_onboard_iphone` for the pattern; any new subcommand with similar side effects should follow it too.
+`ghm_core/cli.py` is a real console-script CLI (`pip install -e .`), separate from the Rust CLI (`hm-cli`, which is *also* real — see the crate table above; the two are independent tools, not one real and one placeholder). Subcommands follow one hard rule established across this codebase: **anything that sends data off the machine or starts a network-reachable process must disclose exactly what it's about to do and require explicit consent before acting**, and must refuse loudly (nonzero exit + machine-readable reason) rather than silently no-op or silently act when run non-interactively without `--yes`. See `cmd_report_diagnostics` and `cmd_onboard_iphone` for the pattern; any new subcommand with similar side effects should follow it too.
 
 - `report-diagnostics` — sends exactly four disclosed fields (`os_name`, `os_version`, `python_version`, `architecture`) to your own gateway's `/diagnostics`, gated by `HM_OWNER_TOKEN`.
 - `onboard-iphone` — starts `hm-gateway` bound to `0.0.0.0:<port>` (LAN-reachable, never a public tunnel) and prints the URL + owner token to enter on an iPhone.

@@ -136,6 +136,41 @@ def test_audit_quick_skips_the_test_run(monkeypatch):
     assert called
 
 
+def test_env_detection_catches_suffix_named_files():
+    """Regression: die erste Fassung prüfte nur '.env' am Pfadanfang und liess
+    das real im Repo liegende '.container_self_cycle_int+ext_.env' durch."""
+    def looks_env(path: str) -> bool:
+        base = path.rsplit("/", 1)[-1]
+        return base == ".env" or base.endswith(".env") or base.startswith(".env.")
+
+    assert looks_env(".env")
+    assert looks_env("a/b/.env")
+    assert looks_env("self_space_workspace_/.container_self_cycle_int+ext_.env")
+    assert looks_env(".env.production")
+    assert not looks_env("environment.py")
+    assert not looks_env("docs/env-setup.md")
+
+
+def test_dead_data_reports_tracked_but_ignored_in_this_repo():
+    rules = {f.rule for f in _mod.check_dead_data()}
+    assert "tracked-but-ignored" in rules
+
+
+def test_archive_threshold_ignores_small_binaries():
+    """Icons und kleine Fixtures dürfen keinen Dauerbefund erzeugen."""
+    assert _mod.ARCHIVE_MIN_BYTES >= 16 * 1024
+    for f in _mod.check_dead_data():
+        if f.rule == "archive-in-index":
+            assert ".svg" not in f.evidence
+
+
+def test_tracked_but_ignored_is_a_violation_not_a_hint():
+    for f in _mod.check_dead_data():
+        if f.rule == "tracked-but-ignored":
+            assert f.severity == VIOLATION
+            assert "git rm --cached" in f.evidence
+
+
 def test_oracle_gate_exempts_the_pwa():
     """hugin/ ruft Provider bewusst direkt aus dem Browser -- das ist kein
     Gate-Bruch und darf keinen Dauerbefund erzeugen."""
