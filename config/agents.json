@@ -1,0 +1,75 @@
+{
+  "schema": "hugin.agents.v1",
+  "description": "Multi-Agent-Aufstellung. Konfiguration ist hier, Logik in agents/, Ausfuehrung in agents/orchestrator.py. Ein Providerwechsel ist ein Eintrag in dieser Datei, kein Refactor.",
+  "protocol": "agents.protocol.v1",
+
+  "agents": [
+    {
+      "id": "claude",
+      "adapter": "loopback",
+      "role": "orchestrator",
+      "enabled": true,
+      "responsibilities": [
+        "Orchestrierung: entscheidet welche Aufgabe an welchen Agenten geht",
+        "Review: prueft jedes Ergebnis vor dem Anwenden",
+        "Architektur: legt Schnittstellen und Rollenschnitt fest",
+        "Sicherheitspruefung: bestimmt welche Dateien das Geraet verlassen duerfen"
+      ],
+      "options": {},
+      "note": "Claude orchestriert im Agent-Harness selbst. Der loopback-Adapter ist hier nur der Repo-seitige Platzhalter fuer Nicht-Patch-Aufgaben und erzeugt bewusst keinen Code."
+    },
+    {
+      "id": "codex",
+      "adapter": "oracle-codex",
+      "role": "executor",
+      "enabled": true,
+      "responsibilities": [
+        "Code-Generierung",
+        "Aufgabenbearbeitung nach strukturiertem AgentTask",
+        "Patch-Erstellung als AgentPatch-Objekte",
+        "Strukturierte Rueckmeldung inkl. Konfliktmeldung"
+      ],
+      "options": {
+        "provider": "openai",
+        "skill": "codex-patch",
+        "timeout": 120
+      },
+      "verified": false,
+      "note": "VERIFIED=false — Adapter ist vollstaendig implementiert, aber ohne HUGIN_OPENAI_KEY in dieser Umgebung nie gegen die echte Gegenstelle ausgefuehrt. Schreibzugriff hat dieser Agent nicht: Patches sind Vorschlaege bis der Orchestrator sie anwendet."
+    },
+    {
+      "id": "codex-local",
+      "adapter": "codex-cli",
+      "role": "executor",
+      "enabled": false,
+      "responsibilities": [
+        "Wie 'codex', aber ueber eine lokal installierte codex-CLI statt ueber die API"
+      ],
+      "options": {
+        "binary": "codex",
+        "timeout": 300
+      },
+      "verified": false,
+      "note": "Standardmaessig deaktiviert: in dieser Umgebung ist keine codex-CLI installiert. Aktivieren, wenn der Operator sie hat."
+    },
+    {
+      "id": "reference",
+      "adapter": "loopback",
+      "role": "reference",
+      "enabled": true,
+      "responsibilities": [
+        "Beweist Protokoll, Ledger und Orchestrator ohne Netz und ohne Key",
+        "Traegt die CI-Abdeckung der Integrationsschicht"
+      ],
+      "options": {},
+      "verified": true
+    }
+  ],
+
+  "policy": {
+    "context_files": "explizite Liste, kein Glob — jede gesendete Datei steht im Ledger",
+    "patch_application": "erfordert ausdrueckliche Zustimmung; ohne sie wird laut verweigert",
+    "conflicts": "werden im Ledger festgehalten, nie geglaettet",
+    "external_calls": "ausschliesslich ueber scripts/hugin_oracle.py (CLAUDE.md → Oracle-Gate)"
+  }
+}

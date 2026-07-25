@@ -11,6 +11,8 @@ import importlib.util
 import pathlib
 import sys
 
+import pytest
+
 _SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "munin_supervisor.py"
 _spec = importlib.util.spec_from_file_location("munin_supervisor", _SCRIPT)
 _mod = importlib.util.module_from_spec(_spec)
@@ -92,12 +94,36 @@ def test_family_glob_maps_channel_crates():
     assert fam("hm-sessions") == "hm-sessions"          # keine Familie, bleibt
 
 
-def test_doc_drift_finds_the_channel_crates_in_this_repo():
+def test_glob_family_claim_is_detected():
     """Regression: die erste Fassung prüfte nur den vollen Crate-Namen und
     liess damit genau die Familien durchrutschen, die CLAUDE.md als Glob
-    beschreibt."""
-    names = {f.detail.split()[2] for f in _mod.check_doc_drift()}
-    assert any(n.startswith("hm-channel-") for n in names)
+    beschreibt. Synthetischer Text — der Test darf nicht davon abhängen, ob
+    das echte CLAUDE.md gerade driftet."""
+    claim = "The four hm-channel-* crates are single-function stubs."
+    assert _mod._claims_stub(claim, "hm-channel-*")
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("hm-sessions is a single-function stub", True),
+    ("hm-sessions: intentional placeholder, do not use", True),
+    ("none makes real calls — hm-channel-telegram", True),
+    # Verneint oder historisch: darf NICHT feuern, sonst erzeugt ausgerechnet
+    # eine korrigierte Doku Dauerbefunde.
+    ("| hm-sessions | 13 | 5 | **Real** — not a stub. |", False),
+    ("an earlier revision called hm-sessions a placeholder", False),
+    ("hm-sessions is no longer a stub", False),
+    ("hm-sessions used to be a stub", False),
+    ("hm-sessions has 13 pub fn and real logic", False),
+])
+def test_claims_stub_distinguishes_assertion_from_negation(text, expected):
+    name = "hm-channel-telegram" if "telegram" in text else "hm-sessions"
+    assert _mod._claims_stub(text, name) is expected
+
+
+def test_corrected_claude_md_produces_no_drift():
+    """Regression: die Fassung davor prüfte nur, ob der Crate-Name irgendwo
+    in CLAUDE.md steht — und schlug damit auf der korrekten Messtabelle an."""
+    assert _mod.check_doc_drift() == []
 
 
 def test_stub_threshold_is_meaningfully_low():
@@ -151,9 +177,11 @@ def test_env_detection_catches_suffix_named_files():
     assert not looks_env("docs/env-setup.md")
 
 
-def test_dead_data_reports_tracked_but_ignored_in_this_repo():
+def test_dead_data_check_runs_and_reports_known_rules():
+    """Absichtlich nicht 'es MUSS Befunde geben' — sonst schlägt der Test in
+    dem Moment fehl, in dem der Master aufräumt, und bestraft die Korrektur."""
     rules = {f.rule for f in _mod.check_dead_data()}
-    assert "tracked-but-ignored" in rules
+    assert rules <= {"tracked-but-ignored", "archive-in-index"}
 
 
 def test_archive_threshold_ignores_small_binaries():

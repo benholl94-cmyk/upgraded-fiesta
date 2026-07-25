@@ -73,6 +73,27 @@ SKILL_SCOPES = {
         "max_prompt_chars": 1500,
         "max_response_chars": 6000,
     },
+    "codex-patch": {
+        "description": "Patch-Aufgabe an einen Coding-Agenten — sieht bewusst "
+                       "Repo-Code, aber nur die vom Orchestrator einzeln "
+                       "benannten Dateien (agents/orchestrator.py → build_task)",
+        "allowed_content": ["code_snippet", "file_context", "task_instruction"],
+        # Bewusst enger gefasst als bei 'code-review': Code enthaelt legitim die
+        # Woerter token/key/secret (Variablennamen, Kommentare). Ein Blocken auf
+        # das blosse Wort wuerde jede echte Aufgabe abweisen und den Scope damit
+        # nutzlos machen. Geblockt werden deshalb *Wertzuweisungen* und echte
+        # Key-Formen, nicht Vokabular.
+        "forbidden_patterns": [
+            r"HM_OWNER_TOKEN\s*=\s*\S+",
+            r"(api[_-]?key|secret|password|token)\s*[=:]\s*['\"][^'\"]{12,}['\"]",
+            r"sk-[A-Za-z0-9]{20,}",
+            r"gh[pousr]_[A-Za-z0-9]{30,}",
+            r"AIza[0-9A-Za-z_\-]{30,}",
+            r"-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----",
+        ],
+        "max_prompt_chars": 24000,
+        "max_response_chars": 32000,
+    },
     "translate": {
         "description": "Text übersetzen — kein Code mit Secrets",
         "allowed_content": ["text", "documentation"],

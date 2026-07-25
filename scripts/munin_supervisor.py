@@ -194,6 +194,47 @@ STUB_CLAIMS = (
 STUB_MAX_FUNCTIONS = 3
 
 
+STUB_WORDS = ("placeholder", "stub", "single-function", "single-constant",
+              "not a working feature", "none makes real calls")
+# Fenster um die Fundstelle. Gross genug fuer einen Satz, klein genug, dass
+# eine Erwaehnung drei Absaetze weiter nicht mitzaehlt.
+_CLAIM_WINDOW = 320
+
+
+# Eine Behauptung kann verneint oder historisch sein: "Real — not a stub",
+# "an earlier revision called these placeholders". Ohne diese Erkennung wuerde
+# ausgerechnet eine korrigierte Doku Dauerbefunde erzeugen -- und ein Auditor,
+# der Korrekturen bestraft, erzieht zum Weglassen.
+NEGATIONS = ("not a", "not an", "no longer", "isn't", "is not", "aren't",
+             "used to be", "earlier revision", "rather than", "instead of",
+             "nicht mehr", "kein ", "keine ")
+_NEG_WINDOW = 90
+
+
+def _claims_stub(text: str, name: str) -> bool:
+    """Behauptet CLAUDE.md in der Naehe von `name`, es sei ein Platzhalter?
+
+    Prosa-Scan, also unvermeidlich heuristisch: Verneinungen werden erkannt,
+    verschachtelte Formulierungen koennen weiterhin danebenliegen. Im Zweifel
+    lieber ein Fehlalarm als ein uebersehener Drift -- deshalb zaehlt jede
+    nicht ausdruecklich verneinte Fundstelle.
+    """
+    low = text.lower()
+    needle = name.lower()
+    start = 0
+    while (i := low.find(needle, start)) != -1:
+        window = low[max(0, i - _CLAIM_WINDOW): i + _CLAIM_WINDOW]
+        for w in STUB_WORDS:
+            j = window.find(w)
+            while j != -1:
+                near = window[max(0, j - _NEG_WINDOW): j + len(w) + 20]
+                if not any(n in near for n in NEGATIONS):
+                    return True
+                j = window.find(w, j + len(w))
+        start = i + len(needle)
+    return False
+
+
 def check_doc_drift() -> list[Finding]:
     """CLAUDE.md nennt diese Crates 'intentional placeholders' / 'stubs'.
     Wenn sie das nicht mehr sind, ist die autoritative Quelle falsch -- und
@@ -213,7 +254,10 @@ def check_doc_drift() -> list[Finding]:
         # Familien durchrutschen, um die es geht.
         family = re.sub(r"-(telegram|discord|slack|whatsapp|browser|media|web|exec)$",
                         "-*", name)
-        if name not in text and family not in text:
+        # Entscheidend ist die *Behauptung*, nicht die blosse Erwähnung: seit
+        # CLAUDE.md eine korrekte Messtabelle enthält, steht jeder Crate-Name
+        # dort legitim. Nur ein Stub-Anspruch in Reichweite des Namens zählt.
+        if not _claims_stub(text, name) and not _claims_stub(text, family):
             continue
         code = "\n".join(f.read_text(encoding="utf-8", errors="replace")
                          for f in src.rglob("*.rs"))
