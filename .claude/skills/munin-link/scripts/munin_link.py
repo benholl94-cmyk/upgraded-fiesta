@@ -254,7 +254,9 @@ def cmd_gateway_cmd(args: list[str]) -> None:
         sys.exit(1)
     task_type = args[0]
     payload   = args[1] if len(args) > 1 else ""
-    result    = _gateway_post("/tasks", {"task_type": task_type, "payload": payload})
+    # "taskType" ist der dokumentierte Feldname des Gateways; "task_type"
+    # fiel still durch (202 akzeptiert, kein Plugin ausgefuehrt).
+    result    = _gateway_post("/tasks", {"taskType": task_type, "payload": payload})
     if result:
         print(f"{C['GR']}✓{C['R']} Task eingestellt: {task_type} → {result}")
     else:

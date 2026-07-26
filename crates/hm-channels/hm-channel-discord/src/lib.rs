@@ -136,16 +136,20 @@ impl DiscordClient {
         use std::io::{Read, Write};
         use std::net::TcpStream;
 
-        let task_payload = json!({
-            "task_type": "discord-message",
-            "payload": {
+        // Der Feldname stammt aus dem geteilten `TaskSubmission`, nicht aus
+        // einem hier ausgeschriebenen JSON-Literal: ausgeschrieben hiess er
+        // `task_type`, band am Gateway an nichts, und jede weitergeleitete
+        // Nachricht wurde mit 202 quittiert, ohne je ein Plugin zu erreichen.
+        let task_payload = serde_json::to_string(&hm_sdk::TaskSubmission::new(
+            "discord-message",
+            String::new(),
+            json!({
                 "channel_id": msg.channel_id,
                 "content": msg.content,
                 "author": msg.author.username,
                 "guild_id": msg.guild_id,
-            }
-        })
-        .to_string();
+            }),
+        ))?;
 
         let url = self.gateway_url.trim_start_matches("http://");
         let (host, port_str) = url.rsplit_once(':').unwrap_or((url, "8080"));

@@ -79,11 +79,15 @@ async fn submit_task_inner(
     let (host, port_str) = url.rsplit_once(':').unwrap_or((url, "8080"));
     let port: u16 = port_str.parse().unwrap_or(8080);
 
-    let body = serde_json::json!({
-        "task_type": job.task_type,
-        "payload": job.payload,
-    })
-    .to_string();
+    // The wire name comes from the shared `TaskSubmission`, not from a JSON
+    // literal spelled out here. Spelled out, it read `task_type`, bound to
+    // nothing on the gateway side, and every scheduled job was accepted with
+    // 202 while dispatching to no plugin at all.
+    let body = serde_json::to_string(&hm_sdk::TaskSubmission::new(
+        job.task_type.clone(),
+        String::new(),
+        job.payload.clone(),
+    ))?;
 
     let request = format!(
         "POST /tasks HTTP/1.0\r\n\

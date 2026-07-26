@@ -9,7 +9,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HUGIN">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%2305070a'/%3E%3Cpath fill='none' stroke='%233ef4e6' stroke-width='22' d='M64 320 Q128 144 256 128 Q384 144 448 320 Q352 272 320 336 Q288 240 256 240 Q224 240 192 336 Q160 272 64 320Z'/%3E%3Ccircle cx='208' cy='208' r='14' fill='%233ef4e6'/%3E%3Ccircle cx='304' cy='208' r='14' fill='%233ef4e6'/%3E%3C/svg%3E">
+<!-- apple-touch-icon MUSS ein Rasterbild sein. Hier stand ein SVG als
+     data-URI: iOS Safari wertet fuer diesen Link kein SVG aus, ignorierte
+     ihn also vollstaendig und zeigte auf dem Home-Bildschirm seinen eigenen
+     Rueckfall statt des App-Symbols. Randlos und ohne eigene Rundung, weil
+     iOS seine Maske selbst darueberlegt — ein vorgerundetes Symbol wuerde
+     ein zweites Mal beschnitten. Erzeugt von scripts/generate_hugin_icons.py
+     aus derselben Geometrie wie icon-512.svg. -->
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180.png">
 <title>HUGIN · Admin</title>
 <script>
 /* ── ADMIN GATE v2 ───────────────────────────────────────────────
@@ -40,6 +47,34 @@
     return buf2hex(hash);
   }
 
+  /* Sperrbildschirm.
+     Vorher stand dieses Markup viermal wortgleich im Gate, und es ersetzte
+     das gesamte Dokument — samt der PWA-Kopfzeilen: <link rel="manifest">,
+     apple-touch-icon und die apple-mobile-web-app-Angaben standen alle im
+     weggeworfenen <head>.
+     Safari liest genau diese Elemente beim "Zum Home-Bildschirm", und ohne
+     Zugangstoken ist der Sperrbildschirm der Zustand, in dem ein Besucher
+     installiert. Ergebnis: generisches Symbol statt App-Symbol, kein
+     Standalone-Modus — der Gate hat die Installierbarkeit miterschlagen,
+     ohne dass das je beabsichtigt war.
+     Der Zugang bleibt unverändert gesperrt. Ein Icon-Link ist kein
+     Geheimnis, und die Datei selbst liegt auf GitHub Pages ohnehin offen. */
+  function deny(){
+    document.documentElement.innerHTML='<head><meta charset="utf-8">'+
+      '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
+      '<meta name="theme-color" content="#05070a">'+
+      '<meta name="mobile-web-app-capable" content="yes">'+
+      '<meta name="apple-mobile-web-app-capable" content="yes">'+
+      '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'+
+      '<meta name="apple-mobile-web-app-title" content="HUGIN">'+
+      '<link rel="manifest" href="manifest.json">'+
+      '<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180.png">'+
+      '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
+      'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
+      'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
+    document.documentElement.style.visibility='visible';
+  }
+
   async function boot(){
     const sealed = localStorage.getItem(KEY_SEALED) === '1';
     const p = new URLSearchParams(location.search);
@@ -54,12 +89,7 @@
         history.replaceState(null, '', location.pathname);
       } else {
         /* Falsches Token → Lite-Version */
-        (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
-        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
-        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
-        document.documentElement.style.visibility='visible';})();
+        deny();
         return;
       }
     }
@@ -67,12 +97,7 @@
     /* Token aus Storage prüfen */
     const stored = localStorage.getItem(KEY_TOKEN);
     if(!stored){
-      (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
-        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
-        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
-        document.documentElement.style.visibility='visible';})();
+      deny();
       return;
     }
     const h2 = await sha256(stored);
@@ -80,12 +105,7 @@
       /* Manipulierter Storage-Wert */
       localStorage.removeItem(KEY_TOKEN);
       localStorage.removeItem(KEY_SEALED);
-      (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
-        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
-        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
-        document.documentElement.style.visibility='visible';})();
+      deny();
       return;
     }
     window.__HUGIN_ADMIN = true;
@@ -95,12 +115,7 @@
 
   /* Seite zunächst unsichtbar halten bis Gate-Check abgeschlossen */
   document.documentElement.style.visibility = 'hidden';
-  boot().catch(() => { (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
-        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
-        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
-        document.documentElement.style.visibility='visible';})(); });
+  boot().catch(() => { deny(); });
 })();
 </script>
 <style>
