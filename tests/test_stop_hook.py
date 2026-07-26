@@ -51,18 +51,31 @@ def repo(tmp_path):
     git("config", "commit.gpgsign", "false", cwd=work)
     (work / "a.txt").write_text("a\n")
     git("add", "a.txt", cwd=work)
-    git("commit", "-qm", "base", cwd=work)
+    git("-c", "commit.gpgsign=false", "commit", "-qm", "base", cwd=work)
     git("push", "-q", "-u", "origin", "main", cwd=work)
     return work
 
 
 def commit(repo: pathlib.Path, name: str, msg: str, email: str | None = None) -> None:
+    """Commit erzeugen — immer mit abgeschaltetem Signing.
+
+    Zwei Gruende, beide in CI gelernt: (1) mit `commit.gpgsign=true` und ohne
+    Schluessel bricht `git commit` hart ab, die Datei bleibt staged und der
+    Hook meldet dann "uncommitted changes" statt der erwarteten Meldung.
+    (2) Ob die Umgebung einen Signaturschluessel hat, darf ueber das
+    Testergebnis nicht entscheiden. Tests, die den Signaturpfad pruefen wollen,
+    setzen `commit.gpgsign` NACH dem Commit — das aendert nur die Sicht des
+    Hooks, nicht die Erzeugbarkeit des Commits.
+    """
     (repo / name).write_text(name + "\n")
     git("add", name, cwd=repo)
-    args = ["commit", "-qm", msg]
+    args = ["-c", "commit.gpgsign=false", "commit", "-qm", msg]
     if email:
         args = ["-c", f"user.email={email}"] + args
-    git(*args, cwd=repo)
+    proc = git(*args, cwd=repo)
+    # Ein verschluckter Fehlschlag hier erzeugt weiter unten eine voellig
+    # irrefuehrende Assertion — genau das ist in CI passiert.
+    assert proc.returncode == 0, f"git commit fehlgeschlagen: {proc.stderr}"
 
 
 # --------------------------------------------------------------------------
@@ -86,7 +99,7 @@ def test_repo_without_remote_is_skipped(tmp_path):
     git("config", "user.name", "x", cwd=work)
     (work / "f").write_text("f")
     git("add", "f", cwd=work)
-    git("commit", "-qm", "solo", cwd=work)
+    git("-c", "commit.gpgsign=false", "commit", "-qm", "solo", cwd=work)
     assert run_hook(work)[0] == 0
 
 
@@ -119,15 +132,15 @@ def test_pushing_clears_the_unpushed_warning(repo):
 
 
 def test_unsigned_commit_is_caught_when_signing_is_on(repo):
-    git("config", "commit.gpgsign", "true", cwd=repo)
     commit(repo, "b.txt", "unsigniert")
+    git("config", "commit.gpgsign", "true", cwd=repo)
     code, err = run_hook(repo)
     assert code == 2 and "Unverified" in err
 
 
 def test_foreign_committer_email_is_named(repo):
-    git("config", "commit.gpgsign", "true", cwd=repo)
     commit(repo, "b.txt", "fremd", email="fremd@example.com")
+    git("config", "commit.gpgsign", "true", cwd=repo)
     code, err = run_hook(repo)
     assert code == 2 and "fremd@example.com" in err
 
@@ -151,7 +164,8 @@ def merged_branch_reset_onto_main(repo: pathlib.Path) -> None:
     commit(repo, "f.txt", "feature-arbeit")
     git("push", "-q", "-u", "origin", "feature", cwd=repo)
     git("checkout", "-q", "main", cwd=repo)
-    git("merge", "-q", "--no-ff", "feature", "-m", "Merge pull request #1", cwd=repo)
+    git("-c", "commit.gpgsign=false", "merge", "-q", "--no-ff", "feature",
+        "-m", "Merge pull request #1", cwd=repo)
     commit(repo, "bot.txt", "Update visible platform status [skip ci]")
     git("push", "-q", "origin", "main", cwd=repo)
     git("checkout", "-q", "-B", "feature", "origin/main", cwd=repo)
@@ -168,8 +182,8 @@ def test_merged_branch_reset_onto_main_is_silent(repo):
 def test_merge_and_bot_commits_are_not_claimed_as_local_work(repo):
     """Die alte Fassung verlangte einen Rebase ueber Merge- und Bot-Commits.
     Beides gehoert anderen Autoren und liegt bereits auf main."""
-    git("config", "commit.gpgsign", "true", cwd=repo)
     merged_branch_reset_onto_main(repo)
+    git("config", "commit.gpgsign", "true", cwd=repo)
     code, err = run_hook(repo)
     assert "Merge pull request" not in err
     assert "skip ci" not in err
