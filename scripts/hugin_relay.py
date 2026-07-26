@@ -71,12 +71,33 @@ LIMIT_PATTERNS = (
 
 
 def parse_limit(text: str) -> tuple[bool, str]:
-    """(ist_limit, erkanntes_muster). Reine Funktion, damit sie testbar ist."""
-    for p in LIMIT_PATTERNS:
-        m = p.search(text or "")
-        if m:
-            return True, m.group(0)
-    return False, ""
+    """(ist_limit, erkanntes_muster).
+
+    Delegiert an agents/limits.py -- dort steht die Bewertung (Art, Wartezeit,
+    empfohlene Reaktion). Diese Huelle bleibt, weil der Relay nur die
+    Ja/Nein-Antwort braucht; wer die Bewertung will, ruft limits.parse direkt.
+    Zwei eigene Musterlisten waeren die sichere Drift.
+    """
+    sig = limit_signal(text)
+    return (True, sig.matched) if sig else (False, "")
+
+
+def limit_signal(text: str):
+    """Vollstaendiges Signal mit Art und Wartezeit, oder None."""
+    sys.path.insert(0, str(REPO))
+    try:
+        from agents import limits
+        return limits.parse(text or "")
+    except Exception:
+        # Faellt agents/ aus, bleibt die alte Musterliste als Notnagel --
+        # lieber grob erkennen als gar nicht.
+        for p in LIMIT_PATTERNS:
+            m = p.search(text or "")
+            if m:
+                return type("Sig", (), {"matched": m.group(0), "kind": "unknown",
+                                        "wait_s": 30, "action": "vorsichtig behandeln",
+                                        "__str__": lambda s: f"[UNKNOWN] {m.group(0)}"})()
+        return None
 
 
 # ---------------------------------------------------------------------------
