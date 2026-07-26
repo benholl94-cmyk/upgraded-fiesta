@@ -45,6 +45,13 @@ jobs:
         run: python3 scripts/validate_repo.py
       - name: Run pytest
         run: python3 -m pytest tests/ -q
+      - name: Multi-agent config + adapter wiring
+        # Prueft, dass config/agents.json ladbar ist, jeder Adapter gebaut
+        # werden kann und der codex-patch Skill-Scope im Oracle-Gate existiert.
+        # Ohne diesen Scope lehnt das Gate jeden Codex-Aufruf ab -- die
+        # Integration waere dann nur nominell verdrahtet.
+        run: python3 -m agents status
+
       - name: HUGIN index.html sync check
         run: |
           if ! diff -q hugin/hugin.html hugin/index.html > /dev/null 2>&1; then
