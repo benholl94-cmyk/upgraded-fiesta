@@ -266,3 +266,91 @@ def test_install_with_consent_writes_and_backs_up(tmp_path, monkeypatch):
 
 def test_check_reports_sync_state_of_this_repo():
     assert _inst.cmd_check() in (0, 1)      # 0 synchron, 1 Drift — nie Absturz
+
+
+# ---------------------------------------------------------------------------
+# Signatur-PRÄSENZ statt Signatur-URTEIL
+#
+# Der Anlass ist gemessen, nicht konstruiert: der Hook forderte einen Rebase
+# für Commit 9d29122, dessen Rohobjekt nachweislich einen
+# `gpgsig -----BEGIN SSH SIGNATURE-----`-Header trägt. Ursache war `%G? == N`.
+# CCR signiert per SSH ohne `gpg.ssh.allowedSignersFile`; git kann die
+# Signatur dann nicht einmal prüfen und meldet für signierte wie unsignierte
+# Commits dasselbe. Die vorgeschlagene Abhilfe hätte einen Force-Push auf
+# bereits gepushte Commits verlangt — verboten und wirkungslos zugleich.
+#
+# Die Signatur wird hier per git-Plumbing in das Objekt geschrieben statt mit
+# ssh-keygen erzeugt. Das ist kein Notbehelf: der Hook liest den Header, also
+# prüft der Test den Header — ohne Abhängigkeit von einer Signier-Toolchain,
+# die in dieser Umgebung ohnehin fehlt.
+# ---------------------------------------------------------------------------
+
+SIG_HEADER = (
+    "gpgsig -----BEGIN SSH SIGNATURE-----\n"
+    " U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgrLzsfFISF4by8Q+FKz27\n"
+    " -----END SSH SIGNATURE-----"
+)
+
+
+def signiere_head(repo: pathlib.Path) -> str:
+    """Schreibt HEAD neu, sodass das Objekt einen gpgsig-Header trägt."""
+    roh = subprocess.run(["git", "cat-file", "commit", "HEAD"], cwd=repo,
+                         capture_output=True, text=True, check=True).stdout
+    kopf, _, rumpf = roh.partition("\n\n")
+    neu = f"{kopf}\n{SIG_HEADER}\n\n{rumpf}"
+    sha = subprocess.run(["git", "hash-object", "-t", "commit", "-w", "--stdin"],
+                         cwd=repo, input=neu, capture_output=True, text=True,
+                         check=True).stdout.strip()
+    git("update-ref", "HEAD", sha, cwd=repo)
+    return sha
+
+
+def test_signierter_commit_wird_nicht_als_unsigniert_gemeldet(repo):
+    """Der Kern des Fixes. Vorher falsch-positiv."""
+    commit(repo, "s.txt", "wird gleich signiert")
+    signiere_head(repo)
+    git("config", "commit.gpgsign", "true", cwd=repo)
+
+    roh = subprocess.run(["git", "cat-file", "commit", "HEAD"], cwd=repo,
+                         capture_output=True, text=True).stdout
+    assert "gpgsig" in roh, "Vorbedingung: der Commit trägt eine Signatur"
+    urteil = subprocess.run(["git", "log", "--format=%G?", "-1"], cwd=repo,
+                            capture_output=True, text=True).stdout.strip()
+    assert urteil != "G", "Vorbedingung: git kann die Signatur nicht bestätigen"
+
+    code, err = run_hook(repo)
+    assert "Unverified" not in err, (
+        "ein signierter Commit darf nicht als unsigniert gemeldet werden")
+    # Der Hook meldet hier noch die ungepushte Arbeit — das ist eine andere,
+    # richtige Prüfung. Erst nach dem Push muss er vollständig schweigen,
+    # sonst wäre nicht belegt, dass die Signatur wirklich niemanden mehr stört.
+    assert code == 2 and "unpushed commit(s)" in err
+    git("push", "-q", "origin", "HEAD:main", cwd=repo)
+    code, err = run_hook(repo)
+    assert code == 0 and err.strip() == "", err
+
+
+def test_unsignierter_commit_bleibt_gefangen(repo):
+    """Gegenprobe: die Korrektur darf den echten Fall nicht durchlassen."""
+    commit(repo, "u.txt", "ohne Signatur")
+    git("config", "commit.gpgsign", "true", cwd=repo)
+    code, err = run_hook(repo)
+    assert code == 2 and "Unverified" in err
+    assert "unsigned" in err
+
+
+def test_gpgsig_in_der_message_taeuscht_keine_signatur_vor(repo):
+    """Nur Header zählen — sonst genügte ein passender Satz im Text."""
+    commit(repo, "f.txt", "gpgsig -----BEGIN SSH SIGNATURE-----")
+    git("config", "commit.gpgsign", "true", cwd=repo)
+    code, err = run_hook(repo)
+    assert code == 2 and "Unverified" in err, "eine Message ist keine Signatur"
+
+
+def test_fremde_mail_wird_auch_bei_vorhandener_signatur_gemeldet(repo):
+    """Die zweite Bedingung bleibt unabhängig von der ersten bestehen."""
+    commit(repo, "m.txt", "fremd", email="fremd@example.com")
+    signiere_head(repo)
+    git("config", "commit.gpgsign", "true", cwd=repo)
+    code, err = run_hook(repo)
+    assert code == 2 and "fremd@example.com" in err

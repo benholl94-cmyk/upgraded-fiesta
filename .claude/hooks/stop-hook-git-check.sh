@@ -63,13 +63,40 @@ if [[ -n "$current_branch" ]]; then
   fi
 
   # Check for local commits that GitHub will show as "Unverified": either no
-  # signature at all (%G? == N), or signed with a committer email other than
+  # signature at all, or signed with a committer email other than
   # noreply@anthropic.com (the identity CCR's signing key is registered to).
-  # Only run when commit signing is configured. Note: %G? is N for unsigned
-  # commits; signed-but-locally-unverifiable commits report B/U/E, so this is
-  # a reliable presence check even though CCR doesn't configure local verification.
+  #
+  # This asks whether a signature is PRESENT, not whether it verifies. An
+  # earlier version used "%G? == N" and claimed that signed-but-unverifiable
+  # commits report B/U/E. That is false here: CCR signs via SSH and does not
+  # configure gpg.ssh.allowedSignersFile, so git cannot even attempt
+  # verification and reports N for *every* commit -- signed or not. ("git log"
+  # prints "gpg.ssh.allowedSignersFile needs to be configured" when asked.)
+  #
+  # Collapsing "cannot determine" into "not signed" made the hook demand an
+  # amend/rebase of correctly signed commits that were already pushed; the
+  # remedy would have required a force-push, which is denied. Same defect
+  # class as an unknown CI result being read as success -- an indeterminate
+  # answer turned into a definite one, here falling to the false side.
+  #
+  # The raw object header answers the question that can actually be answered
+  # without a key or a verification config. Only header lines are inspected
+  # (sed quits at the blank line), so a commit *message* mentioning gpgsig
+  # cannot pose as a signature.
   if [[ "$(git config --type=bool commit.gpgsign 2>/dev/null)" == "true" ]]; then
-    unverifiable=$(git log --format='%h %G? %ce' "$default_ref..HEAD" 2>/dev/null | awk '$2 == "N" || $3 != "noreply@anthropic.com"')
+    unverifiable=$(
+      git log --format='%H %ce' "$default_ref..HEAD" 2>/dev/null |
+      while read -r sha email; do
+        sig=unsigned
+        if git cat-file commit "$sha" 2>/dev/null |
+             sed -n '/^$/q;p' | grep -q '^gpgsig '; then
+          sig=signed
+        fi
+        if [[ "$sig" == "unsigned" || "$email" != "noreply@anthropic.com" ]]; then
+          printf '%s %s %s\n' "${sha:0:7}" "$sig" "$email"
+        fi
+      done
+    )
     if [[ -n "$unverifiable" ]]; then
       echo "There are commit(s) on branch '$current_branch' that GitHub will show as Unverified (missing signature, or committer email is not noreply@anthropic.com):" >&2
       echo "$unverifiable" >&2

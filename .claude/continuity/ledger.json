@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T05:48:50+00:00",
+  "updated": "2026-07-26T05:55:02+00:00",
   "session": 2,
   "entries": [
     {
@@ -236,6 +236,29 @@
       "anchors": [
         "path:.claude/settings.json"
       ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-21",
+      "session": 2,
+      "ts": "2026-07-26T05:55:02+00:00",
+      "kind": "sackgasse",
+      "text": "Der Stop-Hook pruefte Signaturen mit 'git log --format=%G?' und behandelte N als 'unsigniert'. Falsch: CCR signiert per SSH OHNE gpg.ssh.allowedSignersFile, git kann dann gar nicht verifizieren und meldet N fuer signierte wie unsignierte Commits gleichermassen. Belegt an 9d29122, dessen Rohobjekt einen gpgsig-Header traegt. Die vorgeschlagene Abhilfe haette einen Force-Push auf bereits gepushte Commits verlangt — verboten und wirkungslos. Richtig ist die Praesenzpruefung des Headers im Rohobjekt.",
+      "anchors": [
+        "path:.claude/hooks/stop-hook-git-check.sh",
+        "sha:9d29122"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-22",
+      "session": 2,
+      "ts": "2026-07-26T05:55:02+00:00",
+      "kind": "invariante",
+      "text": "Ein unbestimmtes Ergebnis darf nie zu einem bestimmten kollabiert werden — weder zur guten noch zur schlechten Seite. Auto-Rollback las 'unknown' als 'gruen' (falsch-negativ), der Stop-Hook las 'nicht verifizierbar' als 'unsigniert' (falsch-positiv). Dieselbe Fehlerklasse, zweimal unabhaengig aufgetreten. Pruefe, was feststellbar ist, nicht was du gern wuesstest.",
+      "anchors": [],
       "state": "offen",
       "weight": 3
     }
