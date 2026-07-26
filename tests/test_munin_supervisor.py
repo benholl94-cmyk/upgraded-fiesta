@@ -164,7 +164,13 @@ def test_audit_quick_skips_the_test_run(monkeypatch):
 
 def test_env_detection_catches_suffix_named_files():
     """Regression: die erste Fassung prüfte nur '.env' am Pfadanfang und liess
-    das real im Repo liegende '.container_self_cycle_int+ext_.env' durch."""
+    '.container_self_cycle_int+ext_.env' durch, das damals real im Repo lag.
+
+    Der Baum self_space_workspace_ ist inzwischen entfernt; der Pfad bleibt
+    als Testvektor stehen, weil er den Fehler beschreibt, nicht die Datei --
+    suffixbenannte .env-Dateien müssen erkannt werden, unabhängig davon, ob
+    gerade eine im Repo liegt.
+    """
     def looks_env(path: str) -> bool:
         base = path.rsplit("/", 1)[-1]
         return base == ".env" or base.endswith(".env") or base.startswith(".env.")

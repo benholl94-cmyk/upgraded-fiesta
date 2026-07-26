@@ -1,7 +1,0 @@
-{
-  "plugins": [
-    { "task_type": "echo", "command": ["python3", "plugins/echo_plugin.py"] },
-    { "task_type": "ops-tool", "command": ["target/release/hm-tool-exec"] },
-    { "task_type": "llm-chat", "command": ["python3", "plugins/llm_chat_plugin.py"] }
-  ]
-}

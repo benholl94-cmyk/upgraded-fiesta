@@ -1,7 +1,0 @@
-{
-  "schema_version": "ashell.supervisor.deploy_exec.v3",
-  "channel_id": "local_supervisor",
-  "mode": "localhost_only",
-  "source": "local_usr/sys/bin/ashell_supervisor.py",
-  "routes": ["/health", "/state", "/repair"]
-}

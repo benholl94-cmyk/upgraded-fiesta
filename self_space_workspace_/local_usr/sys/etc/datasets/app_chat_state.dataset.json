@@ -1,9 +1,0 @@
-{
-  "schema_version": "local_usr.sys.dataset.v1",
-  "dataset_id": "app_chat_state",
-  "purpose": "Local system app chat registry and message-count summary",
-  "file": "local_usr/sys/var/lib/data/app_chat_state.dataset.json",
-  "generated_from": "local observations",
-  "written_at_utc": "2026-07-06T23:30:29.351198Z",
-  "content_sha256": "96312c59f88cfbf91f5ef64c1effb2df968cb0b31d2dd275593d8ab5c16111ee"
-}

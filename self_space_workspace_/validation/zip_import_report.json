@@ -1,9 +1,0 @@
-{
-  "schema_version": "ashell.import.v2",
-  "ok": true,
-  "source": "/workspace/ashell_supervisor_plugins_tools_datasets_download.zip",
-  "extract_root": "/workspace/imports/ashell_supervisor_plugins_tools_datasets_download_20260707132419",
-  "members": 7,
-  "imported_at_utc": "2026-07-07T10:24:19.867494Z",
-  "sha256": "e08e3c3817d7a76d025d8d81b518bd4c676c4e3f62cfc1bba0f93e3e26060073"
-}

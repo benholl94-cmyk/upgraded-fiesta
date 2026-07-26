@@ -443,11 +443,13 @@ def validate_l6_workspace() -> dict[str, Any]:
          "-name", "*.env", "-o", "-name", ".env",
          "-o", "-name", "*.pem", "-o", "-name", "*.key"],
         timeout=10)
-    # Bekannte, geprüfte harmlose Pseudo-.env-Dateien aus der Bewertung ausnehmen
-    KNOWN_SAFE_ENV = {"self_space_workspace_/.container_self_cycle_int+ext_.env"}
+    # Keine Ausnahmeliste mehr: die einzige Ausnahme galt
+    # self_space_workspace_/.container_self_cycle_int+ext_.env, und dieser
+    # Baum ist entfernt. Eine Ausnahme, die auf nichts mehr zeigt, ist kein
+    # toter Code, sondern ein Loch -- eine spätere Datei an genau diesem Pfad
+    # wäre stillschweigend freigestellt worden.
     key_files = [f for f in (env_out.splitlines() if env_out else [])
-                 if ".git" not in f and ".dev-token" not in f
-                 and not any(safe in f for safe in KNOWN_SAFE_ENV)]
+                 if ".git" not in f and ".dev-token" not in f]
     checks.append({"check": "no_key_files_in_workspace",
                    "ok": len(key_files) == 0,
                    "value": str(len(key_files)),
