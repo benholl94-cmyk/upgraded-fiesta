@@ -982,7 +982,10 @@ fn raw_response(status: u16, content_type: &str, body: &[u8]) -> Vec<u8> {
 /// Wildcard laesst jede beliebige Website Anfragen im Namen des Browsers
 /// stellen, sobald sie an das Token kommt.
 fn allowed_origin(request_origin: Option<&str>) -> Option<String> {
-    allowed_origin_from(&env::var("HM_ALLOWED_ORIGINS").unwrap_or_default(), request_origin)
+    allowed_origin_from(
+        &env::var("HM_ALLOWED_ORIGINS").unwrap_or_default(),
+        request_origin,
+    )
 }
 
 /// Reine Funktion -- die Konfiguration kommt als Parameter, nicht aus der
@@ -1185,7 +1188,10 @@ mod audit_tests {
     #[test]
     fn cors_matches_origins_exactly() {
         let cfg = "https://a.example";
-        assert_eq!(allowed_origin_from(cfg, Some("https://a.example.boese.tld")), None);
+        assert_eq!(
+            allowed_origin_from(cfg, Some("https://a.example.boese.tld")),
+            None
+        );
         assert_eq!(allowed_origin_from(cfg, Some("https://a.exampl")), None);
     }
 
