@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T05:19:54+00:00",
+  "updated": "2026-07-26T05:35:17+00:00",
   "session": 2,
   "entries": [
     {
@@ -131,6 +131,54 @@
       "anchors": [],
       "state": "offen",
       "weight": 3
+    },
+    {
+      "id": "s2-12",
+      "session": 2,
+      "ts": "2026-07-26T05:35:17+00:00",
+      "kind": "entscheidung",
+      "text": "Verfassungslockerung A1: Mandatsgrenze verlaeuft entlang Umkehrbarkeit und Reichweite, nicht entlang der Art der Handlung. Verworfene Alternative: die Verbote ersatzlos streichen — das haette die Pruefung dort mitentfernt, wo sie etwas bedeutet (Default-Branch, Historie, Loeschen, Secrets). Gelockert wurde nur, was umkehrbar und ohne Aussenwirkung ist.",
+      "anchors": [
+        "path:.claude/persona/constitution.json",
+        "sha:c23d309"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-13",
+      "session": 2,
+      "ts": "2026-07-26T05:35:17+00:00",
+      "kind": "sackgasse",
+      "text": "Die Mandatswache mit any() ueber lose Stichwoerter zu bauen scheitert: MANDATE_BAR pruefte ('merge','push','default-branch'), und weil 'push' auch in 'force-push' steckt, blieb eine entfernte Default-Branch-Schranke unbemerkt. Nur der Gegentest hat es aufgedeckt, nicht das Lesen. Richtig ist all() ueber unterscheidende Stichwoerter.",
+      "anchors": [
+        "path:scripts/munin_supervisor.py",
+        "path:tests/test_munin_mandate.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-14",
+      "session": 2,
+      "ts": "2026-07-26T05:35:17+00:00",
+      "kind": "invariante",
+      "text": "Jede Wache braucht einen Gegentest, der sie scheitern laesst. Eine Regel, die nur am Gutfall geprueft wird, kann fast alles durchwinken und sieht trotzdem gruen aus.",
+      "anchors": [],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-15",
+      "session": 2,
+      "ts": "2026-07-26T05:35:17+00:00",
+      "kind": "invariante",
+      "text": "MCP-Servernamen sind zwischen Sitzungen instabil (Claude_Code_Remote vs. UUID bf7c680d-...). Permission-Regeln immer unter allen bekannten Aliassen eintragen, sonst sieht ein Aliaswechsel wie eine fehlende Berechtigung aus.",
+      "anchors": [
+        "path:.claude/settings.json"
+      ],
+      "state": "offen",
+      "weight": 2
     }
   ]
 }
