@@ -108,6 +108,17 @@ python3 scripts/munin_supervisor.py --watch 300  # continuous
 
 Exit `0` clean / `1` DRIFT·RISK / `2` VIOLATION.
 
+### Hooks are versioned in the repo
+
+`~/.claude/stop-hook-git-check.sh` lives outside the repo, so a fix there survives no container rebuild and shows up in no diff. The authoritative copy is `.claude/hooks/stop-hook-git-check.sh`; `scripts/install_hooks.py` mirrors it **repo → home only** (never the reverse — that would recreate the silent divergence). The supervisor's `hook-drift` rule compares the two byte-for-byte, same as `hugin_index_sync`.
+
+```sh
+python3 scripts/install_hooks.py --check   # drift?
+python3 scripts/install_hooks.py --yes     # install (backs up the old copy)
+```
+
+The hook's signature and unpushed checks compare against the **default branch**, not the remote tracking branch. Reason, and it is not hypothetical: after a PR merges and the local branch is reset onto main, `origin/<branch>` still points at the pre-merge tip. `origin/<branch>..HEAD` then contains main's own history — the merge commit and CI bot commits — and the hook demanded a rebase over commits belonging to other authors that were already on main. Following it would have orphaned the merge and force-pushed over the default branch. `tests/test_stop_hook.py` pins all of this, including the counter-check that real local work is still caught.
+
 **Known dead data as of 2026-07-25** — measured, not yet removed, because deleting tracked files is a Master decision:
 
 | What | Size | Why it matters |

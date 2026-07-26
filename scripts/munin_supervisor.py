@@ -348,6 +348,36 @@ def check_dead_data() -> list[Finding]:
     return out
 
 
+def check_hook_drift() -> list[Finding]:
+    """Installierter Hook vs. Repo-Fassung.
+
+    Hooks leben in ~/.claude/ und damit ausserhalb jeder Versionierung: eine
+    Korrektur dort ist in keinem Diff sichtbar und ueberlebt keinen neuen
+    Container. Gleiche Logik wie `hugin_index_sync` -- zwei Kopien, die
+    identisch sein muessen, brauchen eine Pruefung, sonst driften sie.
+    """
+    src_dir = REPO / ".claude" / "hooks"
+    if not src_dir.is_dir():
+        return []
+    out: list[Finding] = []
+    for src in sorted(src_dir.glob("*.sh")):
+        dst = Path.home() / ".claude" / src.name
+        if not dst.is_file():
+            out.append(Finding(
+                "hook-not-installed", RISK,
+                f"{src.name} liegt im Repo, ist aber nicht installiert",
+                evidence=f"{dst} fehlt — python3 scripts/install_hooks.py --yes"))
+        elif src.read_bytes() != dst.read_bytes():
+            out.append(Finding(
+                "hook-drift", VIOLATION,
+                f"{src.name} weicht von der installierten Fassung ab",
+                evidence=f"{dst} — Repo-Fassung gilt: "
+                         f"python3 scripts/install_hooks.py --yes",
+                source="Hooks ausserhalb des Repos sind unversioniert; "
+                       "Divergenz bleibt sonst unsichtbar"))
+    return out
+
+
 def check_repo_structure() -> list[Finding]:
     r = run("python3", "scripts/validate_repo.py")
     if r.returncode == 0:
@@ -376,6 +406,7 @@ CHECKS = (
     ("unpushed", check_unpushed),
     ("doc-drift", check_doc_drift),
     ("dead-data", check_dead_data),
+    ("hook-drift", check_hook_drift),
     ("oracle-gate", check_oracle_gate),
     ("repo-structure", check_repo_structure),
 )
