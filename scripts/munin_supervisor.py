@@ -378,6 +378,27 @@ def check_hook_drift() -> list[Finding]:
     return out
 
 
+def check_keyring() -> list[Finding]:
+    """Selbst ausgestellte Schlüssel: liegt nichts davon im Index?
+
+    Ruft `hugin_keyring.py audit` auf, statt die Logik zu duplizieren -- zwei
+    Fassungen derselben Prüfung driften garantiert auseinander.
+    """
+    script = REPO / "scripts" / "hugin_keyring.py"
+    if not script.is_file():
+        return []
+    r = run("python3", str(script), "audit")
+    if r.returncode == 0:
+        return []
+    detail = (r.stdout + r.stderr).strip().splitlines()
+    body = [ln.strip() for ln in detail if ln.strip().startswith(("VIOLATION", "RISK"))]
+    sev = VIOLATION if any(b.startswith("VIOLATION") for b in body) else RISK
+    return [Finding("keyring-audit", sev,
+                    f"{len(body) or 1} Befund(e) im Schlüssel-Audit",
+                    evidence=" | ".join(body)[:400] or (r.stdout + r.stderr)[:200],
+                    source="munin.json → constraints.noSecrets")]
+
+
 def check_repo_structure() -> list[Finding]:
     r = run("python3", "scripts/validate_repo.py")
     if r.returncode == 0:
@@ -407,6 +428,7 @@ CHECKS = (
     ("doc-drift", check_doc_drift),
     ("dead-data", check_dead_data),
     ("hook-drift", check_hook_drift),
+    ("keyring", check_keyring),
     ("oracle-gate", check_oracle_gate),
     ("repo-structure", check_repo_structure),
 )

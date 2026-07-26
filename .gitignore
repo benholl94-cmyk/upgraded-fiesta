@@ -69,3 +69,6 @@ self_space_workspace_/.container_self_cycle_int+ext_.env
 
 # Agenten-Ledger — Laufzeitprotokoll, wird pro Lauf fortgeschrieben
 .claude/agents/ledger.jsonl
+
+# Keyring-Ablage — Master-Seed, niemals im Index
+.hugin/
