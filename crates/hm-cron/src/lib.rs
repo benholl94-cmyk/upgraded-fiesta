@@ -43,9 +43,37 @@ impl JobState {
 ///
 /// Verwendet eine raw TCP-Verbindung ohne externe HTTP-Bibliothek,
 /// konsistent mit dem Rest des Workspace.
-fn submit_task(gateway_url: &str, token: &str, job: &CronJob) -> Result<(), anyhow::Error> {
-    use std::io::{Read, Write};
-    use std::net::TcpStream;
+/// Wie lange ein Selbstaufruf hoechstens dauern darf.
+///
+/// Ohne Grenze haengt der Runner an einer Gegenstelle, die nie antwortet —
+/// und die Gegenstelle ist hier das eigene Gateway.
+const SUBMIT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Reiht einen Job im Gateway ein.
+///
+/// **Warum async und nicht `std::net`.** Die erste Fassung benutzte
+/// `std::net::TcpStream` mit `read_to_string` — synchrone, unbegrenzte
+/// Blockade mitten in einer Tokio-Task. Gemessene Folge: mit aktivem Cron
+/// beantwortete das Gateway **keine einzige** Anfrage mehr, dauerhaft, ab
+/// der ersten Sekunde; mit `HM_CRON_CONFIG` auf einen nicht existierenden
+/// Pfad lief dasselbe Binary normal. Der Runner legte also genau den Dienst
+/// lahm, den er bedienen sollte.
+///
+/// Blockierendes I/O gehoert nicht auf den Async-Scheduler, und ein Aufruf
+/// ohne Zeitgrenze gehoert nirgendwohin.
+async fn submit_task(gateway_url: &str, token: &str, job: &CronJob) -> Result<(), anyhow::Error> {
+    tokio::time::timeout(SUBMIT_TIMEOUT, submit_task_inner(gateway_url, token, job))
+        .await
+        .map_err(|_| anyhow::anyhow!("timeout after {}s", SUBMIT_TIMEOUT.as_secs()))?
+}
+
+async fn submit_task_inner(
+    gateway_url: &str,
+    token: &str,
+    job: &CronJob,
+) -> Result<(), anyhow::Error> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpStream;
 
     let url = gateway_url.trim_start_matches("http://");
     let (host, port_str) = url.rsplit_once(':').unwrap_or((url, "8080"));
@@ -68,11 +96,11 @@ fn submit_task(gateway_url: &str, token: &str, job: &CronJob) -> Result<(), anyh
     );
 
     let addr = format!("{host}:{port}");
-    let mut stream = TcpStream::connect(&addr)?;
-    stream.write_all(request.as_bytes())?;
+    let mut stream = TcpStream::connect(&addr).await?;
+    stream.write_all(request.as_bytes()).await?;
 
     let mut response = String::new();
-    stream.read_to_string(&mut response)?;
+    stream.read_to_string(&mut response).await?;
     Ok(())
 }
 
@@ -103,25 +131,45 @@ pub async fn run(
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));
 
-    loop {
+    'runner: loop {
         tokio::select! {
             _ = interval.tick() => {
                 for state in states.iter_mut() {
-                    if state.is_due() {
-                        let result = submit_task(&gateway_url, &token, &state.job);
-                        if let Err(e) = result {
-                            eprintln!("[hm-cron] job '{}' failed: {e}", state.job.name);
-                        } else {
-                            eprintln!("[hm-cron] job '{}' submitted ({})", state.job.name, state.job.task_type);
+                    if !state.is_due() {
+                        continue;
+                    }
+                    // Shutdown wird auch WAEHREND eines laufenden Jobs
+                    // beachtet. Ohne dieses zweite select! wartete der
+                    // Runner erst den Job (bis zu SUBMIT_TIMEOUT) ab und
+                    // reagierte danach — der Gegentest unten hat genau das
+                    // aufgedeckt, nachdem die eigentliche Blockade schon
+                    // behoben war. Ein Dienst, der beim Beenden zehn
+                    // Sekunden nachhaengt, verfehlt das Drain-Fenster in
+                    // deploy/hm-gateway.service.
+                    tokio::select! {
+                        result = submit_task(&gateway_url, &token, &state.job) => {
+                            if let Err(e) = result {
+                                eprintln!("[hm-cron] job '{}' failed: {e}", state.job.name);
+                            } else {
+                                eprintln!("[hm-cron] job '{}' submitted ({})",
+                                          state.job.name, state.job.task_type);
+                            }
+                            state.last_run = Some(Instant::now());
                         }
-                        state.last_run = Some(Instant::now());
+                        _ = shutdown.changed() => {
+                            if *shutdown.borrow() {
+                                eprintln!("[hm-cron] shutdown received (job '{}' abgebrochen)",
+                                          state.job.name);
+                                break 'runner;
+                            }
+                        }
                     }
                 }
             }
             _ = shutdown.changed() => {
                 if *shutdown.borrow() {
                     eprintln!("[hm-cron] shutdown received");
-                    break;
+                    break 'runner;
                 }
             }
         }
@@ -131,6 +179,64 @@ pub async fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Der Gegentest zum Fehler, der das Gateway lahmlegte.
+    ///
+    /// Die Gegenstelle nimmt die Verbindung an und antwortet **nie** — genau
+    /// die Lage, die im Betrieb auftrat. Mit der alten, synchronen Fassung
+    /// blockierte `read_to_string` hier den Runtime-Thread, der Zaehler blieb
+    /// stehen und der Test lief in seinen eigenen Timeout. Mit der async
+    /// Fassung laeuft nebenher weiter, was nebenher laufen soll.
+    ///
+    /// Der Test prueft also nicht "der Job wurde gesendet", sondern die
+    /// eigentliche Eigenschaft: **ein haengender Job haelt nichts anderes an.**
+    #[tokio::test(flavor = "current_thread")]
+    async fn a_hanging_job_does_not_stall_everything_else() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+        use std::sync::Arc;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        // Schwarzes Loch: annehmen, festhalten, nie antworten.
+        tokio::spawn(async move {
+            let mut held = Vec::new();
+            while let Ok((s, _)) = listener.accept().await {
+                held.push(s);
+            }
+        });
+
+        let ticks = Arc::new(AtomicU32::new(0));
+        let t = ticks.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                t.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        let jobs = vec![CronJob {
+            name: "haengt".into(),
+            task_type: "echo".into(),
+            payload: serde_json::Value::Null,
+            interval_secs: 1,
+        }];
+        let runner = tokio::spawn(run(jobs, format!("http://{addr}"), "t".into(), rx));
+
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        assert!(
+            ticks.load(Ordering::SeqCst) >= 20,
+            "Nebenlaeufigkeit stand still: nur {} Ticks in 3s — der Runner blockiert den Scheduler",
+            ticks.load(Ordering::SeqCst)
+        );
+
+        // Und er reagiert weiterhin auf Shutdown, statt im Aufruf zu haengen.
+        tx.send(true).unwrap();
+        tokio::time::timeout(Duration::from_secs(5), runner)
+            .await
+            .expect("Runner reagierte nicht auf Shutdown")
+            .unwrap();
+    }
 
     #[test]
     fn new_job_is_due() {

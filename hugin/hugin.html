@@ -670,6 +670,11 @@
     <label>xAI Key <span class="pill">Grok-3-mini</span></label>
     <input type="password" id="key_xai" placeholder="xai-…" autocomplete="off">
 
+    <label>HUGIN-Kern — eigenes Gateway <span class="pill">eigener Port · Befehle + Antworten</span></label>
+    <input type="text" id="kern_url" placeholder="http://192.168.0.10:8080" autocomplete="off">
+    <input type="password" id="kern_token" placeholder="HM_OWNER_TOKEN" style="margin-top:6px;" autocomplete="off">
+    <div class="hint">Der einzige Anbieter hier, der niemand Fremdem gehört. Führt zusätzlich Befehle aus — <code>/help</code> zeigt sie. Klartext-URL nur für loopback/privat/VPN.</div>
+
     <label>Eigener OpenAI-kompatibler Endpunkt <span class="pill">optional</span></label>
     <input type="text" id="custom_url" placeholder="https://…/v1/chat/completions" autocomplete="off">
     <input type="password" id="custom_key" placeholder="Bearer-Key (optional)" style="margin-top:6px;" autocomplete="off">
@@ -804,7 +809,8 @@ function defaultState() {
       githubToken: '', together: '', cohere: '', xai: '',
       novita: '',
       openclawUrl: '', openclawToken: '', openclawModel: '',
-      customUrl: '', customKey: '', customModel: ''
+      customUrl: '', customKey: '', customModel: '',
+      kernUrl: '', kernToken: ''
     },
     cacheEnabled: true,
     stats: {}  // providerId → {successEMA, latencyEMA, cooldownUntil, calls}
@@ -894,6 +900,7 @@ const PROVIDER_TIMEOUT = {
   openrouter:        15000,
   openclaw:          30000,
   custom:            30000,
+  kern:            1800000,  /* eigenes Gateway: ein lokales 12B rechnet Minuten */
   local:             60000,  /* WebGPU lokal */
   reflex:             1000,  /* Offline-Kern sofort */
 };
@@ -944,6 +951,51 @@ registerProvider({
     const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
     if (!text) throw new Error('Google: leere Antwort');
     if (onToken) onToken(text);
+    return { text, latencyMs: performance.now() - t0 };
+  }
+});
+
+/* --- HUGIN-Kern: das eigene Gateway, ein Port, ein Strom ---------------
+   Der einzige Anbieter in dieser Liste, der keinem Fremden gehört. Alles
+   andere hier ist eine fremde API mit einem Konto dahinter; dies ist der
+   eigene Prozess auf dem eigenen Port.
+
+   Format ist NICHT OpenAI-kompatibel, und das mit Absicht: hinter /chat
+   steht kein Modell, sondern agents/brain.py — Befehle, Prüfungen und
+   Modellantworten im selben Strom. Ein OpenAI-Schema hätte für „exit 1"
+   oder „Beleg aus der Repo-Historie" kein Feld, und das Erzwingen hätte
+   genau die Information gekostet, wegen der es den Kanal gibt.
+
+   Warum fetch und nicht EventSource: EventSource kann keinen
+   Authorization-Header setzen. Das Token müsste in die URL, wo es in
+   Logs und Verlauf landet. */
+function chunkToTextKern(payload) {
+  let ev;
+  try { ev = JSON.parse(payload); } catch { return ''; }
+  if (ev.typ === 'token') return (ev.text || '') + '\n';
+  if (ev.typ === 'fehler') return '\n⚠ ' + (ev.text || '') + '\n';
+  if (ev.typ === 'info')  return '';                  /* Herkunft, kein Inhalt */
+  if (ev.typ === 'ende' && ev.meta && ev.meta.exit) return `\n[exit ${ev.meta.exit}]\n`;
+  return '';
+}
+
+registerProvider({
+  id: 'kern', name: 'HUGIN-Kern · eigenes Gateway', kind: 'own',
+  ready() { return !!STATE.keys.kernUrl && !!STATE.keys.kernToken; },
+  async call(messages, onToken) {
+    const t0 = performance.now();
+    const letzte = [...messages].reverse().find(m => m.role === 'user');
+    if (!letzte) throw new Error('Kern: keine Nutzernachricht');
+    const base = STATE.keys.kernUrl.replace(/\/+$/, '');
+    const res = await fetch(base + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'Authorization': 'Bearer ' + STATE.keys.kernToken },
+      body: JSON.stringify({ line: letzte.content })
+    });
+    if (!res.ok) throw new Error('Kern HTTP ' + res.status);
+    const text = await streamSSE(res, onToken, chunkToTextKern);
+    if (!text) throw new Error('Kern: leere Antwort');
     return { text, latencyMs: performance.now() - t0 };
   }
 });
@@ -1977,6 +2029,8 @@ document.getElementById('btnSaveKeys').addEventListener('click', () => {
   STATE.keys.cerebras = document.getElementById('key_cerebras').value.trim();
   STATE.keys.openrouter = document.getElementById('key_openrouter').value.trim();
   STATE.keys.mistral = document.getElementById('key_mistral').value.trim();
+  STATE.keys.kernUrl = document.getElementById('kern_url').value.trim();
+  STATE.keys.kernToken = document.getElementById('kern_token').value.trim();
   STATE.keys.customUrl = document.getElementById('custom_url').value.trim();
   STATE.keys.customKey = document.getElementById('custom_key').value.trim();
   STATE.keys.customModel = document.getElementById('custom_model').value.trim();
@@ -2042,6 +2096,8 @@ document.getElementById('key_mistral').value = STATE.keys.mistral || '';
 document.getElementById('oc_url').value = STATE.keys.openclawUrl || '';
 document.getElementById('oc_token').value = STATE.keys.openclawToken || '';
 document.getElementById('oc_model').value = STATE.keys.openclawModel || '';
+document.getElementById('kern_url').value = STATE.keys.kernUrl || '';
+document.getElementById('kern_token').value = STATE.keys.kernToken || '';
 document.getElementById('custom_url').value = STATE.keys.customUrl || '';
 document.getElementById('custom_key').value = STATE.keys.customKey || '';
 document.getElementById('custom_model').value = STATE.keys.customModel || '';
@@ -2194,6 +2250,27 @@ async function runSelftest() {
     const saved = STATE.keys.openclawUrl; STATE.keys.openclawUrl = 'http://h:18789';
     check('OpenClaw voran bei Komplexität', candidateOrder(999)[0] === 'openclaw');
     STATE.keys.openclawUrl = saved;
+  })();
+
+  // T19: HUGIN-Kern — NDJSON-Ereignisse zu Text
+  check('Kern: Token wird Inhalt', chunkToTextKern('{"typ":"token","text":"a"}') === 'a\n');
+  check('Kern: Info ist kein Inhalt', chunkToTextKern('{"typ":"info","text":"$ x"}') === '');
+  check('Kern: Fehler sichtbar', chunkToTextKern('{"typ":"fehler","text":"weg"}').includes('weg'));
+  check('Kern: Exit sichtbar', chunkToTextKern('{"typ":"ende","text":"","meta":{"exit":1}}').includes('exit 1'));
+  check('Kern: Exit 0 ohne Rauschen', chunkToTextKern('{"typ":"ende","text":"","meta":{"exit":0}}') === '');
+  // Eine kaputte Zeile darf den Strom nicht kippen — sonst reisst ein
+  // einzelnes Zeichen die ganze Antwort ab.
+  check('Kern: kaputte Zeile verschluckt', chunkToTextKern('{kaputt') === '');
+  (function () {
+    const u = STATE.keys.kernUrl, t = STATE.keys.kernToken;
+    const kern = PROVIDERS.find(p => p.id === 'kern');
+    STATE.keys.kernUrl = ''; STATE.keys.kernToken = '';
+    check('Kern: ohne Zugang nicht bereit', kern.ready() === false);
+    STATE.keys.kernUrl = 'http://h:8080'; STATE.keys.kernToken = '';
+    check('Kern: URL allein reicht nicht', kern.ready() === false);
+    STATE.keys.kernToken = 'x';
+    check('Kern: mit URL und Token bereit', kern.ready() === true);
+    STATE.keys.kernUrl = u; STATE.keys.kernToken = t;
   })();
 
   logT('\n— ' + pass + ' OK / ' + fail + ' FEHL —');

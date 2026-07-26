@@ -48,6 +48,17 @@
     "localFirst": "Keys verlassen Gerät nur versiegelt in Richtung Anbieter"
   },
   "gitIdentity": {
+    "_aufloesung": "Die frueher gemeldete Kollision war eine Verwechslung zweier Felder. Git kennt Author (wer die Aenderung verfasst hat) und Committer (wer sie eingetragen hat) getrennt. Die Verfassung will Urheberschaft beim Master; der Harness-Stop-Hook prueft %ce, weil der SSH-Signierschluessel auf diese Adresse laeuft und GitHub die Signatur sonst als Unverified zeigt. Zwei Anforderungen, zwei Felder — keine Seite muss nachgeben.",
+    "author": {
+      "name": "benholl94-cmyk",
+      "email": "274793931+benholl94-cmyk@users.noreply.github.com",
+      "_warum": "Urheberschaft. Verfassung, Autoritaetshierarchie 1."
+    },
+    "committer": {
+      "name": "Claude",
+      "email": "noreply@anthropic.com",
+      "_warum": "Signaturgueltigkeit. Der CCR-Signierschluessel ist auf diese Adresse registriert; eine andere Committer-Mail macht jeden Commit auf GitHub 'Unverified'."
+    },
     "name": "benholl94-cmyk",
     "email": "274793931+benholl94-cmyk@users.noreply.github.com",
     "branch": "claude/claud-ai-code-teleport-nx73zr"

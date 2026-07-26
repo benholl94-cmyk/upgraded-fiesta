@@ -145,27 +145,54 @@ def check_hugin_sync() -> list[Finding]:
 
 
 def check_git_identity() -> list[Finding]:
-    """gitIdentity: die Verfassung schreibt die Committer-Identität vor.
+    """gitIdentity: Author UND Committer, getrennt geprüft.
 
-    Diese Prüfung existiert wegen einer realen Kollision: die Harness verlangt
-    noreply@anthropic.com, die Verfassung verlangt die Owner-Adresse. Beide
-    gleichzeitig sind unmöglich. Die Verfassung sagt für genau diesen Fall
-    "Kollision melden, nie selbst auflösen" -- also meldet der Supervisor sie,
-    statt eine Seite zu bevorzugen.
+    Diese Regel meldete lange eine unauflösbare Kollision: die Harness verlangt
+    `noreply@anthropic.com`, die Verfassung die Owner-Adresse. Das stimmte —
+    solange man beide auf **dasselbe Feld** bezog. Tut man das nicht, ist der
+    Widerspruch keiner:
+
+        Author     wer die Änderung verfasst hat  → Master (Verfassung)
+        Committer  wer sie eingetragen hat        → Claude (Signaturgültigkeit)
+
+    Der Stop-Hook prüft `%ce`, weil der SSH-Signierschlüssel auf diese Adresse
+    läuft; die Verfassung will Urheberschaft. Zwei Anforderungen, zwei Felder.
+    Die Regel prüft deshalb beide **einzeln** und meldet genau die Seite, die
+    abweicht — eine gemeinsame Meldung hätte die Auflösung wieder verdeckt.
+
+    Der Author kommt aus `GIT_AUTHOR_EMAIL` bzw. `--author`; git hat keinen
+    `author.email`-Schalter. Geprüft wird deshalb der letzte Commit, nicht die
+    Konfiguration: was tatsächlich in der Historie steht, ist die einzige
+    belastbare Antwort — dieselbe Regel wie überall hier.
     """
-    want = (_load("munin.json").get("gitIdentity") or {}).get("email")
-    if not want:
+    ident = _load("munin.json").get("gitIdentity") or {}
+    author_want = (ident.get("author") or {}).get("email") or ident.get("email")
+    committer_want = (ident.get("committer") or {}).get("email")
+    if not author_want:
         return []
-    have = run("git", "config", "user.email").stdout.strip()
-    if have == want:
-        return []
-    return [Finding(
-        "git-identity-collision", VIOLATION,
-        f"Committer-Mail ist {have or '(leer)'}, Verfassung verlangt {want}",
-        evidence="Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com — "
-                 "die beiden Anforderungen schließen sich aus.",
-        source="constitution.json → onConflict: 'Kollision sofort melden. "
-               "Nie selbst auflösen ohne Befehl.'")]
+
+    out = []
+    committer_have = run("git", "config", "user.email").stdout.strip()
+    if committer_want and committer_have != committer_want:
+        out.append(Finding(
+            "git-committer-identity", VIOLATION,
+            f"Committer-Mail ist {committer_have or '(leer)'}, "
+            f"erwartet {committer_want}",
+            evidence="Der SSH-Signierschluessel laeuft auf diese Adresse; eine "
+                     "andere macht jeden Commit auf GitHub 'Unverified'.",
+            source="munin.json → gitIdentity.committer"))
+
+    r = run("git", "log", "-1", "--format=%ae")
+    author_have = r.stdout.strip() if r.returncode == 0 else ""
+    if author_have and author_have != author_want:
+        out.append(Finding(
+            "git-author-identity", VIOLATION,
+            f"Author des letzten Commits ist {author_have}, "
+            f"Verfassung verlangt {author_want}",
+            evidence="Urheberschaft gehoert dem Master. Setzbar ueber "
+                     "GIT_AUTHOR_NAME/GIT_AUTHOR_EMAIL oder git commit --author.",
+            source="munin.json → gitIdentity.author"))
+    return out
 
 
 def check_unpushed() -> list[Finding]:
