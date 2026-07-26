@@ -345,6 +345,7 @@ Routes (all gated by the same auth check except `OPTIONS`):
 - `GET|POST /memory`, `POST /memory/search` — passthrough to `hm-memory`
 - `GET /memory/graph` — the structural knowledge-graph seed ingested at startup from `HM_MEMORY_GRAPH_SEED_PATH`, if any; `404` if none was ingested. Kept structurally separate from free-text `/memory` records — see `hm-memory`'s `MemoryStore::ingest_graph_seed`/`graph`.
 - `GET|POST /diagnostics` — opt-in diagnostics reports (see below)
+- `GET|POST /sessions`, `GET|DELETE /sessions/{id}`, `POST /sessions/{id}/messages` — in-memory conversation store (`hm-sessions`), **not persisted**; see `docs/production-api-contract.md`
 - `POST /chat` (+ `/api/chat`, `/gateway/chat`) — **the streaming command surface**; see below
 
 **The chat surface (`crates/hm-gateway/src/chat.rs` + `agents/brain.py`)** is the
@@ -361,6 +362,20 @@ the best measured-available tier: `T0` (no model, cites repo evidence) → `T1b`
 if the cost lock is open). Same property as `hm-tool-exec`: the input *chooses*
 among fixed `(program, args)` pairs, it never *builds* one, and there is no shell
 anywhere in the path. Keep that property when adding commands.
+
+**Drei Chat-Befehle logen im Container.** Das Laufzeit-Image kopiert `config/`,
+`plugins/`, `scripts/`, `agents/` und Teile von `.claude/` — aber weder
+`crates/` noch `Cargo.toml` noch `tests/`. Im nachgebildeten Image-Layout
+gemessen: `/struktur` streamte einen rohen Python-Traceback in den Chat,
+`/supervisor` meldete **„VIOLATION — 4 Befunde"**, die reine Artefakte der
+fehlenden Dateien waren, und `/tests` antwortete `no tests ran in 0.00s`. Die
+letzten beiden sind die gefährlicheren: sie sehen aus wie ein Ergebnis. Ein
+Befund, der von einem echten Verfassungsverstoß nicht zu unterscheiden ist,
+ist schlimmer als ein Absturz. `Command.braucht` nennt jetzt die Artefakte,
+ohne die ein Befehl kein sinnvolles Ergebnis liefern kann; fehlen sie, sagt er
+das und führt nichts aus. Der Gegentest in `tests/test_brain.py` prüft beide
+Richtungen — die Absage *und* dass `/status`, das nur `scripts/` braucht,
+unverändert läuft.
 
 **Anthropic is one rung on that ladder, not a prerequisite.** `tests/test_brain.py`
 runs the brain with every `ANTHROPIC*` variable stripped from the environment and
@@ -412,6 +427,30 @@ had never been able to reach:
 
 **Storage model (`hm-storage`)**: `FileStorage` has two real implementations. `LocalFsStorage` is local-disk only, rooted at `HM_STORAGE_ROOT` (default `./data/storage`). `RemoteHttpStorage` persists to another host's `/storage/{key}` endpoint over a hand-rolled plain-HTTP client (no TLS, no external HTTP crate) — select it with `HM_STORAGE_BACKEND=remote` + `HM_REMOTE_STORAGE_URL`; `hm-gateway` fails to start rather than silently falling back to local disk if that's misconfigured. `AppState.storage` and `MemoryStore` are generic over `Arc<dyn FileStorage>`, so this required no changes to either beyond the trait object type. `docker-compose.yml` declares `postgres`/`redis` services, but **no crate in the workspace actually connects to either** — grep confirms zero references to `sqlx`/`tokio_postgres`/`redis` in `crates/`. Don't assume the database layer is wired up; it isn't yet.
 
+**Persistenz: ein beschädigter Zustand war stiller Datenverlust.** Zwei
+Fehler griffen ineinander und wurden beide live reproduziert:
+
+`LocalFsStorage::put` schrieb mit `fs::write` — erst kürzen, dann schreiben.
+Ein Absturz, `SIGKILL`, OOM oder eine volle Platte dazwischen hinterlässt eine
+halb geschriebene Datei. Das ist hier kein Randfall: `MemoryStore` persistiert
+bei *jedem* `remember()`, und `hm-agent` schreibt pro dispatchtem Task einen
+Eintrag. Jetzt: Temp-Datei im selben Verzeichnis, `sync_all`, dann `rename` —
+auf POSIX atomar. Der Zähler im Temp-Namen ist nötig, weil zwei gleichzeitige
+Puts auf denselben Key sich sonst die Datei teilen und eine aus zwei Hälften
+zusammengesetzte Datei entstehen kann.
+
+`MemoryStore::load` las das dann mit `serde_json::from_slice(&bytes)
+.unwrap_or_default()` und `Err(_) => default()`. **Gemessen**: drei Records,
+Datei auf 4000 von 7348 Bytes gekürzt, Neustart → Gateway startet normal,
+protokolliert nichts, `GET /memory` liefert 0 Records, und der nächste
+Schreibvorgang überschreibt die Datei. Die drei Records sind weg, ohne eine
+einzige Fehlermeldung. „Noch nichts gespeichert" und „gespeichert, aber
+unlesbar" sind verschiedene Antworten und dürfen nicht zusammenfallen — auch
+ein fehlgeschlagener `exists`-Aufruf ist kein „nicht vorhanden", sondern bei
+`RemoteHttpStorage` ein nicht erreichbarer Host. Jetzt startet das Gateway
+nicht, nennt die Datei und lässt sie unangetastet, damit sie noch da ist. Das
+ist dieselbe fail-closed-Regel wie beim Owner-Token.
+
 **Plugins (`hm-plugins` + `hm-sdk`)**: task types are dispatched to external subprocesses declared in `config/plugins.json`. Each invocation writes one line of JSON (`PluginRequest`) to the child's stdin and reads one line back (`PluginResponse`) with a 5s timeout. `plugins/echo_plugin.py` is a minimal example; `plugins/llm_chat_plugin.py` (task_type `llm-chat`) is a real-but-unverified scaffold that calls a generic OpenAI-compatible completions API -- it refuses loudly unless `HM_LLM_ENABLE=true` plus `HM_LLM_API_URL`/`HM_LLM_API_KEY`/`HM_LLM_MODEL` are all explicitly set, and has only been tested against a hermetic local mock server (`tests/test_llm_chat_plugin.py`), never a real LLM API -- see `docs/xcloud-platform-plan.md` Phase 4 before assuming otherwise.
 
 **Agent runtime (`hm-agent`)**: `POST /tasks` routes through `hm_agent::Agent::dispatch`, not directly against `hm-plugins`. `Agent::dispatch` invokes the matching plugin (if any) *and* records a one-line summary of every outcome — dispatched or unhandled — into `hm-memory`, so `GET /memory` shows a durable task history, not just what was explicitly `POST`ed there. This is the real `Gateway -> Agent Runtime -> Memory` link from `docs/architecture.md`.
@@ -444,9 +483,9 @@ to check the property rather than the happy path.
 | Crate | `pub fn` | Tests | Reality |
 |---|---|---|---|
 | `hm-gateway` | 0¹ | 7 + 4 | Real. The only HTTP surface. The extra 4 are `tests/wire_contract.rs`, which drives the compiled binary over a socket. |
-| `hm-vector` | 8 | 7 | Real. NSW/ANN index. |
-| `hm-storage` | 6 | 13 | Real. Local + remote backends. |
-| `hm-memory` | 7 | 8 | Real. |
+| `hm-vector` | 8 | 9 | Real. NSW/ANN index. Sortiert mit `total_cmp`, nicht `partial_cmp().unwrap()` — ein NaN im Index hätte `/memory/search` mit einer Panik beendet. |
+| `hm-storage` | 6 | 16 | Real. Local + remote backends; `put` schreibt atomar (Temp + `fsync` + `rename`). |
+| `hm-memory` | 7 | 11 | Real. `load` unterscheidet „nichts gespeichert" von „unlesbar" und startet nicht mit leerem Gedächtnis. |
 | `hm-sessions` | 13 | 5 | **Real** — not a stub. |
 | `hm-cli` | 0¹ | 0 | **Real CLI**, 233 lines: `GatewayClient` + `Status`/`Tasks`/`Memory`/`Storage` subcommands. |
 | `hm-channel-telegram` | 7 | 2 | **Sends for real** — `send_message()` opens a `TcpStream` to the Bot API. |

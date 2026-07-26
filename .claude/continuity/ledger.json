@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T20:45:53+00:00",
+  "updated": "2026-07-26T21:13:12+00:00",
   "session": 3,
   "entries": [
     {
@@ -474,6 +474,54 @@
       "text": "PNG-Icons kommen aus einem stdlib-Generator statt als eingecheckte Binaerdateien. Verworfen: PNGs einfach committen — dann ist es eine Behauptung, die niemand nachrechnen kann, und sie veraltet stumm, sobald sich icon-512.svg aendert. Der Test prueft Datei gegen Generator, gleiche Regel wie hugin_index_sync. Nebenbefund: der Test hat den Kommentar des Generators widerlegt (Strichbreite vergessen), daher GLYPH_INSET.",
       "anchors": [
         "path:scripts/generate_hugin_icons.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-8",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "invariante",
+      "text": "'Noch nichts gespeichert' und 'gespeichert, aber unlesbar' duerfen nie in dieselbe Antwort fallen. MemoryStore::load tat das per unwrap_or_default() plus Err(_) => default(). Gemessen: 3 Records, Datei auf 4000 von 7348 Bytes gekuerzt, Neustart -> Gateway startet normal, protokolliert nichts, GET /memory liefert 0, naechster Schreibvorgang vernichtet die Records. Auch ein fehlgeschlagener exists()-Aufruf ist kein 'nicht vorhanden' — bei RemoteHttpStorage heisst er 'Host nicht erreichbar'.",
+      "anchors": [
+        "path:crates/hm-memory/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-9",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "invariante",
+      "text": "Zustand, der einen Neustart ueberleben soll, wird atomar geschrieben: Temp-Datei im selben Verzeichnis, sync_all, rename. fs::write kuerzt zuerst und schreibt danach — ein Absturz dazwischen hinterlaesst eine halb geschriebene Datei. Hier kein Randfall: MemoryStore persistiert bei jedem remember(), hm-agent schreibt pro Task einen Eintrag. Temp-Name braucht einen Zaehler, sonst teilen sich zwei gleichzeitige Puts dieselbe Datei.",
+      "anchors": [
+        "path:crates/hm-storage/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-10",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "sackgasse",
+      "text": "Einen Befehl im Container einfach laufen zu lassen, dem seine Dateien fehlen, erzeugt keine Fehlermeldung sondern eine falsche Antwort. Im Image-Layout gemessen: /struktur roher Traceback, /supervisor 'VIOLATION — 4 Befunde' (reine Artefakte, von echten Verstoessen nicht zu unterscheiden), /tests 'no tests ran' (leere, gruen wirkende Suite). Die letzten beiden sind die gefaehrlicheren, weil sie nach einem Ergebnis aussehen. Command.braucht prueft die Voraussetzung vorher.",
+      "anchors": [
+        "path:agents/brain.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-11",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "entscheidung",
+      "text": "Float-Sortierungen im Vektorindex nutzen total_cmp statt partial_cmp().unwrap(). Verworfen: NaN am Eingang abfangen — insert() nimmt rohe f32 und ein persistierter Index wird direkt deserialisiert, es gibt also mehr als einen Eingang. Das debug_assert in cosine_similarity faengt es nur im Debug-Build; im Release, also im Betrieb, trug die Sortierung die Panik. Deshalb testet der Gegentest die Sortierung selbst, nicht den Weg durch insert().",
+      "anchors": [
+        "path:crates/hm-vector/src/lib.rs"
       ],
       "state": "offen",
       "weight": 2

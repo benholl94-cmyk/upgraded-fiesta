@@ -114,7 +114,7 @@ mod tests {
         let plugins = Arc::new(PluginRegistry::from_manifest_file(&manifest_path).unwrap());
 
         let storage: Arc<dyn FileStorage> = Arc::new(LocalFsStorage::new(dir.0.clone()));
-        let memory = Arc::new(MemoryStore::load(storage, "memory.json").await);
+        let memory = Arc::new(MemoryStore::load(storage, "memory.json").await.unwrap());
 
         Agent::new(plugins, memory)
     }

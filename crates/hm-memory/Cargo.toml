@@ -13,3 +13,8 @@ chrono.workspace=true
 uuid.workspace=true
 anyhow.workspace=true
 tokio.workspace=true
+
+[dev-dependencies]
+# Nur fuer den Test, der ein absichtlich kaputtes FileStorage-Backend
+# implementiert: FileStorage ist ein #[async_trait].
+async-trait.workspace=true

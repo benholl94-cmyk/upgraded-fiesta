@@ -235,7 +235,10 @@ async fn main() -> anyhow::Result<()> {
 
     let storage: Arc<dyn FileStorage> = build_storage_backend()?;
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
-    let memory = MemoryStore::load(storage.clone(), memory_key).await;
+    // Fail-closed, like the owner token and the storage backend: a memory
+    // state that exists but cannot be read is an operator-visible problem,
+    // not a reason to start with an empty memory and overwrite it.
+    let memory = MemoryStore::load(storage.clone(), memory_key).await?;
 
     // Optional: ingest the structural knowledge-graph seed produced by
     // scripts/generate_knowledge_graph_seed.py. A missing/malformed seed
