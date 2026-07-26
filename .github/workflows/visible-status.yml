@@ -34,7 +34,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for attempt in 1 2 3 4 5; do
-            git add -f logs/monitoring-report.json logs/visible-status.json
+            git add status/monitoring-report.json status/visible-status.json
             if git diff --cached --quiet; then
               echo "visible status unchanged"
               break
@@ -57,7 +57,7 @@ jobs:
         with:
           name: visible-platform-status
           path: |
-            logs/monitoring-report.json
-            logs/visible-status.json
+            status/monitoring-report.json
+            status/visible-status.json
           if-no-files-found: error
           retention-days: 14

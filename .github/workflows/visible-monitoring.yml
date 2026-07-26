@@ -30,8 +30,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          mkdir -p logs
-          python3 scripts/monitor_platform.py > logs/monitoring-stdout.txt 2>&1
+          mkdir -p status
+          python3 scripts/monitor_platform.py > status/monitoring-stdout.txt 2>&1
           code=$?
           echo "MONITOR_EXIT_CODE=$code" >> "$GITHUB_ENV"
           exit 0
@@ -41,7 +41,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          bash .codex/setup.sh >> logs/monitoring-stdout.txt 2>&1
+          bash .codex/setup.sh >> status/monitoring-stdout.txt 2>&1
           code=$?
           echo "SETUP_EXIT_CODE=$code" >> "$GITHUB_ENV"
           exit 0
@@ -56,7 +56,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for attempt in 1 2 3 4 5; do
-            git add -f logs/visible-monitoring-report.json logs/monitoring-report.json logs/monitoring-stdout.txt
+            git add status/visible-monitoring-report.json status/monitoring-report.json status/monitoring-stdout.txt
             if git diff --cached --quiet; then
               echo "visible monitoring report unchanged"
               break
@@ -69,7 +69,7 @@ jobs:
             git reset --hard HEAD~1
             git fetch origin "${GITHUB_REF_NAME}"
             git reset --hard "origin/${GITHUB_REF_NAME}"
-            python3 scripts/monitor_platform.py >> logs/monitoring-stdout.txt 2>&1 || true
+            python3 scripts/monitor_platform.py >> status/monitoring-stdout.txt 2>&1 || true
             python3 scripts/write_visibility_report.py
             sleep $((attempt * 2))
           done
