@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "updated": "2026-07-26T04:59:12+00:00",
+  "session": 2,
+  "entries": [
+    {
+      "id": "s2-1",
+      "session": 2,
+      "ts": "2026-07-26T04:57:58+00:00",
+      "kind": "invariante",
+      "text": "Ungepusht heisst nicht vorhanden. Ein Commit lebt nur solange sein Container lebt — so ging 29b701c verloren. Jede Sitzung endet mit 'seal --push', sonst ist sie nicht beendet.",
+      "anchors": [],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-2",
+      "session": 2,
+      "ts": "2026-07-26T04:57:58+00:00",
+      "kind": "sackgasse",
+      "text": "munin-state.json als Sitzungsgedaechtnis zu benutzen scheitert grundsaetzlich: die Datei steht in .gitignore:67, git hat sie nie gesehen, und in einem frischen Container brach 'munin_bridge.py wakeup' mit FileNotFoundError ab. Der Ignore-Eintrag ist aber richtig (Daemon-Live-Zustand) — die Loesung ist ein getrennter Kanal, nicht das Entfernen des Eintrags.",
+      "anchors": [
+        "path:.gitignore:67",
+        "path:scripts/munin_bridge.py:46"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-3",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "entscheidung",
+      "text": "Gespeichert wird nur das Komplement von git: Entscheidungen, Sackgassen, offene Fragen, Invarianten. Alles aus der History Ableitbare faellt weg — das ist Verdichtung statt Abschneiden. Texte werden nie gekuerzt, verworfen wird immer ein ganzer Eintrag.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-4",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "entscheidung",
+      "text": "Budget-Verdraengung ruehrt 'offen' und 'invariante' nie an. Reisst das Budget, meldet das Ledger RISK statt still zu vergessen — stilles Vergessen ist genau der Fehler, gegen den es gebaut ist.",
+      "anchors": [
+        "path:tests/test_munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-5",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "Auto-Rollback: 'unknown' muss HOLD ergeben, bevor der Workflow wieder nach main darf. Sperre 2 prueft nur == 'failure', der Sammler liefert an drei Stellen 'unknown', Context defaultet auf 'success'. Allowlist statt Blockliste, sonst wiederholt es sich bei 'cancelled'.",
+      "anchors": [
+        "sha:4b9c078",
+        "path:HANDOFF.md"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-6",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "TERMSHELL: Geraetebindung und Konsens. Beides zuerst eine Architekturentscheidung, nicht Code — agents/consensus.py ist Python, TERMSHELL ist buildlose Single-File-PWA; und ohne Server bindet localStorage an den Origin, nicht an ein Geraet.",
+      "anchors": [
+        "path:hugin/hugin.html:2233",
+        "path:agents/consensus.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-7",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "Auto-Rollback-Workflow ist derzeit nicht aktiv: er hat seinen eigenen Einfuehrungscommit revertiert. Schleifenschutz (Sperre 1) hat das nicht verhindert — vor Wiederinbetriebnahme pruefen.",
+      "anchors": [
+        "sha:7d812c4"
+      ],
+      "state": "offen",
+      "weight": 1
+    }
+  ]
+}
