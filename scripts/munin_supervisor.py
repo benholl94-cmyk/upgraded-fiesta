@@ -169,8 +169,14 @@ def check_git_identity() -> list[Finding]:
 
 
 def check_unpushed() -> list[Finding]:
-    """noGitHubWithoutCommand: ungepushte Arbeit ist der erwartete Zustand,
-    aber der Master soll wissen, dass etwas wartet."""
+    """Seit Amendment A1 bedeutet dieser Befund das Gegenteil von früher.
+
+    Vorher galt: Push braucht einen Befehl, also ist ungepusht der *erwartete*
+    Zustand und die Meldung nur ein Hinweis. Unter dem Mandat ist Push auf
+    claude/* erlaubt und `seal --push` sogar Pflicht — ungepusht heißt jetzt,
+    dass eine Sitzung nicht zu Ende geführt wurde. Genau daran ging `29b701c`
+    verloren.
+    """
     r = run("git", "rev-list", "origin/HEAD..HEAD", "--count")
     n = int(r.stdout.strip() or 0) if r.returncode == 0 else 0
     if not n:
@@ -178,9 +184,72 @@ def check_unpushed() -> list[Finding]:
     tips = run("git", "log", "--oneline", "origin/HEAD..HEAD").stdout.strip()
     return [Finding(
         "unpushed-work", RISK,
-        f"{n} Commit(s) lokal, nicht auf dem Remote",
-        evidence=tips.replace("\n", " | "),
-        source="munin.json → constraints.noGitHubWithoutCommand (Push braucht Befehl)")]
+        f"{n} Commit(s) lokal, nicht auf dem Remote — die Sitzung ist nicht abgeschlossen",
+        evidence=(tips.replace("\n", " | ")[:300]
+                  + "  ·  Abschluss: python3 scripts/munin_continuity.py seal --push"),
+        source="constitution → mandate.pflichten: 'Eine Sitzung endet erst mit seal --push'")]
+
+
+# Die Mandatsgrenze ist der einzige Grund, warum die Lockerung aus A1
+# vertretbar ist. Sie muss deshalb selbst bewacht werden: eine Sitzung, die
+# sich mehr Spielraum verschafft, indem sie einen Eintrag aus dieser Liste
+# entfernt, wäre von einer legitimen Master-Entscheidung sonst nicht zu
+# unterscheiden. Der Supervisor rechnet die Grenze nach, statt ihr zu glauben.
+#
+# Die Stichwörter müssen *unterscheidend* sein und ALLE zutreffen. Eine
+# frühere Fassung prüfte mit any() über lose Alternativen wie
+# ("merge", "push", "default-branch") -- und weil "push" auch in "force-push"
+# steckt, blieb die entfernte Default-Branch-Schranke unbemerkt. Der Gegentest
+# hat das aufgedeckt: eine Wache, die fast jede Formulierung akzeptiert,
+# prüft nichts.
+MANDATE_BAR = (
+    ("Default-Branch", ("default-branch",)),
+    ("Historie umschreiben", ("historie", "umschreiben")),
+    ("Löschen", ("löschen",)),
+    ("Secrets", ("secrets",)),
+    ("fremde PRs/Issues", ("fremde",)),
+    ("Verfassungsänderung", ("verfassung",)),
+)
+
+
+def check_mandate() -> list[Finding]:
+    """Ist die Mandatsgrenze noch vollständig?"""
+    con = _load("constitution.json")
+    if not con:
+        return []
+    mandate = con.get("mandate")
+    if not mandate:
+        # Vor A1 gab es kein Mandat — dann ist hier nichts zu prüfen.
+        return [] if "amendments" not in con else [Finding(
+            "mandate", VIOLATION,
+            "Amendment vorhanden, aber der Abschnitt 'mandate' fehlt",
+            source="constitution → amendments A1")]
+
+    out: list[Finding] = []
+    schranke = " ".join(mandate.get("befehlErforderlich", [])).lower()
+    fehlend = [name for name, keys in MANDATE_BAR
+               if not all(k in schranke for k in keys)]
+    if fehlend:
+        out.append(Finding(
+            "mandate", VIOLATION,
+            f"Mandatsgrenze unvollständig — {len(fehlend)} Schranke(n) fehlen",
+            evidence=", ".join(fehlend),
+            source="constitution → mandate.befehlErforderlich (nur der Master darf sie ändern)"))
+
+    if not mandate.get("pflichten"):
+        out.append(Finding(
+            "mandate", VIOLATION,
+            "Mandat ohne Pflichten — Autonomie ohne Protokoll ist Unsichtbarkeit",
+            source="constitution → mandate.pflichten"))
+
+    # Ein Amendment ohne den ersetzten Wortlaut ist ein stilles Überschreiben.
+    for a in con.get("amendments", []):
+        if not a.get("ersetzt") or not a.get("grund"):
+            out.append(Finding(
+                "mandate", DRIFT,
+                f"Amendment {a.get('id', '?')} führt den ersetzten Wortlaut oder den Grund nicht mit",
+                source="constitution → amendable.verfahren"))
+    return out
 
 
 # CLAUDE.md-Behauptungen, die messbar sind. Bewusst als kleine, per Auge
@@ -465,6 +534,7 @@ def check_continuity() -> list[Finding]:
 
 CHECKS = (
     ("secrets", check_secrets),
+    ("mandate", check_mandate),
     ("continuity", check_continuity),
     ("hugin-sync", check_hugin_sync),
     ("git-identity", check_git_identity),
