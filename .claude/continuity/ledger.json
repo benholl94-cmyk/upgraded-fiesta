@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T04:59:12+00:00",
+  "updated": "2026-07-26T05:02:00+00:00",
   "session": 2,
   "entries": [
     {
@@ -87,6 +87,18 @@
       ],
       "state": "offen",
       "weight": 1
+    },
+    {
+      "id": "s2-8",
+      "session": 2,
+      "ts": "2026-07-26T05:02:00+00:00",
+      "kind": "invariante",
+      "text": "Die vom Routine-Trigger gestarteten Sitzungen laufen OHNE MCP-Connectors: kein mcp__github__, also keine PR-Erstellung, keine CI-Abfrage, keine Reviews. git push funktioniert (Git-Proxy), damit laeuft der Kern der Schleife resume->capture->seal. Alles PR-bezogene muss aus einer interaktiven Sitzung kommen. Trigger-ID trig_01XgF7i47UrreHKpTmexRyog, taeglich 06:00 UTC.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 2
     }
   ]
 }
