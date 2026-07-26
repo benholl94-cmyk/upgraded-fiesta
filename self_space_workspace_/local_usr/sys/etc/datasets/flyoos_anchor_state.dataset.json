@@ -1,9 +1,0 @@
-{
-  "schema_version": "local_usr.sys.dataset.v1",
-  "dataset_id": "flyoos_anchor_state",
-  "purpose": "Materialized local anchor state for claude/env-points-anchors-localization-flyoos",
-  "file": "local_usr/sys/var/lib/data/flyoos_anchor_state.dataset.json",
-  "generated_from": "local observations",
-  "written_at_utc": "2026-07-06T23:30:29.353629Z",
-  "content_sha256": "f70c197bd175fee531b659c21c23d3593a128b1dcd1c6e20b92862fe0a1e61dd"
-}

@@ -1,9 +1,0 @@
-[package]
-name="hm-channel-whatsapp"
-version.workspace=true
-edition.workspace=true
-license.workspace=true
-[dependencies]
-hm-core={path="../../hm-core"}
-hm-auth={path="../../hm-auth"}
-anyhow.workspace=true

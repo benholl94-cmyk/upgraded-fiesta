@@ -184,15 +184,20 @@ python3 scripts/munin_continuity.py handoff-prompt  # standalone prompt for the 
 
 `seal --push` is the point. **Unpushed means nonexistent** — that is how commit `29b701c` was lost, and the supervisor's `continuity` rule now reports an unpushed or rotten ledger on every run so it cannot quietly become normal.
 
-**Known dead data as of 2026-07-25** — measured, not yet removed, because deleting tracked files is a Master decision:
+**Dead data — cleared 2026-07-26 on Master's order.** All three rows of the former table are resolved; the supervisor rules that found them (`tracked-but-ignored`, `secret-file-tracked`, `archive-in-index`) stay in place so a relapse is caught.
 
-| What | Size | Why it matters |
+| What | Removed | Measured before deletion |
 |---|---|---|
-| 31 files tracked despite `.gitignore` | 348K | A `.gitignore` entry does **not** untrack an already-committed file. The rule looks satisfied and isn't. Fix is `git rm --cached <path>`. |
-| `self_space_workspace_/` | 474 files, 7.7M | Container-mirror archives and runtime logs from 2026-07-06/08. Includes `.container_self_cycle_int+ext_.env` — **verified to contain no secrets** (12 lines, zero `KEY=value` pairs, no matches against any secret pattern), but an `.env` in the index is still the wrong shape. |
-| 16 archives ≥50K in the index | — | Includes `hugin/hugin-package.zip` and `verify-backup-20260707.bin`. Git is not a blob store; these inflate every clone permanently, and deleting them later does not shrink history. |
+| 31 files tracked despite `.gitignore` | earlier, in #74 | `git ls-files --cached -i --exclude-standard` now returns **0**. The CLAUDE.md row had been stale since #74 — recomputed, not believed. |
+| `self_space_workspace_/` | 449 files, 33.5K lines | Container-mirror archives and runtime logs from 2026-07-06/08. Contained a **mirror of this repo** (`self_space_workspace_/upgraded-fiesta/`, 244 files): 110 byte-identical duplicates, **56 stale copies** including an outdated `.github/workflows/rust-ci.yml`, and one mirror-only file — an empty `main.yml` whose real counterpart had been deleted deliberately. Nothing unique was lost. |
+| 16 archives ≥50K | with the above | All 16 lived under `self_space_workspace_` (2 MB `Archiv.zip`, 1.7 MB `ashell_full_environment_runtime.zip`, 14 `sys_os_mirror` tarballs). |
+| `supervisor_agent.production.py` | 1404 lines | Orphan: no import, no test, no workflow referenced it; its own header calls itself `supervisor_agent.py v2.0.0` and no such file exists. It was also the sole source of the `oracle-gate-bypass` finding. |
 
-The supervisor reports all three on every run (`tracked-but-ignored`, `secret-file-tracked`, `archive-in-index`), so they cannot quietly become normal.
+The stale copy of the repo inside the repo was the real hazard here — a grep or a reader could land on a 56-file-deep outdated snapshot of workflows and skills and never notice.
+
+Two follow-on leftovers went with it, both of which pointed at something that no longer existed: the `.gitignore` entry for `self_space_workspace_/.container_self_cycle_int+ext_.env`, and that same path's exemption in `security_sentinel.py`'s `KNOWN_SAFE_ENV`. The second mattered more than it looked — an allowlist entry aimed at a deleted file is not dead code but a hole, silently exempting whatever appears at that path later.
+
+**Note on history**: `git rm` does not shrink the repository. Those blobs stay in every clone forever; removal stops the growth and the confusion, it does not undo them.
 
 ## Architecture: hm-gateway
 

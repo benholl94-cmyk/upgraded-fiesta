@@ -1,9 +1,0 @@
-{
-  "schema_version": "local_usr.sys.dataset.v1",
-  "dataset_id": "streampipe_state",
-  "purpose": "Standalone streampipe local git/log state summary",
-  "file": "local_usr/sys/var/lib/data/streampipe_state.dataset.json",
-  "generated_from": "local observations",
-  "written_at_utc": "2026-07-06T23:30:29.341854Z",
-  "content_sha256": "879b0682b93e9f552a7930c0447f7fdd8e9950b11a5a1f61745465d5bf9beb3b"
-}
