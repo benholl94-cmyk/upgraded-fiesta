@@ -1,3 +1,5 @@
+mod chat;
+
 use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
 use hm_cron::{load_jobs, run as run_cron};
@@ -441,6 +443,14 @@ async fn handle_connection(
     }
 
     let response = match read_request(&mut stream).await {
+        Ok(request) if is_chat_route(&request) => {
+            // Streaming needs the socket itself, so this branch takes it
+            // instead of returning a buffer. Auth and the rate limiter above
+            // still apply -- the same gate, not a parallel one.
+            let (status, path) = (chat_turn(&mut stream, request, &state).await, "/chat");
+            audit_log(remote_addr, "POST", path, status, started.elapsed());
+            return Ok(());
+        }
         Ok(request) => {
             let method = request.method.clone();
             let path = request.path.clone();
@@ -474,6 +484,69 @@ async fn handle_connection(
     stream.write_all(&response).await?;
     stream.shutdown().await?;
     Ok(())
+}
+
+fn is_chat_route(request: &HttpRequest) -> bool {
+    request.method == "POST"
+        && matches!(
+            request.path.as_str(),
+            "/chat" | "/api/chat" | "/gateway/chat"
+        )
+}
+
+/// Repository root for the brain subprocess. Configurable because the
+/// container image and a checkout put it in different places, and a wrong
+/// default here would fail at the first chat turn rather than at startup.
+fn brain_repo() -> std::path::PathBuf {
+    env::var("HM_BRAIN_REPO")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+}
+
+/// Runs one chat turn on the socket. Returns the status code for the audit
+/// line -- once the stream has started that is always 200, which is why every
+/// rejection has to happen before the first byte of body goes out.
+async fn chat_turn(stream: &mut TcpStream, request: HttpRequest, state: &AppState) -> u16 {
+    if !authorized(state, request.authorization.as_deref()) {
+        let body = json_response(
+            401,
+            json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
+        );
+        let _ = stream.write_all(&body).await;
+        let _ = stream.shutdown().await;
+        return 401;
+    }
+
+    let input: chat::ChatInput = match serde_json::from_slice(&request.body) {
+        Ok(v) => v,
+        Err(e) => {
+            let body = json_response(
+                400,
+                json!({ "status": "invalid_request", "reason": e.to_string() }),
+            );
+            let _ = stream.write_all(&body).await;
+            let _ = stream.shutdown().await;
+            return 400;
+        }
+    };
+    if let Err(reason) = chat::validate(&input) {
+        let body = json_response(
+            400,
+            json!({ "status": "invalid_request", "reason": reason }),
+        );
+        let _ = stream.write_all(&body).await;
+        let _ = stream.shutdown().await;
+        return 400;
+    }
+
+    let origin_header = match allowed_origin(None) {
+        Some(o) => format!("Access-Control-Allow-Origin: {o}\r\n"),
+        None => String::new(),
+    };
+    let python = env::var("HM_BRAIN_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let _ = chat::stream_chat(stream, input, origin_header, &brain_repo(), &python).await;
+    let _ = stream.shutdown().await;
+    200
 }
 
 async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
@@ -565,13 +638,11 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
         return empty_response(204);
     }
 
-    if let Some(owner_token) = &state.owner_token {
-        if !bearer_matches(request.authorization.as_deref(), owner_token) {
-            return json_response(
-                401,
-                json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
-            );
-        }
+    if !authorized(&state, request.authorization.as_deref()) {
+        return json_response(
+            401,
+            json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
+        );
     }
 
     match (request.method.as_str(), request.path.as_str()) {
@@ -620,6 +691,18 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
             sessions_delete(&state, path.trim_start_matches("/sessions/")).await
         }
         _ => json_response(404, json!({ "status": "not_found", "path": request.path })),
+    }
+}
+
+/// The single auth decision. The streaming chat path cannot go through
+/// `route_request` (it needs the socket, not a finished buffer), and a second
+/// hand-written token check next to this one is exactly how a route ends up
+/// unprotected after a later edit touches only one of them.
+fn authorized(state: &AppState, authorization: Option<&str>) -> bool {
+    match &state.owner_token {
+        Some(expected) => bearer_matches(authorization, expected),
+        // `None` only exists when HM_GATEWAY_ALLOW_NO_AUTH was set explicitly.
+        None => true,
     }
 }
 

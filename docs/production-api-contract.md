@@ -307,6 +307,67 @@ $ curl http://localhost:8080/memory
 {"status":"online","records":[...]}
 ```
 
+## Chat / command stream (`POST /chat`)
+
+```http
+POST /chat          (also /api/chat, /gateway/chat)
+Authorization: Bearer $HM_OWNER_TOKEN
+Content-Type: application/json
+
+{"line": "/tiers", "files": ["crates/hm-gateway/src/main.rs"]}
+```
+
+The single surface through which the system is commanded. It is the only route
+that streams: the response has **no `Content-Length`**, uses
+`Content-Type: text/event-stream` with `Connection: close`, and each line the
+brain emits is flushed to the socket before the next is computed.
+
+Behind it is `agents/brain.py`, not a model. A line starting with `/` selects a
+command from a fixed table (`/help` lists it); anything else is a question,
+answered on the best tier that is actually available -- local GGUF, then a
+keyless provider through the oracle gate, then a no-model answer that cites
+repository evidence instead of inventing prose. **No tier requires Anthropic**;
+`tests/test_brain.py` proves it by running with every `ANTHROPIC*` variable
+stripped from the environment.
+
+Each SSE event carries one NDJSON object from the brain, passed through
+verbatim: `{"typ": "info"|"token"|"fehler"|"ende", "text": ..., "meta": {...}}`.
+The stream ends with `data: [DONE]`. The gateway does not parse the payload --
+the event vocabulary belongs to the brain, and a gateway that understood it
+would need changing every time an event type is added.
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `HM_BRAIN_REPO` | `.` | Working directory for the brain subprocess |
+| `HM_BRAIN_PYTHON` | `python3` | Interpreter used to run it |
+
+Input limits, enforced before the first byte of body: line non-empty and
+≤ 32 KiB, at most 16 context files, and every file a plain relative path --
+an entry starting with `-` is rejected because it would reach the brain as an
+option rather than as an argument. The body *chooses*; it never constructs a
+command line, and no shell is involved anywhere in the path.
+
+Clients must use `fetch()` + `ReadableStream`, not `EventSource`: `EventSource`
+cannot set an `Authorization` header, and this route is bearer-gated like every
+other.
+
+```console
+$ curl -N -X POST http://localhost:8080/chat \
+    -H "Authorization: Bearer $HM_OWNER_TOKEN" -d '{"line":"/tiers"}'
+data: {"typ": "token", "text": "[x] T0   Befehle, Pruefungen, Belege — braucht kein Modell"}
+
+data: {"typ": "token", "text": "[ ] T1b  fehlt: models/model.gguf ..."}
+
+data: {"typ": "ende", "text": "", "meta": {"tier": "T0"}}
+
+data: [DONE]
+```
+
+**Verified live**: run against a real `hm-gateway` process on a real socket --
+401 without the token, `400` with `{"files":["--json"]}`, and a `/tests` turn
+whose first event arrived after 0.11 s while the run itself took 10.7 s,
+confirming the stream is incremental rather than buffered.
+
 ## UI integration
 
 `ui/src/main.ts` has a "Memory" panel calling the endpoints above through the same

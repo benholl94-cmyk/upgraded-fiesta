@@ -75,3 +75,11 @@ config/knowledge-loop-state.json
 # Container-Spiegel, seit PR #74/Folgearbeit nicht mehr getrackt.
 # Bleibt lokal liegen; ohne diesen Eintrag meldet der Stop-Hook ihn dauerhaft.
 self_space_workspace_/
+
+# Laufzeitartefakte, die beim Betrieb des Gateways entstehen. Beide sind
+# Zustand einer Ausfuehrung, nicht Inhalt des Repos: data/storage/ ist der
+# Standard-HM_STORAGE_ROOT, .claude/relay/ der Subroom plus die von
+# agents/brain.py geschriebene Grammatik. Getrackt waeren sie genau die Art
+# toter Daten, die hier schon einmal aufgeraeumt wurde.
+data/storage/
+.claude/relay/

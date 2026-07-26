@@ -67,7 +67,7 @@ This is a Rust workspace ("Fullstack Heavy Metal") with a Vite/React UI scaffold
 
 - `crates/` — the Rust workspace (backend/gateway).
 - `ui/` — the React/Vite control-plane frontend.
-- `hugin/` — **HUGIN PWA**: single-file no-build AI interface (`hugin.html` + `index.html`), deployed to GitHub Pages (`benholl94-cmyk.github.io/upgraded-fiesta`). 24 providers (20 keyless), task-aware router, offline ReflexKernel. `index.html` MUST be a bytewise copy of `hugin.html` — enforced by synergy rule `hugin_index_sync` and CI step. **After any edit to `hugin.html` always run:** `cp hugin/hugin.html hugin/index.html`
+- `hugin/` — **HUGIN PWA**: single-file no-build AI interface (`hugin.html` + `index.html`), deployed to GitHub Pages (`benholl94-cmyk.github.io/upgraded-fiesta`). 25 providers (20 keyless), task-aware router, offline ReflexKernel. One of them — `kern` — is not a foreign API but **this repo's own gateway**: it streams `POST /chat`, so the PWA is the chat through which the system is commanded (`/help` lists the commands). Its wire format is deliberately *not* OpenAI-shaped, because that schema has no field for `exit 1` or for "evidence from repo history", and forcing it would have cost exactly the information the channel exists for. Its in-page self-test covers the event parser and the readiness gate; the full suite is 56 checks and takes ~120 s in a browser (the WebGPU provider timeouts dominate) — it is not hung. `index.html` MUST be a bytewise copy of `hugin.html` — enforced by synergy rule `hugin_index_sync` and CI step. **After any edit to `hugin.html` always run:** `cp hugin/hugin.html hugin/index.html`
 - `ghm_core/` + root `pyproject.toml` — `ghm-core`, a real installable pip package (console script `ghm-core`) providing local workspace/onboarding tooling.
 - `iphone-dev-platform/` — a **fully self-contained** static site (German-language iPhone local-dev setup guide) imported from an unrelated, disconnected git history. It has its own `package.json`, `validate.py`/`test-validate.py`, and must be tested from inside that directory (`cd iphone-dev-platform && npm test`), never from the repo root. Do not assume anything in it shares code, dependencies, or conventions with the Rust workspace.
 
@@ -152,6 +152,33 @@ python3 scripts/hugin_keyring.py audit                   # leak + permission che
 
 The supervisor's `keyring` rule calls that audit rather than duplicating it — two copies of the same check drift apart.
 
+### Git identity: author and committer are different fields
+
+The supervisor reported an unresolvable collision for a long time — the harness
+stop-hook requires `noreply@anthropic.com`, the constitution requires the owner's
+address. That was true only while both were read as claims on *the same* field.
+They are not:
+
+| Field | Value | Why |
+|---|---|---|
+| **Author** (`%ae`) | `274793931+benholl94-cmyk@users.noreply.github.com` | Authorship. Constitution, authority level 1. |
+| **Committer** (`%ce`) | `noreply@anthropic.com` | Signature validity — the CCR SSH signing key is registered to it; any other committer email makes every commit show as *Unverified* on GitHub. |
+
+Git has no `author.email` setting, so the committer comes from `git config
+user.email` and the author from `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL` (or
+`git commit --author=`). Both must be set when committing:
+
+```sh
+GIT_AUTHOR_NAME="benholl94-cmyk" \
+GIT_AUTHOR_EMAIL="274793931+benholl94-cmyk@users.noreply.github.com" git commit …
+```
+
+The supervisor now checks the two **separately** and names whichever side drifts;
+a single combined finding is what hid the resolution in the first place. The
+author is read from the last commit rather than from config, because config has
+no author field and what is actually in the history is the only answer worth
+trusting.
+
 ### Hooks are versioned in the repo
 
 `~/.claude/stop-hook-git-check.sh` lives outside the repo, so a fix there survives no container rebuild and shows up in no diff. The authoritative copy is `.claude/hooks/stop-hook-git-check.sh`; `scripts/install_hooks.py` mirrors it **repo → home only** (never the reverse — that would recreate the silent divergence). The supervisor's `hook-drift` rule compares the two byte-for-byte, same as `hugin_index_sync`.
@@ -210,6 +237,27 @@ Routes (all gated by the same auth check except `OPTIONS`):
 - `GET|POST /memory`, `POST /memory/search` — passthrough to `hm-memory`
 - `GET /memory/graph` — the structural knowledge-graph seed ingested at startup from `HM_MEMORY_GRAPH_SEED_PATH`, if any; `404` if none was ingested. Kept structurally separate from free-text `/memory` records — see `hm-memory`'s `MemoryStore::ingest_graph_seed`/`graph`.
 - `GET|POST /diagnostics` — opt-in diagnostics reports (see below)
+- `POST /chat` (+ `/api/chat`, `/gateway/chat`) — **the streaming command surface**; see below
+
+**The chat surface (`crates/hm-gateway/src/chat.rs` + `agents/brain.py`)** is the
+one place the system is commanded from, and the only streaming route. It cannot
+go through `hm-plugins`: that protocol is one JSON line with a 5 s timeout, and a
+local 12B answer takes minutes. So chat bypasses it deliberately — but *not* the
+auth check, which was extracted into `authorized()` precisely so the streaming
+path and `route_request` share one decision instead of two hand-written ones.
+
+`agents/brain.py` is the single entry point behind it. A line starting with `/`
+selects from a **fixed command table**; anything else is a question answered on
+the best measured-available tier: `T0` (no model, cites repo evidence) → `T1b`
+(local GGUF) → `T1` (keyless provider via the oracle gate) → `T2` (metered, only
+if the cost lock is open). Same property as `hm-tool-exec`: the input *chooses*
+among fixed `(program, args)` pairs, it never *builds* one, and there is no shell
+anywhere in the path. Keep that property when adding commands.
+
+**Anthropic is one rung on that ladder, not a prerequisite.** `tests/test_brain.py`
+runs the brain with every `ANTHROPIC*` variable stripped from the environment and
+requires a real answer — a claim of independence that only lives in prose is not a
+claim, it is a hope.
 
 **Auth model (`hm-auth`)**: every route requires `Authorization: Bearer <HM_OWNER_TOKEN>`. The gateway process **refuses to start** if `HM_OWNER_TOKEN` is unset (fail-closed), unless `HM_GATEWAY_ALLOW_NO_AUTH=true` is explicitly set (local dev only). Token comparison is constant-time (`hm_auth::tokens_match`). Never weaken this without being asked.
 
@@ -224,6 +272,19 @@ Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_
 **Shutdown/persistence**: the accept loop handles `SIGTERM`/`SIGINT` via `tokio::select!`, drains in-flight connections (10s deadline), and exits 0 — required for `deploy/hm-gateway.service` (a hardened systemd unit: `Restart=on-failure`, dropped capabilities, resource limits, non-root user) to manage it as a persistent service. `scripts/hm_gateway_watchdog.py` + `deploy/hm-gateway-watchdog.timer` cover the gap systemd's own crash-restart doesn't: a process that's alive but hung. Verify any edits to the `.service`/`.timer` files with `systemd-analyze verify`, since that's the only way to actually validate them (no systemd daemon runs in a normal dev sandbox).
 
 **Observability/abuse protection**: every request (including rejected ones) emits one structured JSON audit line to stdout before any real work happens, and a per-IP `RateLimiter` (fixed window, `HM_RATE_LIMIT_PER_MINUTE`, default 120/min, `0` disables) rejects with `429` before the request is even read off the socket. Both are in-process/per-instance only — there is no shared rate-limit state or centralized log aggregation across multiple gateway instances; see `docs/xcloud-platform-plan.md` Phase 5 for where multi-instance concerns are tracked instead of quietly assumed solved here.
+
+**Fixed: the cron runner used to deadlock the whole gateway.** `hm-cron`'s
+`submit_task` posted to `/tasks` with **synchronous `std::net::TcpStream` and an
+unbounded `read_to_string`, from inside a tokio task** — blocking I/O on the
+async scheduler, aimed at the very process it was running in. Measured effect,
+reproducible: with `config/cron.json` present the gateway answered **no request
+at all**, permanently, from the first second; the same binary with
+`HM_CRON_CONFIG` pointed at a nonexistent path served normally. It is now
+`tokio::net` with a 10 s timeout, and shutdown is honoured *during* an in-flight
+job as well — the counter-test in `crates/hm-cron/src/lib.rs` points a job at a
+socket that accepts and never answers, then asserts that unrelated work keeps
+making progress. That second defect only surfaced *because* the test was written
+to check the property rather than the happy path.
 
 **Known drift**: `deploy/fullstack-compose.yml` runs `deploy/gateway_service.py` under the name "gateway" — a trivial, unrelated placeholder HTTP server with no auth/plugins/memory/storage. It is not `crates/hm-gateway` and doesn't read any of the `HM_*` vars `.env.production.example` defines for the real one. The root `docker-compose.yml` (via the root `Dockerfile`) is what actually builds and runs the real Rust gateway.
 
@@ -245,7 +306,7 @@ Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_
 | `hm-tool-exec` | 0¹ | 4 | Real, allowlist-only (see above). |
 | `hm-agent` | 3 | 2 | Real. Dispatch + memory write-through. |
 | `hm-auth` | 3 | 10 | Real. |
-| `hm-cron` | 2 | 3 | Thin. |
+| `hm-cron` | 2 | 4 | Thin — but see the note below. |
 | `hm-core` | 2 | 3 | Thin. |
 | `hm-plugins` | 4 | 0 | Real protocol, **no tests**. |
 | `hm-sdk` | 0 | 0 | **Genuinely a stub** — 20 lines, type definitions only. |
