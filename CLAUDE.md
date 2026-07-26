@@ -108,6 +108,34 @@ python3 scripts/munin_supervisor.py --watch 300  # continuous
 
 Exit `0` clean / `1` DRIFT·RISK / `2` VIOLATION.
 
+### Key self-supply (`scripts/hugin_keyring.py`)
+
+The repo issues the keys it actually controls. There are 20 secret env vars; exactly **6 are self-issuable** because both ends belong to this project — a freshly generated value is valid since nobody else has to recognise it:
+
+`HM_OWNER_TOKEN`, `HM_DIAGNOSTICS_KEY`, `HM_MEMORY_KEY`, `HM_CONSOLE_SECRET`, `HM_REMOTE_STORAGE_TOKEN`, `HM_WHATSAPP_VERIFY_TOKEN`
+
+The other 11 are provider-bound (OpenAI, Gemini, Mistral, Telegram, Discord, Slack, WhatsApp, generic LLM). The keyring **refuses to generate those** — a self-rolled value would simply be invalid — and instead records where to obtain each one.
+
+**Mechanism: hierarchical deterministic derivation.** One master seed; every service key is derived via HKDF (RFC 5869, hand-rolled on `hmac`/`hashlib` because the repo is stdlib-only):
+
+```
+key(service, version) = HKDF(master_seed, info="hugin.keyring.v1|SERVICE|VERSION")
+```
+
+Three consequences, and they are the reason for the design: **one backup suffices** (the seed reproduces every key); **rotation is a counter** (bump the version; the old one stays derivable during a grace window so a running service doesn't drop); **nothing secret ever reaches the repo** (the seed lives in `~/.hugin/` at 0600, derived keys exist only in memory and the shell). Same idea hardware wallets use for key hierarchies, minus the curve arithmetic.
+
+The HKDF implementation is checked against the RFC 5869 test vectors in `tests/test_hugin_keyring.py` — a hand-rolled derivation that *looks* right but computes wrong is more dangerous than none.
+
+```sh
+python3 scripts/hugin_keyring.py init                    # create the master seed
+eval "$(python3 scripts/hugin_keyring.py env)"           # load into the shell
+python3 scripts/hugin_keyring.py status                  # what's present, what's missing
+python3 scripts/hugin_keyring.py rotate HM_OWNER_TOKEN --yes
+python3 scripts/hugin_keyring.py audit                   # leak + permission check
+```
+
+The supervisor's `keyring` rule calls that audit rather than duplicating it — two copies of the same check drift apart.
+
 ### Hooks are versioned in the repo
 
 `~/.claude/stop-hook-git-check.sh` lives outside the repo, so a fix there survives no container rebuild and shows up in no diff. The authoritative copy is `.claude/hooks/stop-hook-git-check.sh`; `scripts/install_hooks.py` mirrors it **repo → home only** (never the reverse — that would recreate the silent divergence). The supervisor's `hook-drift` rule compares the two byte-for-byte, same as `hugin_index_sync`.
