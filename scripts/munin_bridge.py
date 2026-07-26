@@ -43,6 +43,29 @@ def load_json(path: str) -> dict:
         return json.load(f)
 
 
+def load_state() -> dict:
+    """Zustand laden, auch wenn es ihn nicht gibt.
+
+    `munin-state.json` steht in `.gitignore` (Zeile 67) und ist damit reiner
+    Live-Zustand: in einem frischen Container existiert sie nicht. Bis hierher
+    ist `wakeup` -- der laut CLAUDE.md erste Befehl jeder Sitzung -- deshalb
+    mit FileNotFoundError abgebrochen, also genau dann, wenn man Kontext am
+    nötigsten braucht. Ein leerer Zustand ist die richtige Antwort auf eine
+    fehlende Datei; das dauerhafte Gedächtnis liegt ohnehin woanders, siehe
+    `scripts/munin_continuity.py`.
+    """
+    try:
+        return load_json(STATE_F)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as exc:
+        # Beschädigt ist nicht dasselbe wie leer und wird nicht als leer
+        # behandelt -- sonst überschreibt der nächste Checkpoint den Rest.
+        print(f"{C['RD']}munin-state.json ist beschädigt: {exc}{C['R']}",
+              file=sys.stderr)
+        raise SystemExit(1)
+
+
 def save_state(state: dict) -> None:
     tmp = STATE_F + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
@@ -76,10 +99,12 @@ def git_commit(message: str) -> bool:
 def cmd_wakeup() -> None:
     """Session-Start: vollständiger Kontext-Dump."""
     ident  = load_json(IDENTITY_F)
-    state  = load_json(STATE_F)
+    state  = load_state()
     focus  = state.get("currentFocus", {})
     tasks  = state.get("openTasks", [])
-    last   = state.get("workDone", [{}])[-1]
+    # `or [{}]` fängt auch die leere Liste ab -- ein vorhandenes, aber leeres
+    # workDone hätte hier sonst genauso einen IndexError geworfen.
+    last   = (state.get("workDone") or [{}])[-1]
 
     print(f"\n{C['B']}{C['CY']}╔═══════════════════════════════════════╗")
     print(f"║  MUNIN  ·  Session-Wakeup             ║")
@@ -133,7 +158,7 @@ def cmd_wakeup() -> None:
 
 def cmd_checkpoint(text: str) -> None:
     """Fügt Checkpoint zum aktuellen Session-Eintrag hinzu, committed."""
-    state = load_json(STATE_F)
+    state = load_state()
     state["lastUpdated"] = now_iso()
 
     done = state.setdefault("workDone", [])
@@ -154,7 +179,7 @@ def cmd_checkpoint(text: str) -> None:
 
 def cmd_status() -> None:
     """One-Liner Statuszeile."""
-    state = load_json(STATE_F)
+    state = load_state()
     focus = state.get("currentFocus", {})
     tasks = state.get("openTasks", [])
     n_open = len([t for t in tasks])
@@ -169,7 +194,7 @@ def cmd_status() -> None:
 
 def cmd_log() -> None:
     """Chronologisches Protokoll."""
-    state = load_json(STATE_F)
+    state = load_state()
     done  = state.get("workDone", [])
     print(f"\n{C['B']}MUNIN · Protokoll{C['R']}")
     for entry in done:
@@ -187,7 +212,7 @@ def cmd_identity() -> None:
 
 def cmd_open_tasks() -> None:
     """Listet offene Aufgaben."""
-    state = load_json(STATE_F)
+    state = load_state()
     tasks = state.get("openTasks", [])
     if not tasks:
         print("Keine offenen Aufgaben.")
@@ -198,7 +223,7 @@ def cmd_open_tasks() -> None:
 
 def cmd_done(task_id: str) -> None:
     """Markiert eine Aufgabe als erledigt."""
-    state = load_json(STATE_F)
+    state = load_state()
     tasks = state.get("openTasks", [])
     before = len(tasks)
     state["openTasks"] = [t for t in tasks if t.get("id") != task_id]
