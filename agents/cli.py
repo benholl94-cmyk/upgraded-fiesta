@@ -18,6 +18,8 @@ import json
 import sys
 from pathlib import Path
 
+from . import budget as _budget
+from .consensus import Answer, evaluate
 from .ledger import Ledger
 from .orchestrator import Orchestrator, OrchestratorError
 from .protocol import AgentPatch, AgentResult, dumps
@@ -113,6 +115,48 @@ def cmd_ledger(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_budget(a: argparse.Namespace) -> int:
+    if a.action == "status":
+        for line in _budget.status_lines():
+            print(line)
+        return 0 if _budget.Budget.load().active else 1
+    if a.action == "unlock":
+        if not a.reason:
+            print("--reason fehlt. Ein Loesen ohne Begruendung ist ein Vergessen.",
+                  file=sys.stderr)
+            return 2
+        b = _budget.Budget.load()
+        print("Loest die Kostenbremse. Ab dann koennen echte Gebuehren entstehen.")
+        print(f"  Begruendung: {a.reason}")
+        if not a.yes:
+            print("\nZustimmung fehlt. Erneut mit --yes.", file=sys.stderr)
+            return 2
+        _budget.unlock(a.reason, b)
+        print("Geloest. Zurueck: python3 -m agents budget relock")
+        return 0
+    _budget.relock()
+    print("Kostenbremse wieder aktiv.")
+    return 0
+
+
+def cmd_consensus(a: argparse.Namespace) -> int:
+    """Antworten aus einer JSON-Datei bewerten.
+
+    Format: [{"provider": "...", "text": "...", "vendor": "..."}, ...]
+    """
+    raw = json.loads(sys.stdin.read() if a.path == "-"
+                     else Path(a.path).read_text(encoding="utf-8"))
+    answers = [Answer(provider=str(d["provider"]), text=str(d["text"]),
+                      vendor=str(d.get("vendor", "")),
+                      latency_ms=int(d.get("latency_ms", 0))) for d in raw]
+    report = evaluate(answers, a.kind)
+    if a.json:
+        print(dumps(report.to_dict()))
+    else:
+        print(report.summary())
+    return 0 if report.trustworthy else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agents", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -139,6 +183,21 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("path")
     ap.add_argument("--yes", action="store_true", help="Zustimmung; ohne sie: Abbruch")
     ap.set_defaults(func=cmd_apply)
+
+    bg = sub.add_parser("budget", help="Kostenbremse der Entwicklungsphase")
+    bg.add_argument("action", choices=("status", "unlock", "relock"), nargs="?",
+                    default="status")
+    bg.add_argument("--reason", help="Begruendung, bleibt im Repo sichtbar")
+    bg.add_argument("--yes", action="store_true")
+    bg.set_defaults(func=cmd_budget)
+
+    cs = sub.add_parser("consensus", help="Konsensgrad mehrerer Antworten messen")
+    cs.add_argument("path", help="JSON-Datei mit Antworten ('-' = stdin)")
+    cs.add_argument("--kind", default="default",
+                    choices=("factual", "code", "reasoning", "summary",
+                             "brainstorm", "default"))
+    cs.add_argument("--json", action="store_true")
+    cs.set_defaults(func=cmd_consensus)
 
     lg = sub.add_parser("ledger", help="Vorgangsprotokoll lesen")
     lg.add_argument("--task")
