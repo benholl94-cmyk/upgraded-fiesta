@@ -238,11 +238,19 @@ def tiers() -> list[tuple[str, bool, str]]:
         out.append((T1, False, f"agents.budget nicht ladbar: {exc}"))
     try:
         from agents import budget
-        offen = budget.Budget.load().active
-        out.append((T2, bool(offen), "Kostensperre offen" if offen
-                    else "Kostensperre zu — kostenpflichtige Provider gesperrt"))
+        # `Budget.active` heisst "die Bremse greift", NICHT "Ausgeben erlaubt".
+        # Die erste Fassung las es andersherum und meldete "T2 offen", waehrend
+        # jeder kostenpflichtige Provider gesperrt war — die gefaehrliche
+        # Richtung des Irrtums: verfuegbar behaupten, was gesperrt ist.
+        gebremst = budget.Budget.load().active
+        out.append((T2, not gebremst,
+                    "Kostensperre zu (config/budget.json → development_phase) — "
+                    "kostenpflichtige Provider gesperrt" if gebremst
+                    else "Kostensperre geloest — kostenpflichtige Aufrufe moeglich"))
     except Exception as exc:
-        out.append((T2, False, f"Kostenstand unbekannt: {exc}"))
+        # Unbekannt heisst gesperrt, nie erlaubt — dieselbe Richtung wie
+        # cost_class(), wo Unbekanntes als kostenpflichtig gilt.
+        out.append((T2, False, f"Kostenstand unbekannt, deshalb gesperrt: {exc}"))
     return out
 
 
@@ -338,12 +346,36 @@ def _oracle():
     return mod
 
 
-def _remote_providers() -> list[str]:
-    """Keylose Provider, die das Gate kennt UND deren Zugang wirklich da ist.
+def _reachable(host: str, port: int, timeout: float = 0.4) -> bool:
+    """Ein TCP-Handshake. Mehr Beweis gibt es ohne echten Aufruf nicht,
+    und weniger ist geraten."""
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout):
+            return True
+    except OSError:
+        return False
 
-    Ein Provider ohne gesetzten Key ist nicht 'fast verfuegbar', sondern
-    nicht verfuegbar — sonst meldet die Leiter eine Sprosse, die traegt,
-    und bricht beim Auftreten.
+
+# Provider, deren Verfuegbarkeit NICHT an einem Key haengt, sondern an einem
+# laufenden Dienst. Ein gesetzter (oder nicht noetiger) Key sagt hier nichts.
+_LOCAL_ENDPOINTS = {
+    "local": ("127.0.0.1", 11434),      # Ollama
+}
+
+
+def _remote_providers(pruefe_dienste: bool = True) -> list[str]:
+    """Keylose Provider, die das Gate kennt UND wirklich erreichbar sind.
+
+    Die erste Fassung nahm jeden Provider ohne Key-Pflicht als verfuegbar an.
+    Gemessene Folge: `/tiers` meldete "1 von 10 keylosen Providern erreichbar"
+    — gemeint war `local` (Ollama), das gar nicht lief. Der erste echte Aufruf
+    scheiterte dann mit "Ollama nicht erreichbar (localhost:11434)".
+
+    Das ist genau der Fehler, den dieses Repo sonst ueberall vermeidet:
+    Konfiguration als Zustand lesen. Eine Sprosse gilt jetzt nur als tragend,
+    wenn sie nachweislich traegt — bei Netzdiensten heisst das ein
+    TCP-Handshake, kein Blick in ein Dict.
     """
     try:
         from agents import budget
@@ -354,6 +386,12 @@ def _remote_providers() -> list[str]:
     for name in budget.free_providers():
         adapter = gate.get(name)
         if adapter is None:
+            continue
+        endpunkt = _LOCAL_ENDPOINTS.get(name)
+        if endpunkt is not None:
+            if pruefe_dienste and not _reachable(*endpunkt):
+                continue
+            out.append(name)
             continue
         env_key = getattr(adapter, "env_key", "")
         if not env_key or os.environ.get(env_key, ""):

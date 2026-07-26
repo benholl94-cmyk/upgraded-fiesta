@@ -188,6 +188,10 @@ struct HttpRequest {
     method: String,
     path: String,
     authorization: Option<String>,
+    /// The request's `Origin` header, verbatim. Needed because the CORS
+    /// allowlist can only answer "is this origin allowed" if it is given the
+    /// origin -- see `apply_cors`.
+    origin: Option<String>,
     body: Vec<u8>,
 }
 
@@ -507,11 +511,18 @@ fn brain_repo() -> std::path::PathBuf {
 /// line -- once the stream has started that is always 200, which is why every
 /// rejection has to happen before the first byte of body goes out.
 async fn chat_turn(stream: &mut TcpStream, request: HttpRequest, state: &AppState) -> u16 {
+    // Rejections here are written straight to the socket, so they bypass
+    // route_request's CORS pass and need it applied explicitly. Without it a
+    // browser sees an opaque network error where the gateway actually said
+    // "401" -- and the operator debugs the wrong thing.
+    let origin = request.origin.clone();
+    let cors = |r: Vec<u8>| apply_cors(r, origin.as_deref());
+
     if !authorized(state, request.authorization.as_deref()) {
-        let body = json_response(
+        let body = cors(json_response(
             401,
             json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
-        );
+        ));
         let _ = stream.write_all(&body).await;
         let _ = stream.shutdown().await;
         return 401;
@@ -520,10 +531,10 @@ async fn chat_turn(stream: &mut TcpStream, request: HttpRequest, state: &AppStat
     let input: chat::ChatInput = match serde_json::from_slice(&request.body) {
         Ok(v) => v,
         Err(e) => {
-            let body = json_response(
+            let body = cors(json_response(
                 400,
                 json!({ "status": "invalid_request", "reason": e.to_string() }),
-            );
+            ));
             let _ = stream.write_all(&body).await;
             let _ = stream.shutdown().await;
             return 400;
@@ -539,8 +550,9 @@ async fn chat_turn(stream: &mut TcpStream, request: HttpRequest, state: &AppStat
         return 400;
     }
 
-    let origin_header = match allowed_origin(None) {
-        Some(o) => format!("Access-Control-Allow-Origin: {o}\r\n"),
+    let origin_header = match allowed_origin(request.origin.as_deref()) {
+        Some(o) if o == "*" => "Access-Control-Allow-Origin: *\r\n".to_string(),
+        Some(o) => format!("Access-Control-Allow-Origin: {o}\r\nVary: Origin\r\n"),
         None => String::new(),
     };
     let python = env::var("HM_BRAIN_PYTHON").unwrap_or_else(|_| "python3".to_string());
@@ -593,6 +605,7 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
     let raw_path = parts.next().unwrap_or("/");
     let path = raw_path.split('?').next().unwrap_or("/").to_string();
     let authorization = parse_authorization(&header_text);
+    let origin = parse_header(&header_text, "origin");
     let body_start = header_end + 4;
     let body_end = body_start.saturating_add(content_length).min(buffer.len());
 
@@ -600,7 +613,19 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
         method,
         path,
         authorization,
+        origin,
         body: buffer[body_start..body_end].to_vec(),
+    })
+}
+
+fn parse_header(headers: &str, want: &str) -> Option<String> {
+    headers.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.eq_ignore_ascii_case(want) {
+            Some(value.trim().to_string())
+        } else {
+            None
+        }
     })
 }
 
@@ -634,6 +659,18 @@ fn parse_content_length(headers: &str) -> usize {
 }
 
 async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
+    // The origin is captured before `request` is consumed by a handler, and
+    // applied to whatever comes back -- including the 401 and the 404, which
+    // a browser must be able to read to show a useful error instead of an
+    // opaque CORS failure.
+    let origin = request.origin.clone();
+    apply_cors(
+        route_inner(request, remote_addr, state).await,
+        origin.as_deref(),
+    )
+}
+
+async fn route_inner(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
     if request.method == "OPTIONS" {
         return empty_response(204);
     }
@@ -1094,6 +1131,71 @@ fn common_headers(content_type: &str) -> String {
     common_headers_for(content_type, None)
 }
 
+/// Attaches the CORS origin header to a finished response.
+///
+/// # Why this exists at all
+///
+/// `allowed_origin_from` was correct and unit-tested, and it was also **dead
+/// for every value except `*`**: nothing ever read the request's `Origin`
+/// header, so every call site passed `None`, and `None` can only ever match
+/// the explicit wildcard. Configuring
+/// `HM_ALLOWED_ORIGINS=https://example.github.io` therefore did exactly
+/// nothing -- the browser blocked the response, and the only setting that
+/// *worked* was the least safe one. The tests did not catch it because they
+/// exercised the pure function, never the wiring.
+///
+/// # Why post-processing instead of threading the origin through
+///
+/// `json_response` and friends are called from ~30 places and return finished
+/// byte buffers. Threading an extra parameter through all of them is 30
+/// chances to forget one, and a forgotten one fails silently in a browser.
+/// Doing it once, here, means the answer cannot differ per route. The header
+/// block ends at the first blank line and this server writes it itself, so
+/// inserting after the status line is exact, not a guess.
+fn apply_cors(response: Vec<u8>, request_origin: Option<&str>) -> Vec<u8> {
+    apply_cors_from(
+        &env::var("HM_ALLOWED_ORIGINS").unwrap_or_default(),
+        response,
+        request_origin,
+    )
+}
+
+/// Pure variant: the allowlist arrives as a parameter, not from the process
+/// environment. Tests that set `HM_ALLOWED_ORIGINS` interfere with each other
+/// under Rust's parallel test runner -- that happened here once already and
+/// is why `allowed_origin_from` exists in this shape. Writing the first
+/// version of this function against the env var reproduced the same flake
+/// immediately.
+fn apply_cors_from(configured: &str, response: Vec<u8>, request_origin: Option<&str>) -> Vec<u8> {
+    let Some(origin) = allowed_origin_from(configured, request_origin) else {
+        return response;
+    };
+    // Already present (the `*` path in common_headers_for): leave it alone
+    // rather than emitting the header twice -- duplicate ACAO headers make
+    // browsers reject the response outright.
+    let head_end = find_header_end(&response).unwrap_or(response.len());
+    if String::from_utf8_lossy(&response[..head_end])
+        .to_lowercase()
+        .contains("access-control-allow-origin")
+    {
+        return response;
+    }
+    let Some(pos) = response.windows(2).position(|w| w == b"\r\n") else {
+        return response;
+    };
+    let mut extra = format!("\r\nAccess-Control-Allow-Origin: {origin}");
+    if origin != "*" {
+        // Without Vary, a shared cache can hand one origin's response to
+        // another origin.
+        extra.push_str("\r\nVary: Origin");
+    }
+    let mut out = Vec::with_capacity(response.len() + extra.len());
+    out.extend_from_slice(&response[..pos]);
+    out.extend_from_slice(extra.as_bytes());
+    out.extend_from_slice(&response[pos..]);
+    out
+}
+
 fn common_headers_for(content_type: &str, request_origin: Option<&str>) -> String {
     let mut headers = format!(
         "Content-Type: {content_type}\r\nAccess-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\nAccess-Control-Allow-Headers: content-type, accept, authorization\r\n"
@@ -1226,6 +1328,81 @@ async fn sessions_delete(state: &AppState, id: &str) -> Vec<u8> {
 #[cfg(test)]
 mod audit_tests {
     use super::*;
+
+    /// The gap that made the allowlist dead code: the header was never read,
+    /// so a configured origin could never match. These tests go through
+    /// `apply_cors` on a *finished response*, which is what actually reaches
+    /// the client -- testing `allowed_origin_from` alone is what let this
+    /// survive.
+    #[test]
+    fn a_configured_origin_actually_reaches_the_response() {
+        let out = apply_cors_from(
+            "https://benholl94-cmyk.github.io",
+            json_response(200, json!({"ok": true})),
+            Some("https://benholl94-cmyk.github.io"),
+        );
+        let text = String::from_utf8_lossy(&out);
+        assert!(
+            text.contains("Access-Control-Allow-Origin: https://benholl94-cmyk.github.io"),
+            "allowlist configured but header absent: {text}"
+        );
+        assert!(
+            text.contains("Vary: Origin"),
+            "cache would leak across origins"
+        );
+    }
+
+    #[test]
+    fn an_unlisted_origin_gets_no_header() {
+        let out = apply_cors_from(
+            "https://allowed.example",
+            json_response(200, json!({})),
+            Some("https://evil.example"),
+        );
+        assert!(!String::from_utf8_lossy(&out).contains("Access-Control-Allow-Origin"));
+    }
+
+    #[test]
+    fn no_origin_header_means_no_cors_header() {
+        // A curl request sends no Origin. Emitting one anyway would be a
+        // claim about a browser context that does not exist.
+        let out = apply_cors_from("https://a.example", json_response(200, json!({})), None);
+        assert!(!String::from_utf8_lossy(&out).contains("Access-Control-Allow-Origin"));
+    }
+
+    #[test]
+    fn the_header_is_never_emitted_twice() {
+        // Two ACAO headers make browsers reject the response outright, which
+        // looks identical to having none -- so the wildcard path (which adds
+        // its own via common_headers) must not be doubled here.
+        let with_star = apply_cors_from(
+            "*",
+            json_response(200, json!({})),
+            Some("https://any.example"),
+        );
+        let text = String::from_utf8_lossy(&with_star).to_lowercase();
+        assert_eq!(text.matches("access-control-allow-origin").count(), 1);
+    }
+
+    #[test]
+    fn the_response_body_survives_header_insertion() {
+        let out = apply_cors_from(
+            "https://a.example",
+            json_response(201, json!({"status": "stored"})),
+            Some("https://a.example"),
+        );
+        let text = String::from_utf8_lossy(&out);
+        assert!(
+            text.starts_with("HTTP/1.1 201 "),
+            "status line damaged: {text}"
+        );
+        // json_response schreibt pretty-printed -- deshalb ohne Annahme
+        // ueber Leerzeichen pruefen, sonst testet die Zusicherung das
+        // Ausgabeformat statt der Frage, ob der Body die Einfuegung ueberlebt.
+        assert!(text.contains("stored"), "body lost: {text}");
+        assert!(text.trim_end().ends_with('}'), "body truncated: {text}");
+        assert_eq!(extract_status_code(&out), 201);
+    }
 
     #[test]
     fn extracts_status_from_a_real_response() {

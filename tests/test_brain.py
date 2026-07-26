@@ -51,10 +51,21 @@ def test_t0_is_always_available():
 
 
 def test_every_tier_states_a_measured_reason():
+    """Eine nicht verfuegbare Stufe muss einen *konkreten* Wert nennen: einen
+    Pfad, eine Zahl oder eine benannte Konfiguration.
+
+    Die erste Fassung suchte nach den Woertern "fehlt"/"nicht"/"zu". Das war
+    Raten an Stichworten und ging beim ersten praezisieren Text prompt kaputt
+    ("0 von 10 keylosen Providern erreichbar" enthaelt keines davon, ist aber
+    die bessere Begruendung). Geprueft wird deshalb, dass ueberhaupt etwas
+    Nachrechenbares dasteht — kein blosses Adjektiv.
+    """
+    import re
     for tier, ok, why in brain.tiers():
         assert why.strip(), f"{tier} ohne Begruendung"
         if not ok:
-            assert "fehlt" in why or "nicht" in why or "zu" in why
+            assert re.search(r"\d|/|\.json", why), (
+                f"{tier} nennt keinen konkreten Wert: {why!r}")
 
 
 def test_a_question_answers_from_repo_evidence_without_any_model():
@@ -159,3 +170,61 @@ def test_a_turn_always_ends_with_a_terminal_event():
 def test_empty_input_is_an_error_not_an_empty_answer():
     evs = list(brain.handle("   "))
     assert evs and evs[0].typ == "fehler"
+
+
+# ---------------------------------------------------------------------------
+# Verfuegbarkeit wird gemessen, nicht gelesen
+#
+# Beide Fehler unten waren real und zeigten in dieselbe, gefaehrliche Richtung:
+# eine Stufe als tragend melden, die nicht traegt. Der umgekehrte Irrtum waere
+# harmlos gewesen — man haette eine Moeglichkeit ungenutzt gelassen.
+# ---------------------------------------------------------------------------
+
+def test_the_cost_lock_is_read_in_the_right_direction():
+    """`Budget.active` heisst "die Bremse greift", nicht "Ausgeben erlaubt".
+
+    Die erste Fassung las es andersherum und meldete "T2 offen", waehrend
+    config/budget.json jeden kostenpflichtigen Provider sperrte.
+    """
+    from agents import budget
+    gebremst = budget.Budget.load().active
+    t2 = dict((t, (ok, why)) for t, ok, why in brain.tiers())[brain.T2]
+    assert t2[0] is (not gebremst), (
+        f"budget.active={gebremst}, tiers meldet verfuegbar={t2[0]} — invertiert")
+    if gebremst:
+        assert "gesperrt" in t2[1]
+
+
+def test_an_unreadable_budget_locks_rather_than_opens(monkeypatch):
+    """Unbekannt heisst gesperrt. Dieselbe Richtung wie cost_class(), wo
+    Unbekanntes als kostenpflichtig gilt."""
+    import agents.budget as budget
+
+    def kaputt(*a, **k):
+        raise RuntimeError("budget.json unlesbar")
+
+    monkeypatch.setattr(budget.Budget, "load", staticmethod(kaputt))
+    t2 = dict((t, (ok, why)) for t, ok, why in brain.tiers())[brain.T2]
+    assert t2[0] is False
+    assert "gesperrt" in t2[1]
+
+
+def test_a_local_service_counts_only_when_it_actually_answers(monkeypatch):
+    """Ollama ohne laufenden Dienst ist nicht 'fast verfuegbar'.
+
+    Gemessene Folge des alten Verhaltens: /tiers meldete "1 von 10 keylosen
+    Providern erreichbar", der erste echte Aufruf scheiterte mit "Ollama nicht
+    erreichbar (localhost:11434)".
+    """
+    monkeypatch.setattr(brain, "_reachable", lambda *a, **k: False)
+    assert "local" not in brain._remote_providers()
+    monkeypatch.setattr(brain, "_reachable", lambda *a, **k: True)
+    assert "local" in brain._remote_providers()
+
+
+def test_no_tier_claims_availability_without_a_measurement():
+    """Jede als verfuegbar gemeldete Stufe muss einen konkreten Grund nennen —
+    kein 'konfiguriert' als Beleg."""
+    for tier, ok, why in brain.tiers():
+        if ok and tier != brain.T0:
+            assert why.strip() and "konfiguriert" not in why.lower(), (tier, why)

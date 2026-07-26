@@ -113,6 +113,65 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+### Readiness vs. constitution: `scripts/hugin_clarity.py`
+
+The supervisor answers *may it be like this*. This one answers *does it carry
+right now* — and when it doesn't, which exact value is missing and which command
+supplies it.
+
+```sh
+python3 scripts/hugin_clarity.py          # full report
+python3 scripts/hugin_clarity.py --offen  # only what is still missing
+python3 scripts/hugin_clarity.py --json
+```
+
+Three verdicts, and the third is load-bearing: `OK`, `OFFEN` (something specific
+is missing, `befehl` says what), and `EXTERN` (not decidable from here — needs
+the Master, real hardware, or a third-party account). Collapsing `EXTERN` into
+`OFFEN` produces a list that is never empty, and a list that is never empty stops
+being read. Exit is `1` only for `OFFEN`.
+
+It is a program rather than a checklist for the same reason the supervisor is:
+the line *"31 files tracked despite .gitignore"* sat in this file long after the
+count was 0. A measurement cannot go stale that way.
+
+**Two inverted readings it caught in its own first run**, both pointing the
+dangerous way — claiming a rung holds when it doesn't:
+
+- `Budget.active` means *the brake is engaged*, not *spending is allowed*. The
+  tier ladder read it backwards and reported "T2 open" while every metered
+  provider was blocked.
+- A keyless provider was counted as reachable because it needed no key.
+  `local` (Ollama) was therefore reported available while nothing listened on
+  11434. Availability of a network service is now a TCP handshake, not a lookup.
+
+**`hm-plugins` got its first tests, and they immediately found a real defect.**
+A plugin that never reads its stdin makes the request write fail with `EPIPE`;
+that error was propagated raw, so the *same* invocation returned either
+`"Broken pipe (os error 32)"` or `"produced no output"` depending on which side
+of the race won. `EPIPE` is now treated as what it is — a statement about the
+plugin, not a protocol failure — and the accurate message comes from the stdout
+path. The first version of those tests was itself flaky (`Text file busy`, the
+classic fork/exec race against a freshly written script); executing `/bin/sh`
+with the plugin body as an *argument* removes the window entirely instead of
+narrowing it.
+
+**CORS was configured-but-unwired.** `allowed_origin_from` was correct and
+unit-tested, and also dead for every value except `*`: nothing ever read the
+request's `Origin` header, so every call site passed `None`. Setting
+`HM_ALLOWED_ORIGINS=https://…` did exactly nothing and the only setting that
+*worked* was the least safe one. The header is now parsed onto `HttpRequest` and
+applied once, in `apply_cors`, to the finished response — threading it through
+~30 `json_response` call sites would be 30 chances to forget one, and a
+forgotten one fails silently in a browser. Verified live on a socket for the
+allowed origin, a foreign origin, the preflight, the chat stream, and the 401.
+
+**The container could not chat.** The runtime image copied `config/`,
+`plugins/` and `scripts/` but not `agents/` — the gateway started fine and every
+chat turn answered `brain not startable`. Green in a checkout, dead in
+production; the same failure class as the plugin dispatch that was missing from
+the image before.
+
 ## Supervisor and known dead data
 
 `scripts/munin_supervisor.py` audits the *agent's work* against `.claude/persona/constitution.json` and `.claude/persona/munin.json`. Its principle is that claims get recomputed rather than believed: "tests pass" runs the suite, "index.html is synced" compares bytes, "that crate is a stub" counts `pub fn`. Run it before calling anything done:
@@ -308,7 +367,7 @@ to check the property rather than the happy path.
 | `hm-auth` | 3 | 10 | Real. |
 | `hm-cron` | 2 | 4 | Thin — but see the note below. |
 | `hm-core` | 2 | 3 | Thin. |
-| `hm-plugins` | 4 | 0 | Real protocol, **no tests**. |
+| `hm-plugins` | 4 | 11 | Real protocol. Tests added — see below. |
 | `hm-sdk` | 0 | 0 | **Genuinely a stub** — 20 lines, type definitions only. |
 
 ¹ `pub fn` 0 means the crate is a binary whose logic sits in `fn main` and private helpers, not that it is empty — read the line count next to it.

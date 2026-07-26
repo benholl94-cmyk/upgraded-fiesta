@@ -13,5 +13,19 @@ COPY --from=builder /app/target/release/hm-tool-exec /app/target/release/hm-tool
 COPY config/ /app/config/
 COPY plugins/ /app/plugins/
 COPY scripts/ /app/scripts/
+# agents/ traegt agents.brain -- das Gehirn hinter POST /chat. Ohne dieses
+# Verzeichnis startet das Gateway normal und JEDER Chat-Aufruf antwortet
+# "brain not startable: No such file or directory": eine Route, die im
+# Checkout funktioniert und im Container tot ist. Dieselbe Fehlerklasse, die
+# hier schon einmal die Plugin-Dispatch im Image gekostet hat.
+COPY agents/ /app/agents/
+# .claude/ ist Datenquelle, nicht Konfiguration: der Kernel schliesst aus
+# dem Ledger (.claude/continuity/ledger.json), und die Regelschicht des
+# Kerns liegt in config/kern-persona.json. Fehlt das Ledger, antwortet der
+# Kern ohne Belege statt gar nicht -- deshalb kopiert, nicht vorausgesetzt.
+COPY .claude/continuity/ /app/.claude/continuity/
+COPY .claude/persona/ /app/.claude/persona/
+# Der Chat-Pfad startet `python3 -m agents.brain` mit diesem Arbeitsverzeichnis.
+ENV HM_BRAIN_REPO=/app
 EXPOSE 8080
 CMD ["/app/hm-gateway"]
