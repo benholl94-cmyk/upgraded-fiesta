@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T05:37:59+00:00",
+  "updated": "2026-07-26T05:43:27+00:00",
   "session": 2,
   "entries": [
     {
@@ -129,7 +129,7 @@
       "kind": "offen",
       "text": "Trigger trig_01XgF7i47UrreHKpTmexRyog feuert taeglich 06:00 UTC noch mit dem ALTEN, branch-gebundenen Prompt. Die Korrektur wurde eingereicht, braucht aber Master-Freigabe (MCP requires approval). Bis dahin laeuft die erste Firing auf einem gemergten Branch. Ebenfalls offen: Loeschen des obsoleten PR-Watch-Triggers trig_01DM9E7i9BGBnFVSbFhWri35.",
       "anchors": [],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 3
     },
     {
@@ -199,6 +199,18 @@
       "kind": "offen",
       "text": "Trigger trig_01XgF7i47UrreHKpTmexRyog traegt weiterhin den alten, branch-gebundenen Prompt; der korrigierte branchfreie Prompt konnte nicht eingespielt werden (MCP-Approval). Ebenso offen: delete_trigger fuer den obsoleten PR-Watch trig_01DM9E7i9BGBnFVSbFhWri35. Beides muss der Master ausloesen oder freigeben.",
       "anchors": [],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-18",
+      "session": 2,
+      "ts": "2026-07-26T05:43:27+00:00",
+      "kind": "offen",
+      "text": "ANWEISUNG AN DIE NAECHSTE GETRIGGERTE SITZUNG: Der Tages-Trigger nennt dir den Branch claude/handoff-documentation-8qf1v9. Dessen PR #79 ist gemerged — stapele NICHT darauf. Fuehre stattdessen zuerst aus: git fetch origin main && git checkout -B claude/kontinuitaet-20260726 origin/main. Dieser Branch hier wurde bereits auf origin/main zurueckgesetzt, du startest also nicht auf veralteter Historie. Du hast keine MCP-Tools: nenne den gepushten Branch am Ende im Klartext, damit der Master einen PR daraus machen kann.",
+      "anchors": [
+        "sha:b143e4e"
+      ],
       "state": "offen",
       "weight": 3
     }
