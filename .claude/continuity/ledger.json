@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T06:02:01+00:00",
+  "updated": "2026-07-26T15:43:57+00:00",
   "session": 2,
   "entries": [
     {
@@ -285,6 +285,66 @@
       ],
       "state": "offen",
       "weight": 3
+    },
+    {
+      "id": "s2-25",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "entscheidung",
+      "text": "Der Chat-/Befehlskanal laeuft ueber POST /chat im bestehenden Gateway, nicht als eigener Python-Server. Verworfen: zweiter Port - das Gateway traegt Auth, Rate-Limit und Audit bereits, ein zweiter Prozess haette diese drei Grenzen dupliziert oder weggelassen. Preis: der handgeschriebene HTTP-Server brauchte einen Streaming-Pfad, der route_request umgeht; deshalb wurde die Auth-Entscheidung in authorized() herausgezogen.",
+      "anchors": [
+        "path:crates/hm-gateway/src/chat.rs"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-26",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "invariante",
+      "text": "Der Chat waehlt Befehle aus einer festen Tabelle, er baut nie eine Kommandozeile. Kein Shell-Pfad, Argumente bleiben EIN argv-Element. Dieselbe Eigenschaft wie hm-tool-exec. Wird sie aufgegeben, ist der Kanal eine Shell mit Bearer-Token davor.",
+      "anchors": [
+        "path:agents/brain.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-27",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "entscheidung",
+      "text": "git-identity-Kollision aufgeloest: Author=Master (Verfassung, Urheberschaft), Committer=Claude (Signierschluessel, sonst Unverified). Es waren immer zwei Felder; die gemeinsame Supervisor-Meldung hat die Aufloesung verdeckt. Author kommt aus GIT_AUTHOR_*, git hat keinen author.email-Schalter.",
+      "anchors": [
+        "sha:b474f5c"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-28",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "sackgasse",
+      "text": "hm-cron rief das Gateway mit synchronem std::net aus einer Tokio-Task an - das Gateway beantwortete daraufhin dauerhaft KEINE Anfrage. Symptom sah nach kaputtem Sandbox-Netz aus (curl haengt, auch auf 127.0.0.1); die Gegenprobe HM_CRON_CONFIG=/nonexistent trennte Ursache von Umgebung. Bei haengendem lokalem Port immer zuerst so gegenpruefen.",
+      "anchors": [
+        "path:crates/hm-cron/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-29",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "notiz",
+      "text": "HUGIN-Selbsttest im Browser braucht ~120s (WebGPU-Provider-Timeouts dominieren). Wer nach 15s abbricht, haelt ihn faelschlich fuer haengend. Endet mit 56 OK / 0 FEHL.",
+      "anchors": [
+        "path:hugin/hugin.html"
+      ],
+      "state": "offen",
+      "weight": 1
     }
   ]
 }
