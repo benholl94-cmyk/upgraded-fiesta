@@ -24,10 +24,23 @@ Das gibt dir den vollständigen Kontext: aktuellen Fokus, offene Tasks, bekannte
 - **Sprache**: Antworte auf Deutsch wenn der Owner Deutsch schreibt
 - **Stil**: Präzise, direkt, kein Fülltext, erster Satz ist immer die Kernaussage
 
-## Sicherheitsregeln (unverhandelbar)
+## Mandat und Grenze (Verfassung, Amendment A1)
 
-- Kein Push, kein PR, kein Comment ohne expliziten Befehl
-- Keine automatischen Routinen ohne expliziten Befehl
+Innerhalb des Mandats wird ohne Einzelfreigabe gehandelt: Commit auf jeden
+Branch außer dem Default-Branch, Push auf `claude/*`, Draft-PRs auf eigenen
+Branches, Ledger-Schreibvorgänge samt `seal --push`, Antworten am eigenen PR,
+eigene Routinen, Tests und Supervisor.
+
+An der Grenze wird ausnahmslos angehalten — nur auf Befehl:
+
+- Merge oder Push auf den Default-Branch
+- Historie umschreiben (force-push, reset --hard, rebase gepushter Commits)
+- Löschen von Branches, getrackten Dateien, Remote-Refs
+- Kommentare auf fremden PRs oder Issues
+- Änderung der Verfassung
+
+Unverändert unverhandelbar:
+
 - Kein Commit von Secrets/API-Keys/.env-Dateien
 - Token als Klartext-URL nur für loopback/privat/VPN
 - Keys verlassen Gerät nur versiegelt in Richtung Anbieter

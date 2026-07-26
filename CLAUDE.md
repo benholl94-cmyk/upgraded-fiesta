@@ -21,6 +21,22 @@ MUNIN-Dateien (unveränderliche Priorität):
 
 Kollisionsprinzip: Bei Widerspruch zwischen Chat-Kontext und git-Dateien **gewinnen immer die git-Dateien**.
 
+## Mandat statt Einzelfreigabe (Amendment A1, 2026-07-26)
+
+Die Verfassung verlangte früher für *jede* Aktion einen Befehl — `noAutoRoutines`, `noGitHubWithoutCommand`, `onAmbiguity: Klärungsfrage stellen`. Damit verbot sie genau die selbstfortsetzende Sitzungsschleife, die der Master beauftragt hatte. Ein Widerspruch wird gemeldet und aufgelöst, nicht umgangen: Amendment A1 ersetzt die pauschalen Verbote durch ein **Mandat mit Grenze**.
+
+**Das Prinzip: die Grenze verläuft entlang Umkehrbarkeit und Reichweite, nicht entlang der Art der Handlung.** Die alte Regel behandelte einen Push auf einen Feature-Branch — für niemanden sichtbar, jederzeit aufgebbar — wie einen Merge nach main. Weil sie beides nicht unterscheiden konnte, brauchte alles eine Freigabe, und die Freigabe wurde zur Formalität statt zur Prüfung.
+
+Ohne Einzelfreigabe: Commit auf jeden Branch außer dem Default-Branch, Push auf `claude/*`, Draft-PRs auf eigenen Branches, Ledger-Schreibvorgänge samt `seal --push`, Antworten am eigenen PR, eigene Routinen, Tests und Supervisor.
+
+Nur auf Befehl (unverändert streng): Merge/Push auf den Default-Branch, Historie umschreiben, Löschen von Branches/getrackten Dateien/Remote-Refs, Secrets, Kommentare auf fremden PRs oder Issues, externe Provider-Calls außerhalb des Oracle-Gates, Änderung der Verfassung.
+
+Die Pflichten machen das Mandat erst vertretbar: jede darin getroffene Entscheidung landet im Ledger — **ein Mandat ohne Protokoll ist keine Autonomie, sondern Unsichtbarkeit** — die Sitzung endet erst mit `seal --push`, der Supervisor läuft vorher, und Angenommenes wird als Annahme benannt.
+
+**Die Grenze wird bewacht, nicht geglaubt.** Die Supervisor-Regel `mandate` rechnet `befehlErforderlich` bei jedem Lauf nach: eine Sitzung, die sich Spielraum verschafft, indem sie einen Eintrag entfernt, wäre sonst von einer legitimen Master-Entscheidung nicht zu unterscheiden. Ein Gegentest in `tests/test_munin_mandate.py` prüft, dass eine entfernte Schranke tatsächlich auffällt — die erste Fassung der Regel tat das *nicht* (sie prüfte mit `any()` über lose Stichwörter, und „push" steckt auch in „force-push").
+
+Änderungen an der Verfassung werden als `amendments`-Eintrag mit dem ersetzten Wortlaut protokolliert; stilles Überschreiben ist kein zulässiges Verfahren. Der frühere Schalter `immutable: true` widersprach dem Master-Recht, jede Regel zu ändern — jetzt `amendable.durch: Master` plus `immutableFor: [munin, claude, provider]`.
+
 ## Autoritätshierarchie (Verfassung)
 
 Festgelegt in `.claude/persona/constitution.json`:
