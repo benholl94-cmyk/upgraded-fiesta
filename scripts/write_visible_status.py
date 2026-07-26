@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-MONITOR_REPORT = ROOT / "logs" / "monitoring-report.json"
-VISIBLE_STATUS = ROOT / "logs" / "visible-status.json"
+MONITOR_REPORT = ROOT / "status" / "monitoring-report.json"
+VISIBLE_STATUS = ROOT / "status" / "visible-status.json"
 
 
 def read_json(path: Path) -> dict[str, Any]:

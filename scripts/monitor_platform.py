@@ -16,7 +16,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "monitoring" / "required-files.json"
-REPORT_PATH = ROOT / "logs" / "monitoring-report.json"
+REPORT_PATH = ROOT / "status" / "monitoring-report.json"
 
 
 def read_json(path: Path) -> dict[str, Any]:

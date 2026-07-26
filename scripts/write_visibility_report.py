@@ -15,9 +15,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORT = ROOT / "logs" / "visible-monitoring-report.json"
-MONITOR_REPORT = ROOT / "logs" / "monitoring-report.json"
-MONITOR_STDOUT = ROOT / "logs" / "monitoring-stdout.txt"
+REPORT = ROOT / "status" / "visible-monitoring-report.json"
+MONITOR_REPORT = ROOT / "status" / "monitoring-report.json"
+MONITOR_STDOUT = ROOT / "status" / "monitoring-stdout.txt"
 
 
 def load_json(path: Path) -> object | None:
@@ -63,7 +63,7 @@ def main() -> int:
         "monitoring_stdout_tail": load_text(MONITOR_STDOUT),
         "visibility_bridge": {
             "purpose": "make hidden CI status visible through repository files",
-            "report_path": "logs/visible-monitoring-report.json",
+            "report_path": "status/visible-monitoring-report.json",
             "manual_action_required": False,
         },
     }
