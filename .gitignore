@@ -71,3 +71,7 @@ config/knowledge-loop-state.json
 
 # Keyring-Ablage — Master-Seed, niemals im Index
 .hugin/
+
+# Container-Spiegel, seit PR #74/Folgearbeit nicht mehr getrackt.
+# Bleibt lokal liegen; ohne diesen Eintrag meldet der Stop-Hook ihn dauerhaft.
+self_space_workspace_/
