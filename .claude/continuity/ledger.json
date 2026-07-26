@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T05:02:00+00:00",
+  "updated": "2026-07-26T05:19:54+00:00",
   "session": 2,
   "entries": [
     {
@@ -99,6 +99,38 @@
       ],
       "state": "offen",
       "weight": 2
+    },
+    {
+      "id": "s2-9",
+      "session": 2,
+      "ts": "2026-07-26T05:19:54+00:00",
+      "kind": "sackgasse",
+      "text": "Einen festen Branch in den Trigger-Prompt zu schreiben scheitert beim ersten Merge: sobald der PR gemerged ist, kann der Branch keine neue Arbeit mehr tragen — weiterstapeln versteckt sie hinter einem erledigten PR. Beobachtet an PR #78, gemerged am Tag der Einrichtung. Der Prompt muss stattdessen selbst 'git fetch origin main && git checkout -B <neu> origin/main' ausfuehren.",
+      "anchors": [
+        "sha:b9be326"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-10",
+      "session": 2,
+      "ts": "2026-07-26T05:19:54+00:00",
+      "kind": "invariante",
+      "text": "Ein Prompt, der wiederkehrend feuert, darf keinen Zustand enthalten, der altern kann: kein Branchname, kein Projektstand, keine offenen Punkte. Alles davon kommt aus dem Ledger. Der Prompt beschreibt nur das Verfahren.",
+      "anchors": [],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-11",
+      "session": 2,
+      "ts": "2026-07-26T05:19:54+00:00",
+      "kind": "offen",
+      "text": "Trigger trig_01XgF7i47UrreHKpTmexRyog feuert taeglich 06:00 UTC noch mit dem ALTEN, branch-gebundenen Prompt. Die Korrektur wurde eingereicht, braucht aber Master-Freigabe (MCP requires approval). Bis dahin laeuft die erste Firing auf einem gemergten Branch. Ebenfalls offen: Loeschen des obsoleten PR-Watch-Triggers trig_01DM9E7i9BGBnFVSbFhWri35.",
+      "anchors": [],
+      "state": "offen",
+      "weight": 3
     }
   ]
 }
