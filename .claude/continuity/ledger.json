@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T15:43:57+00:00",
+  "updated": "2026-07-26T16:13:08+00:00",
   "session": 2,
   "entries": [
     {
@@ -345,6 +345,42 @@
       ],
       "state": "offen",
       "weight": 1
+    },
+    {
+      "id": "s2-30",
+      "session": 2,
+      "ts": "2026-07-26T16:13:08+00:00",
+      "kind": "invariante",
+      "text": "Verfuegbarkeit wird gemessen, nie gelesen. Ein Netzdienst gilt erst nach TCP-Handshake als erreichbar, eine Sperre erst nach Nachrechnen als offen. Zwei Verstoesse gab es bereits, beide in dieselbe Richtung: als tragend melden, was nicht traegt.",
+      "anchors": [
+        "path:scripts/hugin_clarity.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-31",
+      "session": 2,
+      "ts": "2026-07-26T16:13:08+00:00",
+      "kind": "sackgasse",
+      "text": "Testskripte zur Laufzeit anlegen und ausfuehren erzeugt 'Text file busy' (fork/exec-Wettlauf, ~40 Prozent rot bei parallelen Tests). Kein sleep, kein Mutex: /bin/sh ausfuehren und den Skriptkoerper als Argument uebergeben - dann gibt es das Fenster nicht.",
+      "anchors": [
+        "path:crates/hm-plugins/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-32",
+      "session": 2,
+      "ts": "2026-07-26T16:13:08+00:00",
+      "kind": "entscheidung",
+      "text": "CORS-Header werden einmal zentral auf die fertige Antwort gesetzt (apply_cors), nicht durch 30 json_response-Aufrufstellen gefaedelt. Verworfen: Parameter durchreichen - 30 Gelegenheiten, eine zu vergessen, und eine vergessene faellt im Browser lautlos aus.",
+      "anchors": [
+        "path:crates/hm-gateway/src/main.rs"
+      ],
+      "state": "offen",
+      "weight": 2
     }
   ]
 }
