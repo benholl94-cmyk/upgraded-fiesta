@@ -23,6 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from . import budget as _budget
 from .protocol import AgentPatch, AgentResult, AgentTask, ProtocolError, parse_result
 
 REPO = Path(__file__).resolve().parent.parent
@@ -129,6 +130,13 @@ class OracleCodexAdapter(AgentAdapter):
         self.timeout = timeout
 
     def available(self) -> tuple[bool, str]:
+        # Kostenbremse zuerst: ein gesperrter Provider ist nicht verfuegbar,
+        # egal ob ein Key gesetzt ist. Die Reihenfolge ist wichtig -- wer
+        # erst den Key prueft, meldet "bereit" fuer etwas, das nie laufen darf.
+        try:
+            _budget.check(self.provider)
+        except _budget.BudgetBlocked as exc:
+            return False, str(exc).splitlines()[0]
         try:
             oracle = _load_oracle()
         except AdapterError as exc:
@@ -146,6 +154,10 @@ class OracleCodexAdapter(AgentAdapter):
         return True, "bereit"
 
     def execute(self, task: AgentTask) -> AgentResult:
+        # Zweite Pruefung im Ausfuehrungspfad: available() kann veraltet sein,
+        # und eine Kostensperre darf nicht davon abhaengen, dass jemand vorher
+        # gefragt hat.
+        _budget.check(self.provider)
         ok, why = self.available()
         if not ok:
             raise AdapterError(why)

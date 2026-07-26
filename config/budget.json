@@ -1,0 +1,9 @@
+{
+  "_hinweis": "development_phase=true sperrt jeden abrechnungspflichtigen Provider. Loesen nur mit Begruendung.",
+  "allow_metered": false,
+  "development_phase": true,
+  "monthly_cap_eur": 0.0,
+  "schema": "hugin.budget.v1",
+  "unlock_reason": "",
+  "unlocked_at": ""
+}

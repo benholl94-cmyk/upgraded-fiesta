@@ -158,15 +158,33 @@ def test_codex_adapter_is_marked_unverified():
 
 
 def test_codex_adapter_reports_missing_key_instead_of_crashing(monkeypatch):
+    """Der Key-Grund erscheint erst, wenn die Kostenbremse geloest ist.
+    Die Reihenfolge ist Absicht: 'bereit, es fehlt nur der Key' waere eine
+    falsche Auskunft ueber einen Provider, der ohnehin nicht laufen darf."""
     monkeypatch.delenv("HUGIN_OPENAI_KEY", raising=False)
+    from agents import budget as _bg
+    monkeypatch.setattr(_bg.Budget, "load",
+                        classmethod(lambda cls, path=None: _bg.Budget(allow_metered=True)))
     ok, why = ad.OracleCodexAdapter().available()
     assert ok is False and "HUGIN_OPENAI_KEY" in why
 
 
 def test_codex_adapter_refuses_to_run_without_key(monkeypatch):
     monkeypatch.delenv("HUGIN_OPENAI_KEY", raising=False)
+    from agents import budget as _bg
+    monkeypatch.setattr(_bg.Budget, "load",
+                        classmethod(lambda cls, path=None: _bg.Budget(allow_metered=True)))
     with pytest.raises(ad.AdapterError):
         ad.OracleCodexAdapter().execute(task())
+
+
+def test_cost_guard_takes_precedence_over_the_missing_key(monkeypatch):
+    """Mit aktiver Bremse nennt der Adapter die Kosten, nicht den Key —
+    sonst repariert jemand den Key und wundert sich, dass es trotzdem
+    nicht laeuft."""
+    monkeypatch.delenv("HUGIN_OPENAI_KEY", raising=False)
+    ok, why = ad.OracleCodexAdapter().available()
+    assert ok is False and "Kostenbremse" in why
 
 
 def test_codex_skill_scope_exists_in_the_oracle_gate():
@@ -246,6 +264,7 @@ def test_ledger_records_which_files_left_the_device(orch):
 
 def test_dispatch_to_unavailable_agent_fails_loudly(orch, monkeypatch):
     monkeypatch.delenv("HUGIN_OPENAI_KEY", raising=False)
+    # Grund egal (Bremse oder Key) -- es muss laut scheitern, nicht still.
     t = orch.build_task("t-007", "explain", "x")
     with pytest.raises(OrchestratorError):
         orch.dispatch(t, "codex")
