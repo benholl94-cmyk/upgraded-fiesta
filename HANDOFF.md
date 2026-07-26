@@ -1,6 +1,6 @@
 # Übergabe
 
-Erzeugt 2026-07-26T11:21:53+00:00 von `scripts/munin_session.py`. **Nicht von Hand pflegen** —
+Erzeugt 2026-07-26T12:57:16+00:00 von `scripts/munin_session.py`. **Nicht von Hand pflegen** —
 neu erzeugen mit `python3 scripts/munin_session.py brief --write`.
 
 Zwei Hälften, klar getrennt: was aus dem Repo ableitbar ist, steht unter
@@ -13,17 +13,16 @@ beide — `munin_session.py guard` findet Verstöße.
 | | |
 |---|---|
 | Branch | `claude/claud-ai-code-teleport-nx73zr` |
-| HEAD | `5d4ce77 chore: self_space_workspace_ ignorieren` |
+| HEAD | `3d015cd feat(session): eine Uebergabe statt zwei, mit durchgesetzter Grenze` |
 | Ungepusht | 0 |
 | Arbeitsbaum schmutzig | ja |
-| Getrackte Dateien | 277 |
+| Getrackte Dateien | 279 |
 
 ### Offene Befunde
 
 | Schwere | Regel | Befund |
 |---|---|---|
 | VIOLATION | `git-identity-collision` | Committer-Mail ist noreply@anthropic.com, Verfassung verlangt 274793931+benholl94-cmyk@users.noreply |
-| VIOLATION | `hook-drift` | stop-hook-git-check.sh weicht von der installierten Fassung ab |
 
 Begründungen: `python3 scripts/munin_supervisor.py --quick`
 
@@ -84,6 +83,7 @@ python3 scripts/munin_supervisor.py --quick # Verfassungs-Audit
 ### Letzte Commits
 
 ```
+3d015cd feat(session): eine Uebergabe statt zwei, mit durchgesetzter Grenze
 5d4ce77 chore: self_space_workspace_ ignorieren
 bcac905 feat(handoff): gemessene Uebergabe an die naechste Sitzung
 4e7c025 Update visible platform status [skip ci]
@@ -91,6 +91,5 @@ dfce32f Update visible monitoring report
 dcf9c71 Update visible monitoring report
 b40950f Update visible platform status [skip ci]
 8c22864 Merge pull request #82 from benholl94-cmyk/claude/aufraeumen-reste
-3314dea chore: toten Baum und Waise entfernt, Reste mitgeräumt
 ```
 
