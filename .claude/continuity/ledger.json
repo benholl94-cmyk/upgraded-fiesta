@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T05:43:27+00:00",
+  "updated": "2026-07-26T05:55:02+00:00",
   "session": 2,
   "entries": [
     {
@@ -211,6 +211,54 @@
       "anchors": [
         "sha:b143e4e"
       ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-19",
+      "session": 2,
+      "ts": "2026-07-26T05:48:49+00:00",
+      "kind": "sackgasse",
+      "text": "Der Stop-Hook meldete drei Commits als 'Unverified', die gar nicht von MUNIN stammen: zwei github-actions[bot] und der Merge-Commit des Masters, alle auf origin/main. Ursache: nach dem Branch-Reset auf origin/main zeigt origin/<branch> noch auf den Vor-Merge-Stand, und die ALTE installierte Hook-Fassung vergleicht gegen dieses Tracking-Ref statt gegen den Default-Branch. Seiner Anweisung zu folgen haette fremde Commits geamendet, den Merge verwaist und ueber main force-gepusht. Die Repo-Fassung enthaelt den Fix bereits — install_hooks.py --yes loest es, nicht ein Rebase.",
+      "anchors": [
+        "path:.claude/hooks/stop-hook-git-check.sh",
+        "path:tests/test_stop_hook.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-20",
+      "session": 2,
+      "ts": "2026-07-26T05:48:49+00:00",
+      "kind": "invariante",
+      "text": "Alles unter ~/.claude/ ist Container-fluechtig. Ein dort behobener Fehler kommt beim naechsten Container zurueck, und zwar unsichtbar — im Diff steht nichts. Repo-seitige Reparaturen brauchen deshalb einen SessionStart-Hook, der sie bei jedem Start neu einspielt.",
+      "anchors": [
+        "path:.claude/settings.json"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-21",
+      "session": 2,
+      "ts": "2026-07-26T05:55:02+00:00",
+      "kind": "sackgasse",
+      "text": "Der Stop-Hook pruefte Signaturen mit 'git log --format=%G?' und behandelte N als 'unsigniert'. Falsch: CCR signiert per SSH OHNE gpg.ssh.allowedSignersFile, git kann dann gar nicht verifizieren und meldet N fuer signierte wie unsignierte Commits gleichermassen. Belegt an 9d29122, dessen Rohobjekt einen gpgsig-Header traegt. Die vorgeschlagene Abhilfe haette einen Force-Push auf bereits gepushte Commits verlangt — verboten und wirkungslos. Richtig ist die Praesenzpruefung des Headers im Rohobjekt.",
+      "anchors": [
+        "path:.claude/hooks/stop-hook-git-check.sh",
+        "sha:9d29122"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-22",
+      "session": 2,
+      "ts": "2026-07-26T05:55:02+00:00",
+      "kind": "invariante",
+      "text": "Ein unbestimmtes Ergebnis darf nie zu einem bestimmten kollabiert werden — weder zur guten noch zur schlechten Seite. Auto-Rollback las 'unknown' als 'gruen' (falsch-negativ), der Stop-Hook las 'nicht verifizierbar' als 'unsigniert' (falsch-positiv). Dieselbe Fehlerklasse, zweimal unabhaengig aufgetreten. Pruefe, was feststellbar ist, nicht was du gern wuesstest.",
+      "anchors": [],
       "state": "offen",
       "weight": 3
     }
