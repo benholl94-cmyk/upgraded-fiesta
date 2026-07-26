@@ -54,7 +54,12 @@
         history.replaceState(null, '', location.pathname);
       } else {
         /* Falsches Token → Lite-Version */
-        location.replace('./lite/');
+        (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
+        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
+        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
+        document.documentElement.style.visibility='visible';})();
         return;
       }
     }
@@ -62,7 +67,12 @@
     /* Token aus Storage prüfen */
     const stored = localStorage.getItem(KEY_TOKEN);
     if(!stored){
-      location.replace('./lite/');
+      (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
+        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
+        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
+        document.documentElement.style.visibility='visible';})();
       return;
     }
     const h2 = await sha256(stored);
@@ -70,7 +80,12 @@
       /* Manipulierter Storage-Wert */
       localStorage.removeItem(KEY_TOKEN);
       localStorage.removeItem(KEY_SEALED);
-      location.replace('./lite/');
+      (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
+        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
+        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
+        document.documentElement.style.visibility='visible';})();
       return;
     }
     window.__HUGIN_ADMIN = true;
@@ -80,7 +95,12 @@
 
   /* Seite zunächst unsichtbar halten bis Gate-Check abgeschlossen */
   document.documentElement.style.visibility = 'hidden';
-  boot().catch(() => location.replace('./lite/'));
+  boot().catch(() => { (function(){document.documentElement.innerHTML='<head><meta charset="utf-8">'+
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+        '<title>HUGIN</title></head><body style="margin:0;display:grid;'+
+        'place-items:center;min-height:100vh;background:#05070a;color:#3a4450;'+
+        'font:14px/1.6 system-ui,sans-serif">Kein Zugang.</body>';
+        document.documentElement.style.visibility='visible';})(); });
 })();
 </script>
 <style>

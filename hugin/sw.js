@@ -1,5 +1,5 @@
 /* HUGIN Service Worker — Cache-First, Offline-capable */
-const CACHE = 'hugin-v6';
+const CACHE = 'hugin-v7';
 const SHELL = [
   './',
   './index.html',
@@ -7,8 +7,6 @@ const SHELL = [
   './manifest.json',
   './icon-512.svg',
   './icon-192.svg',
-  './lite/',
-  './lite/index.html',
 ];
 
 self.addEventListener('install', e => {

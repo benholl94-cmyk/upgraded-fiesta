@@ -280,10 +280,26 @@ async fn main() -> anyhow::Result<()> {
                 );
                 std::process::exit(1);
             }
+            // Der Ausschalter gilt nur auf Loopback. Ohne diese Pruefung war
+            // "nur lokal verwenden" eine Bitte im Log; jetzt ist es eine
+            // Bedingung. Ein unauthentifiziertes Gateway auf 0.0.0.0 ist
+            // offen fuer jeden im Netz.
+            let loopback = bind.starts_with("127.")
+                || bind.starts_with("localhost:")
+                || bind.starts_with("[::1]");
+            if !loopback {
+                eprintln!(
+                    "hm-gateway: refusing to start. {}=true is only honoured on a \
+                     loopback bind, but HM_GATEWAY_BIND is {bind:?}. Either bind to \
+                     127.0.0.1 or set a real {}.",
+                    ALLOW_NO_AUTH_VAR,
+                    hm_auth::OWNER_TOKEN_VAR
+                );
+                std::process::exit(1);
+            }
             eprintln!(
-                "hm-gateway: WARNING -- running with no owner authentication ({} is set). \
-                 Every route is unauthenticated. Do not expose this port to anything but \
-                 localhost/trusted networks.",
+                "hm-gateway: WARNING -- running with no owner authentication ({} is set) \
+                 on loopback {bind:?}. Every route is unauthenticated.",
                 ALLOW_NO_AUTH_VAR
             );
             None
@@ -957,10 +973,55 @@ fn raw_response(status: u16, content_type: &str, body: &[u8]) -> Vec<u8> {
     response
 }
 
+/// Origins die das Gateway aus einem Browser aufrufen duerfen.
+///
+/// `HM_ALLOWED_ORIGINS` als kommaseparierte Liste, z.B.
+/// `https://benholl94-cmyk.github.io,http://localhost:5173`.
+/// Nicht gesetzt heisst: **keine** fremde Origin. `*` war die alte
+/// Voreinstellung und ist bewusst nicht mehr der Fallback -- eine
+/// Wildcard laesst jede beliebige Website Anfragen im Namen des Browsers
+/// stellen, sobald sie an das Token kommt.
+fn allowed_origin(request_origin: Option<&str>) -> Option<String> {
+    allowed_origin_from(&env::var("HM_ALLOWED_ORIGINS").unwrap_or_default(), request_origin)
+}
+
+/// Reine Funktion -- die Konfiguration kommt als Parameter, nicht aus der
+/// Prozessumgebung. Tests, die `env::set_var` benutzen, beeinflussen sich
+/// bei Rusts paralleler Testausfuehrung gegenseitig; genau das ist hier
+/// einmal passiert und hat einen Wackeltest erzeugt.
+fn allowed_origin_from(configured: &str, request_origin: Option<&str>) -> Option<String> {
+    if configured.trim() == "*" {
+        // Ausdrueckliche Wildcard bleibt moeglich, aber nur wenn sie jemand
+        // hinschreibt -- nicht als stiller Standard.
+        return Some("*".to_string());
+    }
+    let origin = request_origin?;
+    configured
+        .split(',')
+        .map(str::trim)
+        .filter(|o| !o.is_empty())
+        .find(|o| *o == origin)
+        .map(str::to_string)
+}
+
 fn common_headers(content_type: &str) -> String {
-    format!(
-        "Content-Type: {content_type}\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\nAccess-Control-Allow-Headers: content-type, accept, authorization\r\nConnection: close\r\n"
-    )
+    common_headers_for(content_type, None)
+}
+
+fn common_headers_for(content_type: &str, request_origin: Option<&str>) -> String {
+    let mut headers = format!(
+        "Content-Type: {content_type}\r\nAccess-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\nAccess-Control-Allow-Headers: content-type, accept, authorization\r\n"
+    );
+    if let Some(origin) = allowed_origin(request_origin) {
+        headers.push_str(&format!("Access-Control-Allow-Origin: {origin}\r\n"));
+        if origin != "*" {
+            // Ohne Vary cachen Proxies die Antwort fuer eine Origin und
+            // liefern sie einer anderen aus.
+            headers.push_str("Vary: Origin\r\n");
+        }
+    }
+    headers.push_str("Connection: close\r\n");
+    headers
 }
 
 fn reason_phrase(status: u16) -> &'static str {
@@ -1092,5 +1153,45 @@ mod audit_tests {
         assert_eq!(extract_status_code(&binary_response(200, b"x")), 200);
         assert_eq!(extract_status_code(&json_response(429, json!({}))), 429);
         assert_eq!(extract_status_code(&json_response(404, json!({}))), 404);
+    }
+
+    /// Die Wildcard war die alte Voreinstellung. Sie darf nur noch
+    /// erscheinen, wenn jemand sie ausdruecklich hinschreibt.
+    #[test]
+    fn cors_denies_unknown_origin_by_default() {
+        assert_eq!(allowed_origin_from("", Some("https://boese.example")), None);
+        assert_eq!(allowed_origin_from("", None), None);
+    }
+
+    #[test]
+    fn cors_allows_only_configured_origins() {
+        let cfg = "https://a.example, https://b.example";
+        assert_eq!(
+            allowed_origin_from(cfg, Some("https://a.example")),
+            Some("https://a.example".to_string())
+        );
+        assert_eq!(allowed_origin_from(cfg, Some("https://c.example")), None);
+    }
+
+    #[test]
+    fn cors_wildcard_requires_explicit_opt_in() {
+        assert_eq!(
+            allowed_origin_from("*", Some("https://beliebig.example")),
+            Some("*".to_string())
+        );
+    }
+
+    /// Eine Origin, die nur Praefix einer erlaubten ist, darf nicht passen.
+    #[test]
+    fn cors_matches_origins_exactly() {
+        let cfg = "https://a.example";
+        assert_eq!(allowed_origin_from(cfg, Some("https://a.example.boese.tld")), None);
+        assert_eq!(allowed_origin_from(cfg, Some("https://a.exampl")), None);
+    }
+
+    #[test]
+    fn cors_header_absent_when_origin_not_allowed() {
+        let h = common_headers_for("application/json", Some("https://fremd.example"));
+        assert!(!h.contains("Access-Control-Allow-Origin"));
     }
 }
