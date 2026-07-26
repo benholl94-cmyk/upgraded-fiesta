@@ -514,3 +514,18 @@ Example `config/cron.json`:
 ## Autonomy layer (Python, out-of-process)
 
 `scripts/autonomy_core.py` and `scripts/repo_tracker.py` are not part of the Rust gateway binary. They run as separate Python processes and interact with the gateway only via its HTTP API (same bearer-token auth). They are the self-monitoring / self-healing / self-documentation layer of the platform and are tracked in `.claude/persona/autonomy-state.json`.
+
+## `HM_ALLOWED_ORIGINS`
+
+Kommaseparierte Liste der Origins, die das Gateway aus einem Browser aufrufen duerfen.
+
+| Wert | Wirkung |
+|---|---|
+| nicht gesetzt | **Keine** fremde Origin. Kein `Access-Control-Allow-Origin`-Header. |
+| `https://a.example,https://b.example` | Nur exakt diese. `Vary: Origin` wird gesetzt. |
+| `*` | Jede Origin — nur nach ausdruecklichem Hinschreiben, nie als Standard. |
+
+Der Abgleich ist exakt: `https://a.example.boese.tld` passt **nicht** auf `https://a.example`.
+
+Vor PR #76 stand hier eine feste Wildcard. Wer nach dem Update eine leere Antwort
+im Browser sieht, hat diese Variable nicht gesetzt.
