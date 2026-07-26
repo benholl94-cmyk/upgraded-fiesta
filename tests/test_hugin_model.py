@@ -81,9 +81,67 @@ def test_grounded_prompt_says_so_when_nothing_is_proven():
     assert "keine" in out.lower() and "Praezedenzfall" in out
 
 
-def test_system_prompt_forbids_invention():
-    assert "erfinde nichts" in hm.SYSTEM.lower()
-    assert "invariante" in hm.SYSTEM.lower()
+def test_persona_lives_in_config_not_in_code():
+    """Die Regelschicht gehoert dem Master. Steht sie im Skript, kann er sie
+    nur aendern indem er den Code aendert — das waere eine Auferlegung."""
+    src = pathlib.Path(hm.__file__).read_text(encoding="utf-8")
+    assert "SYSTEM =" not in src
+    assert hm.PERSONA.is_file()
+    p = hm.persona()
+    assert p["regeln"] and all("aktiv" in r and "quelle" in r for r in p["regeln"])
+
+
+def test_active_rules_reach_the_prompt():
+    txt = hm.system_text()
+    aktive = [r["text"] for r in hm.persona()["regeln"] if r["aktiv"]]
+    assert aktive, "keine Regel aktiv — dann trifft dieser Test nichts"
+    for t in aktive:
+        assert t in txt
+
+
+def test_all_rules_off_yields_a_raw_model():
+    """Der entscheidende Fall: sind alle Regeln aus, bleibt kein Satz uebrig.
+    Kein Restsatz, der sich durch das Abschalten hindurch behauptet."""
+    p = {"identitaet": {"aktiv": False, "text": "x"},
+         "regeln": [{"id": "a", "aktiv": False, "text": "y"}]}
+    assert hm.system_text(p) == ""
+
+
+def test_disabled_rule_is_absent_not_merely_weakened():
+    p = hm.persona()
+    for r in p["regeln"]:
+        r["aktiv"] = False
+    txt = hm.system_text(p)
+    for r in hm.persona()["regeln"]:
+        assert r["text"] not in txt
+
+
+def test_persona_is_never_written_by_the_script():
+    """Nur lesen. Ein Skript das die Regeln des Masters zurueckschreibt,
+    besitzt sie faktisch."""
+    before = hm.PERSONA.read_bytes()
+    hm.grounded_prompt("irgendeine frage")
+    assert hm.PERSONA.read_bytes() == before
+
+
+def test_grounding_can_be_switched_off(monkeypatch):
+    """Erdung aus -> keine Belege, kein Ohne-Beleg-Hinweis. Dann ist es ein
+    beliebiges 12B-Modell, und das ist eine zulaessige Wahl des Masters."""
+    p = hm.persona()
+    p["erdung"] = {"aktiv": False}
+    p["regeln"] = []
+    p["identitaet"] = {"aktiv": False}
+    monkeypatch.setattr(hm, "persona", lambda: p)
+    out = hm.grounded_prompt("Ungepushten Commit im Container liegen lassen")
+    assert "BELEGE" not in out
+    assert out.strip() == "AUFGABE: Ungepushten Commit im Container liegen lassen"
+
+
+def test_no_rule_originates_from_a_vendor_policy():
+    """Jede Regel nennt ihre Herkunft, und keine ist meine."""
+    for r in hm.persona()["regeln"]:
+        assert r["quelle"], f"{r['id']} ohne Quelle"
+        assert "anthropic" not in r["quelle"].lower()
 
 
 def test_grammar_constrains_to_the_schema():

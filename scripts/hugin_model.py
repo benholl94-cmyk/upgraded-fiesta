@@ -27,6 +27,17 @@ Fähigkeit. Der Unterschied entsteht **eine Schicht darüber**:
 Punkt 1 ist der eigentliche Rebrand: dasselbe Gewichtsfile, an eine Quelle
 gebunden, die kein anderer hat.
 
+## Wem die Regelschicht gehoert
+
+Sie stand hier hartkodiert. Damit war sie eine Auferlegung durch den Code —
+auch dort, wo ihr Inhalt aus dem Ledger und der Verfassung des Masters kam,
+denn aendern liess sie sich nur durch Aendern dieses Skripts. Jetzt liegt sie
+in `config/kern-persona.json`, jede Regel einzeln abschaltbar und mit
+angegebener Quelle. Dieses Skript **liest** sie und schreibt sie nie. Sind
+alle Regeln aus, ist der Systemtext leer und das Modell laeuft roh; ist
+zusaetzlich die Erdung aus, ist es ein gewoehnliches 12B-Modell. Beides sind
+zulaessige Zustaende, keine Fehler.
+
 ## Lizenz
 
 Mellum2 steht unter Apache-2.0 — Änderung und Weitergabe sind ausdrücklich
@@ -91,18 +102,35 @@ def verify(path: Path) -> tuple[bool, str]:
 # Erdung -- der eigentliche Unterschied
 # ---------------------------------------------------------------------------
 
-SYSTEM = """Du bist der HUGIN-Kern, gebunden an das Repository \
-benholl94-cmyk/upgraded-fiesta.
+PERSONA = REPO / "config" / "kern-persona.json"
 
-Harte Regeln:
-- Antworte NUR aus den BELEGEN unten und aus dem gezeigten Code. Steht etwas
-  nicht darin, sage "nicht belegt" — erfinde nichts.
-- Eine INVARIANTE ist keine Empfehlung. Widerspricht die Aufgabe einer,
-  verweigere und nenne sie.
-- Eine SACKGASSE bedeutet: dieser Weg wurde versucht und ist gescheitert.
-  Schlage ihn nicht erneut vor.
-- Keine Vorrede, keine Zusammenfassung der Frage. Erster Satz ist die Antwort.
-"""
+
+def persona() -> dict:
+    """Die Regelschicht gehoert dem Master, nicht diesem Skript.
+
+    Frueher stand sie hier hartkodiert. Damit war sie eine Auferlegung durch
+    den Code — unabhaengig davon, dass ihr Inhalt aus dem Ledger und der
+    Verfassung des Masters stammte. Wer sie aendern wollte, musste dieses
+    Skript aendern. Jetzt liest das Skript nur.
+    """
+    if not PERSONA.is_file():
+        return {"identitaet": {"aktiv": False}, "erdung": {"aktiv": True},
+                "regeln": []}
+    return json.loads(PERSONA.read_text(encoding="utf-8"))
+
+
+def system_text(p: dict | None = None) -> str:
+    """Aus der Konfiguration gebaut. Alle Regeln aus -> leerer Text,
+    das Modell laeuft roh."""
+    p = p if p is not None else persona()
+    teile = []
+    ident = p.get("identitaet", {})
+    if ident.get("aktiv") and ident.get("text"):
+        teile.append(ident["text"])
+    aktive = [r for r in p.get("regeln", []) if r.get("aktiv") and r.get("text")]
+    if aktive:
+        teile += ["", "Harte Regeln:"] + [f"- {r['text']}" for r in aktive]
+    return "\n".join(teile)
 
 
 def grounded_prompt(question: str, paths: tuple[str, ...] = ()) -> str:
@@ -111,32 +139,41 @@ def grounded_prompt(question: str, paths: tuple[str, ...] = ()) -> str:
     Ohne diesen Schritt waere es ein beliebiges 12B-Modell. Mit ihm antwortet
     es aus geprueften Fakten dieses Repos.
     """
-    sys.path.insert(0, str(REPO))
+    p = persona()
+    erdung = p.get("erdung", {})
     belege, verboten = [], []
-    try:
-        from agents.kernel import Situation, infer
-        r = infer(Situation(text=question, paths=paths))
-        if r.verdict == "verboten":
-            verboten = [c.text for c in r.blocking]
-        belege = [(e.case.kind, e.case.text, e.score) for e in r.evidence]
-    except Exception as exc:
-        belege = []
-        verboten = []
-        print(f"# Kernel nicht verfuegbar: {exc}", file=sys.stderr)
 
-    parts = [SYSTEM]
+    # Erdung abschaltbar: aus -> keine Kernel-Abfrage, keine Belege im Prompt.
+    # Dann ist es ein beliebiges 12B-Modell, und genau das steht in _wirkung.
+    if erdung.get("aktiv", True):
+        sys.path.insert(0, str(REPO))
+        try:
+            from agents.kernel import Situation, infer
+            r = infer(Situation(text=question, paths=paths))
+            if r.verdict == "verboten":
+                verboten = [c.text for c in r.blocking]
+            belege = [(e.case.kind, e.case.text, e.score) for e in r.evidence]
+        except Exception as exc:
+            belege, verboten = [], []
+            print(f"# Kernel nicht verfuegbar: {exc}", file=sys.stderr)
+
+    parts: list[str] = []
+    kopf = system_text(p)
+    if kopf:
+        parts.append(kopf)
     if verboten:
-        parts += ["VERBOTEN (Invariante verletzt — verweigere die Aufgabe):"]
+        parts += ["", "VERBOTEN (Invariante verletzt — verweigere die Aufgabe):"]
         parts += [f"- {t}" for t in verboten]
     if belege:
         parts += ["", "BELEGE aus der verifizierten Historie dieses Repos:"]
         for kind, text, score in belege:
             parts.append(f"- [{kind}, Naehe {score:.2f}] {text}")
-    else:
-        parts += ["", "BELEGE: keine. Es gibt keinen Praezedenzfall im Repo.",
-                  "Sage das ausdruecklich, statt allgemeines Wissen auszugeben."]
+    elif erdung.get("aktiv", True):
+        ohne = erdung.get("ohne_beleg_text", "").strip()
+        if ohne:
+            parts += ["", ohne]
     parts += ["", f"AUFGABE: {question}"]
-    return "\n".join(parts)
+    return "\n".join(parts).lstrip("\n")
 
 
 # GBNF zwingt die Ausgabe in das Schema aus agents/protocol.py. Ohne Grammatik
@@ -178,6 +215,25 @@ def cmd_prompt(a) -> int:
     return 0
 
 
+def cmd_persona(_a) -> int:
+    p = persona()
+    ident = p.get("identitaet", {})
+    print(f"Datei    {PERSONA.relative_to(REPO)}  (gehoert dem Master, nur gelesen)")
+    print(f"Identitaet  {'an ' if ident.get('aktiv') else 'aus'}  {ident.get('text','')}")
+    print(f"Erdung      {'an ' if p.get('erdung',{}).get('aktiv', True) else 'aus'}")
+    print("Regeln:")
+    for r in p.get("regeln", []):
+        print(f"  [{'x' if r.get('aktiv') else ' '}] {r['id']:<18} Quelle: {r.get('quelle','—')}")
+        if not r.get("aktiv") and r.get("_folge_wenn_aus"):
+            print(f"      Folge: {r['_folge_wenn_aus']}")
+    txt = system_text(p)
+    print("\nWirksamer Systemtext:" if txt else
+          "\nSystemtext leer — das Modell laeuft roh.")
+    if txt:
+        print(txt)
+    return 0
+
+
 def cmd_grammar(_a) -> int:
     print(GRAMMAR)
     return 0
@@ -195,6 +251,8 @@ def main(argv: list[str] | None = None) -> int:
     pr.set_defaults(func=cmd_prompt)
     sub.add_parser("grammar", help="GBNF fuer das Antwortschema").set_defaults(
         func=cmd_grammar)
+    sub.add_parser("persona", help="welche Regeln gerade greifen").set_defaults(
+        func=cmd_persona)
     a = p.parse_args(argv)
     return a.func(a)
 
