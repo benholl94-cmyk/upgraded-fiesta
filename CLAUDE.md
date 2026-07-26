@@ -131,6 +131,16 @@ the Master, real hardware, or a third-party account). Collapsing `EXTERN` into
 `OFFEN` produces a list that is never empty, and a list that is never empty stops
 being read. Exit is `1` only for `OFFEN`.
 
+`--start` is a separate question: **does anything prevent operation**, as
+opposed to merely limiting it. A missing local model limits (T0 still carries,
+the gateway runs, commands and evidence work); a missing `HM_OWNER_TOKEN`
+blocks, because the process refuses to start by design. That distinction was
+missing at first and cost a working handover immediately — the start line
+`hugin_clarity.py --offen && cargo run -p hm-gateway` started the gateway
+**never**, because an un-downloaded 6.6 GB model set the exit to 1. A pre-flight
+check that refuses on any incompleteness gets bypassed the second time, which
+makes it worse than none.
+
 It is a program rather than a checklist for the same reason the supervisor is:
 the line *"31 files tracked despite .gitignore"* sat in this file long after the
 count was 0. A measurement cannot go stale that way.

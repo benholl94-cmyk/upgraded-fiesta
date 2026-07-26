@@ -88,3 +88,37 @@ def test_the_docker_check_reads_the_real_dockerfile():
     text = (REPO / "Dockerfile").read_text(encoding="utf-8")
     punkt = next(p for p in hc.p_kanal() if p.id == "container-gehirn")
     assert (punkt.stand == hc.OK) is ("COPY agents/" in text)
+
+
+def test_start_check_ignores_what_only_limits_capability(monkeypatch):
+    """Der Fehler, den diese Betriebsart behebt: die uebergebene Startzeile
+
+        python3 scripts/hugin_clarity.py --offen && cargo run -p hm-gateway
+
+    startete das Gateway NIE, weil ein nicht heruntergeladenes 6,6-GB-Modell
+    den Ausgang auf 1 setzte. Ein Vorschalt-Check, der bei jeder
+    Unvollstaendigkeit den Start verweigert, wird umgangen — und ist dann
+    schlechter als keiner.
+    """
+    nur_begrenzend = lambda: [                                   # noqa: E731
+        hc.Punkt("modell", "Lokales Modell da?", hc.OFFEN, "fehlt", braucht="gguf")]
+    monkeypatch.setattr(hc, "GRUPPEN", (("g", nur_begrenzend),))
+    assert hc.main(["--start"]) == 0, "Begrenzung darf den Start nicht verweigern"
+    assert hc.main([]) == 1, "als Befund bleibt es offen"
+
+
+def test_start_check_still_stops_a_real_blocker(monkeypatch):
+    """Gegentest: ohne ihn wuerde --start alles durchwinken."""
+    blocker = lambda: [                                          # noqa: E731
+        hc.Punkt("token", "Token da?", hc.EXTERN, "HM_OWNER_TOKEN fehlt",
+                 befehl="eval ...", blockiert_start=True)]
+    monkeypatch.setattr(hc, "GRUPPEN", (("g", blocker),))
+    assert hc.main(["--start"]) == 1
+
+
+def test_only_a_genuine_startup_blocker_carries_the_flag():
+    """Das Gateway startet ohne Owner-Token absichtlich nicht — das ist die
+    einzige Sperre dieser Art. Waechst die Menge unbemerkt, ist die
+    Unterscheidung wieder verloren."""
+    markiert = {p.id for _, ps in hc.sammle() for p in ps if p.blockiert_start}
+    assert markiert <= {"owner-token"}, f"unerwartete Startsperre: {markiert}"

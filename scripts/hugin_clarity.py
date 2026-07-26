@@ -23,9 +23,26 @@ ermittelt — dasselbe Prinzip wie beim Supervisor und beim Ledger-Anker.
 "kann von hier aus prinzipiell nicht getan werden" — wer beides vermischt,
 bekommt eine Liste, die nie leer wird, und hoert auf hinzusehen.
 
-    python3 scripts/hugin_clarity.py            # Bericht
-    python3 scripts/hugin_clarity.py --offen    # nur, was noch fehlt
-    python3 scripts/hugin_clarity.py --json     # maschinenlesbar
+## Begrenzt oder blockiert
+
+Ein fehlendes lokales Modell **begrenzt** das System: T0 traegt, das Gateway
+laeuft, Befehle und Belege funktionieren. Ein fehlendes Owner-Token
+**blockiert** es: der Prozess startet absichtlich gar nicht erst.
+
+Diese Unterscheidung fehlte zuerst, und der Schaden war sofort sichtbar — die
+uebergebene Startzeile lautete
+
+    python3 scripts/hugin_clarity.py --offen && cargo run -p hm-gateway
+
+und startete das Gateway **nie**, weil ein nicht heruntergeladenes 6,6-GB-Modell
+den Ausgang auf 1 setzte. Ein Vorschalt-Check, der den Start bei jeder
+Unvollstaendigkeit verweigert, wird nach dem zweiten Mal umgangen — und damit
+ist er schlechter als keiner.
+
+    python3 scripts/hugin_clarity.py              # Bericht
+    python3 scripts/hugin_clarity.py --offen      # nur, was noch fehlt
+    python3 scripts/hugin_clarity.py --start      # Exit 1 nur bei echten Startsperren
+    python3 scripts/hugin_clarity.py --json       # maschinenlesbar
 """
 
 from __future__ import annotations
@@ -54,6 +71,7 @@ class Punkt:
     braucht: str = ""           # welcher Wert genau fehlt
     befehl: str = ""            # womit er hinkommt
     warum: str = ""             # was passiert, wenn es fehlt
+    blockiert_start: bool = False   # verhindert den Betrieb, statt ihn zu begrenzen
 
     def to_dict(self) -> dict:
         return {k: v for k, v in self.__dict__.items() if v}
@@ -164,6 +182,7 @@ def p_kanal() -> list[Punkt]:
         OK if token else EXTERN,
         "HM_OWNER_TOKEN gesetzt" if token else "HM_OWNER_TOKEN fehlt",
         braucht="ein Owner-Token; der Keyring erzeugt es selbst",
+        blockiert_start=not token,
         befehl='eval "$(python3 scripts/hugin_keyring.py env)"',
         warum="Das Gateway startet ohne Token absichtlich NICHT (fail-closed). "
               "Das ist kein Fehler, sondern die Sperre."))
@@ -303,6 +322,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--offen", action="store_true", help="nur OFFEN und EXTERN")
+    p.add_argument("--start", action="store_true",
+                   help="Exit 1 nur, wenn etwas den Betrieb wirklich verhindert")
     p.add_argument("--json", action="store_true")
     a = p.parse_args(argv)
 
@@ -311,6 +332,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps([{"gruppe": t, "punkte": [x.to_dict() for x in ps]}
                           for t, ps in gruppen], ensure_ascii=False, indent=2))
         return 0
+
+    blocker = [x for _, ps in gruppen for x in ps if x.blockiert_start]
+    if a.start:
+        if not blocker:
+            print("Startfrei: nichts verhindert den Betrieb.")
+            print("Was fehlt, begrenzt nur die Faehigkeit — "
+                  "`--offen` zeigt es.")
+            return 0
+        for x in blocker:
+            print(f"STARTSPERRE  {x.id}: {x.gemessen}")
+            print(f"             {x.befehl}")
+        return 1
 
     zahl = {OK: 0, OFFEN: 0, EXTERN: 0}
     for titel, punkte in gruppen:
