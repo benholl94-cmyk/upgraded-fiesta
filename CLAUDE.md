@@ -147,6 +147,27 @@ python3 scripts/install_hooks.py --yes     # install (backs up the old copy)
 
 The hook's signature and unpushed checks compare against the **default branch**, not the remote tracking branch. Reason, and it is not hypothetical: after a PR merges and the local branch is reset onto main, `origin/<branch>` still points at the pre-merge tip. `origin/<branch>..HEAD` then contains main's own history — the merge commit and CI bot commits — and the hook demanded a rebase over commits belonging to other authors that were already on main. Following it would have orphaned the merge and force-pushed over the default branch. `tests/test_stop_hook.py` pins all of this, including the counter-check that real local work is still caught.
 
+### Session continuity (`scripts/munin_continuity.py`)
+
+`.claude/persona/munin-state.json` is in `.gitignore` (line 67), so **git has never seen it** — `git log` on that path is empty. In a fresh container the file does not exist, and until this was fixed `munin_bridge.py wakeup` — the first command `CLAUDE.md` tells every session to run — died with `FileNotFoundError`. The ignore entry is nevertheless correct: that file is daemon-written live state, and high-frequency writes do not belong in history. Both requirements are legitimate, so **the channels are split**: volatile state stays ignored, and the durable ledger is a separate, rarely-written, committed file at `.claude/continuity/ledger.json`.
+
+**What it stores is the complement of git.** git already holds, permanently: what changed, when, by whom, and every file's content at every point. Prose about that is redundancy, and redundancy rots into drift. So the ledger keeps only what git cannot reconstruct — `entscheidung` (why, including the rejected alternative), `sackgasse` (what was tried and failed: never committed, therefore invisible, therefore repeated — the most expensive loss), `offen`, `invariante`, `notiz`. Dropping something re-derivable from git loses nothing; that is the difference between compaction and truncation.
+
+**Bounded by construction**, because infinite sessions need finite state. Entries age through generations (LSM/generational-GC shape): gen0 (last 2 sessions) verbatim; gen1 drops resolved `offen`/`notiz`; gen2 keeps only `invariante`/`offen`/`sackgasse` plus decisions of weight ≥ 2. Over budget, eviction runs by rank then age — but **never touches `offen` or `invariante`**: the ledger reports RISK rather than silently forgetting open work. Texts are never truncated, only whole entries dropped — half a sentence looks like knowledge and isn't.
+
+**Anchors are recomputed, not believed** (same principle as the supervisor). Entries carry `sha:<rev>` / `path:<file>[:<line>]`; `verify` checks them and flags rot. Anything not locally checkable reports `extern`, never `ok`.
+
+```sh
+python3 scripts/munin_continuity.py resume        # session start: compressed brief
+python3 scripts/munin_continuity.py capture --kind sackgasse --text "..." --anchor sha:abc123
+python3 scripts/munin_continuity.py verify        # anchors + durability
+python3 scripts/munin_continuity.py compact
+python3 scripts/munin_continuity.py seal --push   # a session is not over until this passes
+python3 scripts/munin_continuity.py handoff-prompt  # standalone prompt for the next session
+```
+
+`seal --push` is the point. **Unpushed means nonexistent** — that is how commit `29b701c` was lost, and the supervisor's `continuity` rule now reports an unpushed or rotten ledger on every run so it cannot quietly become normal.
+
 **Known dead data as of 2026-07-25** — measured, not yet removed, because deleting tracked files is a Master decision:
 
 | What | Size | Why it matters |

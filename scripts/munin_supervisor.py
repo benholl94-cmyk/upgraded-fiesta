@@ -420,8 +420,52 @@ def check_claims() -> list[Finding]:
                            "nicht kaschiert'")]
 
 
+def check_continuity() -> list[Finding]:
+    """Das Gedächtnis unterliegt derselben Prüfung wie alles andere.
+
+    Ein Kontinuitäts-Ledger, das nicht gepusht ist, hält genau so lange wie
+    der Container -- das ist der gemessene Verlustweg von `29b701c`. Und
+    Anker, die ins Leere zeigen, sind schlimmer als keine: sie sehen aus wie
+    Belege. Beides wird hier nachgerechnet statt geglaubt, weil ein
+    Gedächtnis, das sich selbst bestätigt, keines ist.
+    """
+    script = REPO / "scripts" / "munin_continuity.py"
+    ledger = REPO / ".claude" / "continuity" / "ledger.json"
+    if not script.is_file():
+        return []
+    if not ledger.is_file():
+        return [Finding("continuity", RISK,
+                        "Kein Kontinuitäts-Ledger — die nächste Sitzung startet blind",
+                        evidence=str(ledger.relative_to(REPO)),
+                        source="constitution: Workspace ist die autoritative Quelle")]
+
+    r = run("python3", str(script), "verify", "--json")
+    try:
+        data = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        return [Finding("continuity", RISK, "verify lieferte kein JSON",
+                        evidence=(r.stdout + r.stderr).strip()[:200])]
+
+    out: list[Finding] = []
+    if not data.get("durable"):
+        out.append(Finding(
+            "continuity", RISK,
+            "Ledger ist nicht dauerhaft — überlebt den Container nicht",
+            evidence=str(data.get("detail", ""))[:200],
+            source="constitution: Workspace ist die autoritative Quelle"))
+
+    rot = [x for x in data.get("rotten", []) if x.get("status") == "rot"]
+    if rot:
+        out.append(Finding(
+            "continuity", DRIFT,
+            f"{len(rot)} Anker im Gedächtnis zeigen ins Leere",
+            evidence="; ".join(f"{x['id']}→{x['anchor']}" for x in rot[:4])[:300]))
+    return out
+
+
 CHECKS = (
     ("secrets", check_secrets),
+    ("continuity", check_continuity),
     ("hugin-sync", check_hugin_sync),
     ("git-identity", check_git_identity),
     ("unpushed", check_unpushed),
