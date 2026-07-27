@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T16:18:36+00:00",
+  "updated": "2026-07-27T06:10:12+00:00",
   "session": 2,
   "entries": [
     {
@@ -390,6 +390,42 @@
       "text": "Vorschalt-Check mit && vor dem Dienststart: 'clarity --offen && cargo run' startete nie, weil eine Faehigkeitsgrenze (fehlendes Modell) denselben Exit-Code hat wie eine Startsperre. Pruefungen vor einem Start duerfen nur an echten Sperren scheitern, sonst werden sie umgangen.",
       "anchors": [
         "path:scripts/hugin_clarity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-34",
+      "session": 2,
+      "ts": "2026-07-27T06:10:12+00:00",
+      "kind": "sackgasse",
+      "text": "Service Worker Cache-First mit handgezaehltem Schluessel: eine geaenderte hugin.html erreichte installierte iPhones NICHT, weil hugin-v7 nicht hochgezaehlt wurde. Ausgeliefert und trotzdem unerreichbar. Netz-zuerst statt Zahl-erhoehen - eine Regel, die nur greift wenn jemand an sie denkt, greift irgendwann nicht.",
+      "anchors": [
+        "path:hugin/sw.js"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-35",
+      "session": 2,
+      "ts": "2026-07-27T06:10:12+00:00",
+      "kind": "invariante",
+      "text": "Der Service Worker fasst NUR eigene GET-Anfragen an. Eine Namensliste durchzulassender Hosts veraltet zwangslaeufig und vergass genau das eigene Gateway - ein POST /chat bekam dann index.html statt eines Ereignisstroms.",
+      "anchors": [
+        "path:hugin/sw.js"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-36",
+      "session": 2,
+      "ts": "2026-07-27T06:10:12+00:00",
+      "kind": "entscheidung",
+      "text": "Kanaele senden ueber ein Python-Plugin (urllib/TLS), nicht ueber die Rust-Crates. Verworfen: rustls in die Crates - der Workspace baut HTTP absichtlich ohne externe Crates, und TLS von Hand ist keine Option. Die Crates bleiben Adapter fuer Eingehendes.",
+      "anchors": [
+        "path:plugins/channel_send_plugin.py"
       ],
       "state": "offen",
       "weight": 2
