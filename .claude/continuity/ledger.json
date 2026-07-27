@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-26T21:13:12+00:00",
+  "updated": "2026-07-27T05:56:21+00:00",
   "session": 3,
   "entries": [
     {
@@ -525,6 +525,30 @@
       ],
       "state": "offen",
       "weight": 2
+    },
+    {
+      "id": "s3-12",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "sackgasse",
+      "text": "Nur die am PR haengenden Checks abzufragen und daraus 'alles gruen' zu melden ist keine Pruefung, sondern eine Auswahl. munin-link-hourly.yml haengt an keinem PR (schedule + workflow_dispatch), scheiterte seit Stunden auf main UND auf jedem Feature-Branch, und tauchte in get_check_runs nie auf. Der Master hat es in seinem GitHub-Posteingang gesehen, ich nicht. Workflow-Laeufe immer ueber list_workflow_runs pruefen, nicht nur ueber die PR-Checkliste.",
+      "anchors": [
+        "path:.github/workflows/munin-link-hourly.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-13",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "invariante",
+      "text": "Ein ': ' in einem unquotierten YAML-Wert bricht die Datei. 'run: cmd \"Text: mit Doppelpunkt\"' ist ungueltig — die Anfuehrungszeichen stehen IM plain scalar statt ihn zu begrenzen. GitHub startet eine unparsebare Workflow-Datei gar nicht: total_jobs 0, conclusion failure, und das bei jedem Push auf jeden Branch, weil Workflow-Dateien beim Push validiert werden. Immer 'run: |' als Block-Skalar verwenden.",
+      "anchors": [
+        "path:tests/test_workflows_parse.py"
+      ],
+      "state": "offen",
+      "weight": 1
     }
   ]
 }

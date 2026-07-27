@@ -40,7 +40,10 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install test dependencies
-        run: pip install pytest
+        # pyyaml ist nicht optional: tests/test_workflows_parse.py prueft
+        # jede Workflow-Datei auf Parsebarkeit und wuerde ohne den Parser
+        # still uebersprungen — eine Wache, die nicht laeuft, schuetzt nicht.
+        run: pip install pytest pyyaml
       - name: Validate repo structure
         run: python3 scripts/validate_repo.py
       - name: Run pytest
