@@ -314,9 +314,7 @@ fn feld(json: &str, name: &str) -> Option<String> {
         }
         return Some(out);
     }
-    let ende = rest
-        .find(|c: char| c == ',' || c == '}')
-        .unwrap_or(rest.len());
+    let ende = rest.find([',', '}']).unwrap_or(rest.len());
     Some(rest[..ende].trim().to_string())
 }
 
