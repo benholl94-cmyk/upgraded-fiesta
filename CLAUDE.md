@@ -221,6 +221,44 @@ chat turn answered `brain not startable`. Green in a checkout, dead in
 production; the same failure class as the plugin dispatch that was missing from
 the image before.
 
+## Metatests — prueft die Wachen, oder sehen sie nur so aus?
+
+`tests/test_meta_guards.py` rechnet die Invariante *„Jede Wache braucht einen
+Gegentest"* nach, statt sie zu befolgen. Sie stand lange nur als Satz in dieser
+Datei; jetzt bricht ein Test jede Invariante **absichtlich** und verlangt, dass
+genau die zustaendige Wache faellt:
+
+| Mutation | muss rot werden |
+|---|---|
+| `redirect_stdout` im autonomy-pulse-Plugin entfernt | `tests/test_autonomy_pulse_plugin.py` |
+| `": "` in einen unquotierten YAML-Wert eingebaut | `tests/test_workflows_parse.py` |
+| ein PNG weicht vom Generator ab | `tests/test_hugin_icons.py` |
+| `Command.braucht` geleert | `tests/test_brain.py` |
+| `index.html` von `hugin.html` entkoppelt | Synergie-Regel `hugin_index_sync` |
+
+Schlaegt einer dieser Faelle fehl, ist die zugehoerige Wache **wirkungslos
+geworden** — und das erfaehrt man hier statt beim naechsten Ausfall im Betrieb.
+Die Mutation wird im Arbeitsbaum vorgenommen und in `finally` aus dem
+gehaltenen Original zurueckgeschrieben; passt die Vorlage nicht mehr, faellt
+der Metatest laut, statt still nichts zu pruefen.
+
+Zwei weitere Gruppen prueft dieselbe Datei:
+
+**Kein Test ohne lebendes Subjekt.** Gefunden hat das sofort zwei echte
+Waisen: `tests/test_codex_cloud_setup.sh` und
+`tests/test_validate_iphone_control_plane.sh` prueften Skripte, die **nie in
+der Historie von `main` existierten** — sie wurden ohne ihre Subjekte
+gemerged. Dreifach wirkungslos: falsches Subjekt, `pytest` sammelt keine
+`.sh`-Dateien (sie liefen in CI nie), und sie beendeten sich mit **Exit 0,
+waehrend sie `FAIL:` ausgaben**. Beide entfernt.
+
+**Verbindungsrouten.** Jede Route im `match`-Block des Gateways muss im
+API-Vertrag stehen, und jeder Eintrag in `config/plugins.json` muss auf ein
+vorhandenes Programm zeigen. `/sessions` war real, getestet und in der
+Routenliste nicht aufgefuehrt; `ops-tool` zeigte auf einen Pfad, den nur der
+Release-Build hat. Beides wurde von Hand gefunden — ab hier findet es eine
+Wache.
+
 ## Supervisor and known dead data
 
 `scripts/munin_supervisor.py` audits the *agent's work* against `.claude/persona/constitution.json` and `.claude/persona/munin.json`. Its principle is that claims get recomputed rather than believed: "tests pass" runs the suite, "index.html is synced" compares bytes, "that crate is a stub" counts `pub fn`. Run it before calling anything done:
