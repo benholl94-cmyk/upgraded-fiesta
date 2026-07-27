@@ -61,6 +61,16 @@
             "statusMessage": "Hooks aus dem Repo installieren"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-/home/user/upgraded-fiesta}\" && (python3 scripts/hugin_local_model.py start >/dev/null 2>&1 &) || true",
+            "timeout": 15,
+            "statusMessage": "T1b: lokalen Modellserver starten, falls das Modell vorliegt"
+          }
+        ]
       }
     ]
   }
