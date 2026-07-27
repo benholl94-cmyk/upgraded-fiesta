@@ -140,6 +140,15 @@ Request:
 }
 ```
 
+`taskType` is the documented field name. `task_type` is accepted as an alias,
+because it is what several clients sent for a long time while the gateway bound
+only the camelCase spelling -- see "The `taskType` contract" below.
+
+**`taskType` is required.** A request without it, or with a blank one, is
+rejected with HTTP 400 and `accepted: false`. It used to be accepted and
+recorded as `"unspecified"`, which meant the gateway promised work it could
+never perform: no plugin matches `"unspecified"`, so nothing ran.
+
 Accepted response:
 
 ```json
@@ -148,20 +157,66 @@ Accepted response:
   "accepted": true,
   "task_id": "task-...",
   "task_type": "analyze",
-  "agent_managed": true
+  "agent_managed": true,
+  "dispatch": "plugin_dispatched",
+  "plugin_result": { "ok": true, "result": {}, "message": "..." }
 }
 ```
+
+`dispatch` is always present and is either `plugin_dispatched` or `unhandled`.
+For `unhandled` there is no `plugin_result`; instead `dispatch_reason` names
+the task type that matched nothing:
+
+```json
+{
+  "status": "online",
+  "accepted": true,
+  "task_id": "task-...",
+  "task_type": "no-such-plugin",
+  "agent_managed": true,
+  "dispatch": "unhandled",
+  "dispatch_reason": "no plugin registered for task_type 'no-such-plugin'"
+}
+```
+
+Previously "nothing ran" was expressed only by the *absence* of
+`plugin_result` -- a caller had to know to look for a field that isn't there.
 
 When the gateway is in zero-staked mode, task dispatch returns HTTP 503 with status `zero_staked`; the UI rotates to the next configured endpoint.
 
 Every accepted task is routed through `hm-agent`'s `Agent::dispatch` (not
 invoked directly against `hm-plugins`): if a plugin is registered for
 `taskType` in `config/plugins.json`, it runs and the response gains a
-`plugin_result` field (`{"ok", "result", "message"}`), exactly as before.
-If no plugin matches, the response shape is unchanged (no extra field) --
-but either way, `Agent::dispatch` also records a one-line summary of the
-outcome into `hm-memory`, so `GET /memory` shows a durable history of what
-every task actually did, not just what was explicitly `POST`ed to `/memory`.
+`plugin_result` field (`{"ok", "result", "message"}`). Either way,
+`Agent::dispatch` also records a one-line summary of the outcome into
+`hm-memory`, so `GET /memory` shows a durable history of what every task
+actually did, not just what was explicitly `POST`ed to `/memory`.
+
+### The `taskType` contract
+
+The request type is `hm_sdk::TaskSubmission`, shared by the gateway and every
+producer rather than re-declared per crate. That is not tidiness; it is the
+fix for a defect that survived a fully green test suite.
+
+The gateway bound the field as `taskType`. `hm-cli`, `hm-cron` and all four
+channel crates sent `task_type`. Because the field carries
+`#[serde(default)]`, the mismatch produced an empty string instead of a
+parse error, so the gateway answered `202 accepted: true` and dispatched to
+no plugin at all. Measured on a live gateway: **every one of the six
+scheduled cron jobs, and every task submitted through the CLI, ran nothing** --
+without a single error anywhere.
+
+Three things now hold, and each covers a different way the failure could
+return:
+
+| Guard | Where | Covers |
+|---|---|---|
+| One shared type | `hm_sdk::TaskSubmission` | Producer and consumer are the same declaration, so they cannot drift apart |
+| `alias = "task_type"` | same type | Clients *outside* this repository, which a rename cannot reach |
+| End-to-end contract test | `crates/hm-gateway/tests/wire_contract.rs` | Spawns the real binary and asserts the plugin received the task type |
+
+The test imports nothing from the gateway on purpose: the defect lived exactly
+in the gap between components that were each tested against themselves.
 
 ## Task registry endpoint
 
@@ -306,6 +361,16 @@ $ curl -X POST http://localhost:8080/memory/search -d '{"query":"storage api on 
 $ curl http://localhost:8080/memory
 {"status":"online","records":[...]}
 ```
+
+`topK` also accepts `top_k`, for the same reason `taskType` accepts
+`task_type`: `hm-cli memory recall --top-k N` sent the snake_case spelling,
+which bound to nothing and silently fell back to the default. The flag was
+accepted, reported nowhere, and ignored -- a request for 2 results returned 5.
+
+`POST /memory` takes `{"text": "..."}`. It is a free-text memory with semantic
+recall, **not** a key/value store -- that is `/storage/{key}`. `hm-cli memory
+store` used to send `{"key", "value"}` and was answered with HTTP 400 on every
+invocation; its signature is now `hm-cli memory store <text>`.
 
 ## Chat / command stream (`POST /chat`)
 

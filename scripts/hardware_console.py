@@ -558,7 +558,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             parts = str(payload).split(":", 1)
             task_type    = parts[0].strip()
             task_payload = parts[1].strip() if len(parts) > 1 else ""
-            gw = _gateway_post("/tasks", {"task_type": task_type, "payload": task_payload})
+            # "taskType" ist der dokumentierte Feldname des Gateways.
+            # "task_type" band an nichts und wurde mit 202 quittiert, ohne
+            # dass je ein Plugin lief.
+            gw = _gateway_post("/tasks", {"taskType": task_type, "payload": task_payload})
             result["gateway"] = gw
 
         elif inject_type == "broadcast":

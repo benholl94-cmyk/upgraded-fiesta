@@ -48,10 +48,16 @@ def test_hm_gateway_depends_on_matches_its_real_cargo_toml():
         for edge in graph["edges"]
         if edge["source"] == "crate:hm-gateway" and edge["relation"] == "depends_on"
     }
-    # hm-cron and hm-sessions were integrated into the gateway in the synergy-audit fix
+    # hm-cron and hm-sessions were integrated into the gateway in the synergy-audit fix.
+    # hm-sdk came later and for a different reason: it now owns `TaskSubmission`,
+    # the request type of POST /tasks, shared with every producer instead of
+    # re-declared per crate. The gateway bound `taskType` while hm-cli, hm-cron
+    # and all four channel crates sent `task_type`, so every submitted task was
+    # accepted with 202 and dispatched to nothing.
     assert deps == {
         "crate:hm-storage",
         "crate:hm-plugins",
+        "crate:hm-sdk",
         "crate:hm-memory",
         "crate:hm-agent",
         "crate:hm-auth",

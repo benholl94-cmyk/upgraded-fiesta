@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated": "2026-07-26T16:18:36+00:00",
-  "session": 2,
+  "updated": "2026-07-27T05:56:21+00:00",
+  "session": 3,
   "entries": [
     {
       "id": "s2-1",
@@ -393,6 +393,162 @@
       ],
       "state": "offen",
       "weight": 2
+    },
+    {
+      "id": "s3-1",
+      "session": 3,
+      "ts": "2026-07-26T20:45:35+00:00",
+      "kind": "sackgasse",
+      "text": "Jede Komponente gegen sich selbst zu testen laesst Vertragsbrueche an der Grenze ueberleben: das Gateway band 'taskType', hm-cli/hm-cron/alle vier Kanalcrates sendeten 'task_type'. serde(default) macht daraus einen Leerstring statt eines Fehlers, also HTTP 202 'accepted: true' und KEIN Plugin. Live gemessen: alle sechs Cron-Jobs und jede CLI-Einreichung liefen ins Leere, 511 Tests gruen. Ein Unit-Test kann das nie sehen. Nur ein Test, der die echte Binary ueber einen echten Socket anspricht, faengt es.",
+      "anchors": [
+        "path:crates/hm-sdk/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-2",
+      "session": 3,
+      "ts": "2026-07-26T20:45:35+00:00",
+      "kind": "entscheidung",
+      "text": "Wire-Typ TaskSubmission wandert nach hm-sdk und wird von Erzeuger UND Verbraucher geteilt, statt pro Crate neu deklariert. Verworfen: nur die Aufrufer umbenennen — das haette Clients ausserhalb des Repos weiter still scheitern lassen; deshalb zusaetzlich alias='task_type'. Verworfen: nur den Alias setzen — dann bleiben zwei Deklarationen, die sich zufaellig einig sind. hm-sdk war der einzige echte Stub; das zweite Drahtprotokoll zu besitzen ist genau sein Zweck.",
+      "anchors": [
+        "path:crates/hm-sdk/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-3",
+      "session": 3,
+      "ts": "2026-07-26T20:45:35+00:00",
+      "kind": "invariante",
+      "text": "stdout gehoert dem Zeilenprotokoll, nie dem Logging. autonomy_core._log() schreibt mit print(); hm-plugins liest genau die erste stdout-Zeile. Aus '[20:23:20] heal: ...' macht serde eine Sequenz, deren erstes Element 20 gegen ok:bool laeuft — daher die Meldung 'invalid type: integer'. Der Fehler feuert genau dann, wenn die Selbstheilung wirklich heilt. Loesung ist Kanaltrennung (redirect_stdout nach stderr), nicht Logging entfernen.",
+      "anchors": [
+        "path:plugins/autonomy_pulse_plugin.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-4",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "sackgasse",
+      "text": "SVG als apple-touch-icon funktioniert auf iOS nicht — Safari wertet fuer diesen Link nur Raster aus und ignoriert SVG vollstaendig. Der Link war vorhanden, wohlgeformt und wirkungslos; 'Zum Home-Bildschirm' ergab kein App-Symbol. Gleiches gilt fuer Manifest-Icons. Nicht erneut mit SVG versuchen.",
+      "anchors": [
+        "path:hugin/hugin.html"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-5",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "invariante",
+      "text": "Ein Sperrbildschirm, der document.documentElement.innerHTML ersetzt, wirft die PWA-Kopfzeilen mit weg (manifest, apple-touch-icon, apple-mobile-web-app-*) — und genau der gesperrte Zustand ist der, in dem installiert wird. Sperren heisst Inhalt verbergen, nicht Metadaten loeschen. Das Markup stand viermal wortgleich da: wer eine Stelle ergaenzt, baut drei stille Rueckfaelle.",
+      "anchors": [
+        "path:hugin/hugin.html"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-6",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "invariante",
+      "text": "Eine Pruefung darf nur an dem scheitern, was sie prueft. codex_fullstack_check.sh endete mit Exit 1 auf sauberem Checkout, weil 'docker compose config' (Syntaxpruefung) HM_OWNER_TOKEN interpoliert — nach vier bestandenen Schritten. Dieselbe Klasse wie s2-33: was an einem Nicht-Hindernis scheitert, wird beim zweiten Mal umgangen.",
+      "anchors": [
+        "path:scripts/codex_fullstack_check.sh"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-7",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "entscheidung",
+      "text": "PNG-Icons kommen aus einem stdlib-Generator statt als eingecheckte Binaerdateien. Verworfen: PNGs einfach committen — dann ist es eine Behauptung, die niemand nachrechnen kann, und sie veraltet stumm, sobald sich icon-512.svg aendert. Der Test prueft Datei gegen Generator, gleiche Regel wie hugin_index_sync. Nebenbefund: der Test hat den Kommentar des Generators widerlegt (Strichbreite vergessen), daher GLYPH_INSET.",
+      "anchors": [
+        "path:scripts/generate_hugin_icons.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-8",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "invariante",
+      "text": "'Noch nichts gespeichert' und 'gespeichert, aber unlesbar' duerfen nie in dieselbe Antwort fallen. MemoryStore::load tat das per unwrap_or_default() plus Err(_) => default(). Gemessen: 3 Records, Datei auf 4000 von 7348 Bytes gekuerzt, Neustart -> Gateway startet normal, protokolliert nichts, GET /memory liefert 0, naechster Schreibvorgang vernichtet die Records. Auch ein fehlgeschlagener exists()-Aufruf ist kein 'nicht vorhanden' — bei RemoteHttpStorage heisst er 'Host nicht erreichbar'.",
+      "anchors": [
+        "path:crates/hm-memory/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-9",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "invariante",
+      "text": "Zustand, der einen Neustart ueberleben soll, wird atomar geschrieben: Temp-Datei im selben Verzeichnis, sync_all, rename. fs::write kuerzt zuerst und schreibt danach — ein Absturz dazwischen hinterlaesst eine halb geschriebene Datei. Hier kein Randfall: MemoryStore persistiert bei jedem remember(), hm-agent schreibt pro Task einen Eintrag. Temp-Name braucht einen Zaehler, sonst teilen sich zwei gleichzeitige Puts dieselbe Datei.",
+      "anchors": [
+        "path:crates/hm-storage/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-10",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "sackgasse",
+      "text": "Einen Befehl im Container einfach laufen zu lassen, dem seine Dateien fehlen, erzeugt keine Fehlermeldung sondern eine falsche Antwort. Im Image-Layout gemessen: /struktur roher Traceback, /supervisor 'VIOLATION — 4 Befunde' (reine Artefakte, von echten Verstoessen nicht zu unterscheiden), /tests 'no tests ran' (leere, gruen wirkende Suite). Die letzten beiden sind die gefaehrlicheren, weil sie nach einem Ergebnis aussehen. Command.braucht prueft die Voraussetzung vorher.",
+      "anchors": [
+        "path:agents/brain.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-11",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "entscheidung",
+      "text": "Float-Sortierungen im Vektorindex nutzen total_cmp statt partial_cmp().unwrap(). Verworfen: NaN am Eingang abfangen — insert() nimmt rohe f32 und ein persistierter Index wird direkt deserialisiert, es gibt also mehr als einen Eingang. Das debug_assert in cosine_similarity faengt es nur im Debug-Build; im Release, also im Betrieb, trug die Sortierung die Panik. Deshalb testet der Gegentest die Sortierung selbst, nicht den Weg durch insert().",
+      "anchors": [
+        "path:crates/hm-vector/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-12",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "sackgasse",
+      "text": "Nur die am PR haengenden Checks abzufragen und daraus 'alles gruen' zu melden ist keine Pruefung, sondern eine Auswahl. munin-link-hourly.yml haengt an keinem PR (schedule + workflow_dispatch), scheiterte seit Stunden auf main UND auf jedem Feature-Branch, und tauchte in get_check_runs nie auf. Der Master hat es in seinem GitHub-Posteingang gesehen, ich nicht. Workflow-Laeufe immer ueber list_workflow_runs pruefen, nicht nur ueber die PR-Checkliste.",
+      "anchors": [
+        "path:.github/workflows/munin-link-hourly.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-13",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "invariante",
+      "text": "Ein ': ' in einem unquotierten YAML-Wert bricht die Datei. 'run: cmd \"Text: mit Doppelpunkt\"' ist ungueltig — die Anfuehrungszeichen stehen IM plain scalar statt ihn zu begrenzen. GitHub startet eine unparsebare Workflow-Datei gar nicht: total_jobs 0, conclusion failure, und das bei jedem Push auf jeden Branch, weil Workflow-Dateien beim Push validiert werden. Immer 'run: |' als Block-Skalar verwenden.",
+      "anchors": [
+        "path:tests/test_workflows_parse.py"
+      ],
+      "state": "offen",
+      "weight": 1
     }
   ]
 }

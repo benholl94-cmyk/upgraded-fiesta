@@ -10,8 +10,10 @@ Shell. Auch die wird ausgefuehrt, nicht beteuert.
 """
 from __future__ import annotations
 
+import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -228,3 +230,81 @@ def test_no_tier_claims_availability_without_a_measurement():
     for tier, ok, why in brain.tiers():
         if ok and tier != brain.T0:
             assert why.strip() and "konfiguriert" not in why.lower(), (tier, why)
+
+
+# ---------------------------------------------------------------------------
+# Voraussetzungen eines Befehls
+#
+# Das Laufzeit-Image kopiert config/, plugins/, scripts/, agents/ und Teile
+# von .claude/ — aber weder crates/ noch Cargo.toml noch tests/. Im Container
+# gemessen, vor dem Fix:
+#
+#   /struktur   roher Python-Traceback im Chat
+#   /supervisor "VIOLATION — 4 Befunde", reine Artefakte der fehlenden
+#               Dateien, nicht von echten Verstoessen zu unterscheiden
+#   /tests      "no tests ran in 0.00s", also eine leere, gruen wirkende Suite
+#
+# Die letzten beiden sind die gefaehrlicheren: sie sehen nach einem Ergebnis
+# aus. Deshalb wird hier beides geprueft — dass ein Befehl ohne seine Dateien
+# sich weigert, UND dass er mit ihnen unveraendert laeuft.
+# ---------------------------------------------------------------------------
+
+def _run_in(cwd: pathlib.Path, line: str) -> str:
+    proc = subprocess.run(
+        [sys.executable, "-m", "agents.brain", "--json", line],
+        cwd=cwd, capture_output=True, text=True, timeout=300,
+    )
+    return proc.stdout
+
+
+@pytest.fixture
+def container_layout(tmp_path):
+    """Bildet exakt nach, was der Dockerfile ins Laufzeit-Image kopiert."""
+    for d in ("config", "plugins", "scripts", "agents"):
+        shutil.copytree(REPO / d, tmp_path / d)
+    (tmp_path / ".claude").mkdir()
+    for d in ("continuity", "persona"):
+        src = REPO / ".claude" / d
+        if src.exists():
+            shutil.copytree(src, tmp_path / ".claude" / d)
+    return tmp_path
+
+
+@pytest.mark.parametrize("befehl,fehlend", [
+    ("/struktur", "Cargo.toml"),
+    ("/supervisor", "Cargo.toml"),
+    ("/tests", "tests"),
+])
+def test_a_command_without_its_files_refuses_instead_of_answering(
+    container_layout, befehl, fehlend
+):
+    out = _run_in(container_layout, befehl)
+    erste = json.loads(out.splitlines()[0])
+    assert erste["typ"] == "fehler", f"{befehl} lieferte {erste!r} statt einer Absage"
+    assert fehlend in erste["text"], erste["text"]
+    assert "nicht verfuegbar" in erste["text"]
+
+
+def test_the_refusal_never_produces_a_result_shaped_answer(container_layout):
+    """Die eigentliche Regression: kein Traceback, kein VIOLATION, kein
+    'no tests ran' — nichts, was wie ein Befund aussieht."""
+    for befehl in ("/struktur", "/supervisor", "/tests"):
+        out = _run_in(container_layout, befehl)
+        assert "Traceback" not in out, f"{befehl} streamt einen Traceback"
+        assert "VIOLATION" not in out, f"{befehl} meldet einen Schein-Verstoss"
+        assert "no tests ran" not in out, f"{befehl} meldet eine leere Testsuite"
+
+
+def test_a_command_whose_files_are_present_still_runs(container_layout):
+    """Gegenprobe: die Sperre darf nicht einfach alles abweisen."""
+    out = _run_in(container_layout, "/status")
+    erste = json.loads(out.splitlines()[0])
+    assert erste["typ"] == "info", erste
+    assert "hugin_relay.py" in erste["text"]
+
+
+def test_commands_without_declared_needs_are_reachable_everywhere():
+    """Nur Befehle, die wirklich Repo-Artefakte brauchen, duerfen `braucht`
+    setzen — sonst waere die Sperre eine schleichende Funktionsentfernung."""
+    mit_bedarf = {n for n, c in brain.COMMANDS.items() if c.braucht}
+    assert mit_bedarf == {"struktur", "supervisor", "tests"}, mit_bedarf

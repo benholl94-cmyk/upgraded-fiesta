@@ -30,6 +30,19 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+
+# Coverage-Messartefakte. Die Zahlen gehoeren in den Bericht
+# (docs/completion-report.json), die Rohdaten nicht in die Historie: .coverage
+# ist eine SQLite-Datei, die sich bei jedem Lauf aendert, und ein binaerer
+# Blob, der pro Messung neu committet wird, waere genau die Sorte
+# hochfrequenter Schreibvorgang, die das Repo schon bei munin-state.json
+# getrennt hat. Reproduzierbar ueber die im Bericht notierten Kommandos.
+# Rust-Coverage landet unter target/llvm-cov-target und ist damit bereits
+# ueber target/ abgedeckt.
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 build/
 dist/
 

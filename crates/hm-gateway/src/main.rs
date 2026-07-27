@@ -205,28 +205,12 @@ struct TaskRecord {
     remote_addr: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct TaskInput {
-    /// Accepts both spellings.
-    ///
-    /// The contract documents `taskType`, and **every internal caller sent
-    /// `task_type`**: `hm-cron`, `hm-cli tasks submit`, and all four channel
-    /// crates' `forward_to_gateway`. serde dropped the unknown field, the
-    /// type fell back to the empty string, the gateway substituted
-    /// "unspecified" -- and still answered `202 accepted`. Measured effect:
-    /// all six scheduled cron jobs dispatched nothing, silently, on every
-    /// run, while both sides reported success.
-    ///
-    /// Fixing the callers would have meant finding every one of them, and a
-    /// missed one fails exactly as silently. Accepting both spellings cannot
-    /// be forgotten.
-    #[serde(default, rename = "taskType", alias = "task_type")]
-    task_type: String,
-    #[serde(default)]
-    objective: String,
-    #[serde(default)]
-    payload: Value,
-}
+/// The request side of `POST /tasks` is `hm_sdk::TaskSubmission`, shared with
+/// every producer (`hm-cli`, `hm-cron`, the channel crates) instead of being
+/// re-declared here. It used to be a private struct in this file that bound
+/// only `taskType` while all of those senders wrote `task_type` -- one
+/// declaration per side, agreeing by coincidence until they stopped.
+use hm_sdk::TaskSubmission;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -251,7 +235,10 @@ async fn main() -> anyhow::Result<()> {
 
     let storage: Arc<dyn FileStorage> = build_storage_backend()?;
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
-    let memory = MemoryStore::load(storage.clone(), memory_key).await;
+    // Fail-closed, like the owner token and the storage backend: a memory
+    // state that exists but cannot be read is an operator-visible problem,
+    // not a reason to start with an empty memory and overwrite it.
+    let memory = MemoryStore::load(storage.clone(), memory_key).await?;
 
     // Optional: ingest the structural knowledge-graph seed produced by
     // scripts/generate_knowledge_graph_seed.py. A missing/malformed seed
@@ -805,7 +792,11 @@ struct RememberInput {
 #[derive(Debug, Deserialize)]
 struct SearchInput {
     query: String,
-    #[serde(default = "default_top_k", rename = "topK")]
+    /// Same alias, same reason as `TaskInput::task_type`: `hm-cli memory
+    /// recall --top-k N` sent `top_k`, which bound to nothing and fell back
+    /// to the default. The flag was accepted, echoed nowhere, and ignored --
+    /// a request for 2 results returned 5.
+    #[serde(default = "default_top_k", rename = "topK", alias = "top_k")]
     top_k: usize,
 }
 
@@ -964,7 +955,7 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         );
     }
 
-    let input = match serde_json::from_slice::<TaskInput>(&body) {
+    let input = match serde_json::from_slice::<TaskSubmission>(&body) {
         Ok(input) => input,
         Err(error) => {
             return json_response(
@@ -978,17 +969,20 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         }
     };
 
-    // A missing type is refused instead of renamed. Inventing "unspecified"
-    // turned a caller's mistake into an accepted task that could never
-    // dispatch -- the caller got 202 and no plugin ever ran. Loud refusal is
-    // the house rule everywhere else here.
-    if input.task_type.trim().is_empty() {
+    // A task with no type can never reach a plugin, so accepting it means
+    // promising work that provably will not happen. It used to be recorded as
+    // "unspecified" and answered `202 accepted: true`, which is precisely how
+    // the `task_type`/`taskType` mismatch stayed invisible: the caller was
+    // told yes, and nothing ran. Rejecting is the honest answer, and it names
+    // the likely cause instead of leaving the caller to guess.
+    if !input.is_dispatchable() {
         return json_response(
             400,
             json!({
                 "status": "invalid_request",
                 "accepted": false,
-                "reason": "task type is required (field 'taskType', alias 'task_type')"
+                "reason": "taskType is required and must not be empty; \
+                           a task without a type matches no plugin and would run nothing"
             }),
         );
     }
@@ -1013,17 +1007,27 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         "agent_managed": true
     });
 
+    // `dispatch` is always present, both when a plugin ran and when none did.
+    // Previously "no plugin was registered" was expressed only by the absence
+    // of `plugin_result` -- a caller had to know to look for a field that
+    // isn't there, and every caller that didn't read it as "nothing happened".
     let outcome = state
         .agent
         .dispatch(&task.task_type, &task.objective, task.payload.clone())
         .await;
-    if let TaskOutcome::PluginDispatched {
-        ok,
-        result,
-        message,
-    } = outcome
-    {
-        response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
+    match outcome {
+        TaskOutcome::PluginDispatched {
+            ok,
+            result,
+            message,
+        } => {
+            response["dispatch"] = json!("plugin_dispatched");
+            response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
+        }
+        TaskOutcome::Unhandled { reason } => {
+            response["dispatch"] = json!("unhandled");
+            response["dispatch_reason"] = json!(reason);
+        }
     }
 
     json_response(202, response)
@@ -1369,7 +1373,7 @@ mod audit_tests {
             r#"{"taskType":"echo","payload":{}}"#,
             r#"{"task_type":"echo","payload":{}}"#,
         ] {
-            let input: TaskInput = serde_json::from_str(koerper).expect(koerper);
+            let input: TaskSubmission = serde_json::from_str(koerper).expect(koerper);
             assert_eq!(input.task_type, "echo", "verschluckt: {koerper}");
         }
     }
@@ -1378,8 +1382,10 @@ mod audit_tests {
     fn a_missing_task_type_stays_empty_instead_of_being_invented() {
         // Der Ersatzwert "unspecified" machte aus einem Fehler des Aufrufers
         // eine angenommene Aufgabe, die nie dispatchen konnte.
-        let input: TaskInput = serde_json::from_str(r#"{"payload":{}}"#).unwrap();
+        let input: TaskSubmission = serde_json::from_str(r#"{"payload":{}}"#).unwrap();
         assert_eq!(input.task_type, "");
+        // Und genau deshalb wird sie abgewiesen statt umbenannt.
+        assert!(!input.is_dispatchable());
     }
 
     #[test]

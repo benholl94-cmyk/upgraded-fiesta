@@ -15,6 +15,10 @@
 
 use clap::{Parser, Subcommand};
 use hm_core::{optional_env, HmError};
+use hm_sdk::TaskSubmission;
+use serde_json::{json, Value};
+// BufRead/BufReader fuer den Streaming-Pfad von `chat`, Read/Write fuer die
+// uebrigen Subcommands: beide Seiten dieses Merges brauchen ihre Haelfte.
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 
@@ -63,6 +67,9 @@ enum TasksCmd {
         /// Task-Typ (z.B. echo, llm-chat, ops-tool)
         #[arg(long)]
         r#type: String,
+        /// Freitext-Beschreibung, wird an das Plugin durchgereicht
+        #[arg(long, default_value = "")]
+        objective: String,
         /// JSON-Payload (optional)
         #[arg(long, default_value = "{}")]
         payload: String,
@@ -80,11 +87,15 @@ enum MemoryCmd {
         top_k: usize,
     },
     /// Eintrag speichern
+    ///
+    /// `/memory` ist ein Freitext-Gedächtnis mit semantischem Recall, kein
+    /// Schlüssel-Wert-Speicher — dafür ist `hm-cli storage` da. Die frühere
+    /// Signatur `store <key> <value>` hat diesen Unterschied verwischt und
+    /// war ohnehin nie funktionsfähig: das Gateway erwartet `text` und
+    /// beantwortete jeden Aufruf mit HTTP 400.
     Store {
-        /// Schlüssel
-        key: String,
-        /// Wert
-        value: String,
+        /// Zu merkender Text
+        text: String,
     },
     /// Alle Einträge auflisten
     List,
@@ -314,9 +325,7 @@ fn feld(json: &str, name: &str) -> Option<String> {
         }
         return Some(out);
     }
-    let ende = rest
-        .find(|c: char| c == ',' || c == '}')
-        .unwrap_or(rest.len());
+    let ende = rest.find([',', '}']).unwrap_or(rest.len());
     Some(rest[..ende].trim().to_string())
 }
 
@@ -334,8 +343,21 @@ fn handle_tasks(client: &GatewayClient, cmd: TasksCmd) -> Result<(), HmError> {
             let body = client.get("/tasks")?;
             println!("{body}");
         }
-        TasksCmd::Submit { r#type, payload } => {
-            let json = format!(r#"{{"task_type":"{type}","payload":{payload}}}"#);
+        TasksCmd::Submit {
+            r#type,
+            objective,
+            payload,
+        } => {
+            // `payload` is user-supplied JSON: parse it rather than splicing
+            // it into a string, so a malformed value is reported here instead
+            // of arriving at the gateway as an unparseable body.
+            let payload: Value = serde_json::from_str(&payload)
+                .map_err(|e| HmError::Config(format!("--payload is not valid JSON: {e}")))?;
+            // Shared with the gateway (`hm_sdk::TaskSubmission`) rather than
+            // spelled out here: this line used to read `"task_type"`, which
+            // the gateway ignored, so every submitted task ran nothing.
+            let json = serde_json::to_string(&TaskSubmission::new(r#type, objective, payload))
+                .map_err(|e| HmError::Config(e.to_string()))?;
             let body = client.post("/tasks", &json)?;
             println!("{body}");
         }
@@ -346,12 +368,12 @@ fn handle_tasks(client: &GatewayClient, cmd: TasksCmd) -> Result<(), HmError> {
 fn handle_memory(client: &GatewayClient, cmd: MemoryCmd) -> Result<(), HmError> {
     match cmd {
         MemoryCmd::Recall { query, top_k } => {
-            let json = format!(r#"{{"query":"{query}","top_k":{top_k}}}"#);
+            let json = json!({ "query": query, "topK": top_k }).to_string();
             let body = client.post("/memory/search", &json)?;
             println!("{body}");
         }
-        MemoryCmd::Store { key, value } => {
-            let json = format!(r#"{{"key":"{key}","value":"{value}"}}"#);
+        MemoryCmd::Store { text } => {
+            let json = json!({ "text": text }).to_string();
             let body = client.post("/memory", &json)?;
             println!("{body}");
         }

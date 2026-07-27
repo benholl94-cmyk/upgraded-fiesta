@@ -68,6 +68,35 @@ This is a Rust workspace ("Fullstack Heavy Metal") with a Vite/React UI scaffold
 - `crates/` — the Rust workspace (backend/gateway).
 - `ui/` — the React/Vite control-plane frontend.
 - `hugin/` — **HUGIN PWA**: single-file no-build AI interface (`hugin.html` + `index.html`), deployed to GitHub Pages (`benholl94-cmyk.github.io/upgraded-fiesta`). 25 providers (20 keyless), task-aware router, offline ReflexKernel. One of them — `kern` — is not a foreign API but **this repo's own gateway**: it streams `POST /chat`, so the PWA is the chat through which the system is commanded (`/help` lists the commands). Its wire format is deliberately *not* OpenAI-shaped, because that schema has no field for `exit 1` or for "evidence from repo history", and forcing it would have cost exactly the information the channel exists for. Its in-page self-test covers the event parser and the readiness gate; the full suite is 56 checks and takes ~120 s in a browser (the WebGPU provider timeouts dominate) — it is not hung. `index.html` MUST be a bytewise copy of `hugin.html` — enforced by synergy rule `hugin_index_sync` and CI step. **After any edit to `hugin.html` always run:** `cp hugin/hugin.html hugin/index.html`
+
+  **Installierbar auf iOS — vorher nur scheinbar.** Alle Icons waren SVG, auch
+  der `apple-touch-icon` als data-URI. iOS Safari wertet für diesen Link kein
+  SVG aus, ignorierte ihn also vollständig: „Zum Home-Bildschirm" ergab kein
+  App-Symbol. Der Link war vorhanden, wohlgeformt und wirkungslos — die Sorte
+  Fehler, die im Quelltext richtig aussieht. `scripts/generate_hugin_icons.py`
+  erzeugt die PNGs (180/192/512) aus derselben Geometrie wie `icon-512.svg`,
+  stdlib-only über ein Abstandsfeld, weil es in dieser Umgebung weder Pillow
+  noch `rsvg-convert` gibt. Eingecheckte PNGs ohne Generator wären eine
+  Behauptung, die niemand nachrechnen kann; `tests/test_hugin_icons.py` prüft
+  Datei gegen Generator, gleiche Regel wie `hugin_index_sync`.
+
+  **Der Admin-Gate hat die Installierbarkeit miterschlagen.** Ohne Token
+  ersetzte er `document.documentElement.innerHTML` — samt `<link
+  rel="manifest">` und `apple-touch-icon` — und genau dieser gesperrte Zustand
+  ist der, in dem jemand installiert. Das Sperr-Markup stand viermal wortgleich
+  im Dokument: wer eine Stelle ergänzt, baut drei stille Rückfälle. Jetzt eine
+  `deny()`-Funktion, die die PWA-Kopfzeilen behält. Der Zugang bleibt
+  unverändert gesperrt; ein Icon-Link ist kein Geheimnis, und die Datei liegt
+  auf GitHub Pages ohnehin offen.
+
+  Im Browser mit iPhone-Profil gegengeprüft, nicht behauptet: gesperrter
+  Bildschirm, `apple-touch-icon` liefert HTTP 200 `image/png`, alle vier
+  Manifest-Icons abrufbar, Service Worker aktiv, neun Shell-Einträge im Cache,
+  Offline-Neuladen funktioniert. Der Cache-Schlüssel muss bei jeder
+  Shell-Änderung hoch (jetzt `hugin-v8`), sonst behält ein installiertes Gerät
+  die alte Shell und die neuen Icons kommen dort nie an. Und `cache.addAll` ist
+  alles-oder-nichts: eine fehlende Datei kostete den gesamten Offline-Betrieb,
+  nicht nur das Icon — der Kern ist jetzt hart, der Rest nachsichtig.
 - `ghm_core/` + root `pyproject.toml` — `ghm-core`, a real installable pip package (console script `ghm-core`) providing local workspace/onboarding tooling.
 - `iphone-dev-platform/` — a **fully self-contained** static site (German-language iPhone local-dev setup guide) imported from an unrelated, disconnected git history. It has its own `package.json`, `validate.py`/`test-validate.py`, and must be tested from inside that directory (`cd iphone-dev-platform && npm test`), never from the repo root. Do not assume anything in it shares code, dependencies, or conventions with the Rust workspace.
 
@@ -97,6 +126,16 @@ python3 -m pytest tests/              # Python tests (ghm_core CLI smoke tests, 
 ```
 
 `bash scripts/codex_fullstack_check.sh` validates repo structure, checks Rust formatting (when `cargo fmt` is available), runs `cargo check`/`cargo test` for the workspace, installs UI deps without writing a lockfile, and builds the UI. Run it (or the equivalent subset) before calling a change done.
+
+It used to **exit 1 on a clean checkout** where everything actually passed: the
+final `docker compose config` step is a *syntax* check, but `docker-compose.yml`
+interpolates `HM_OWNER_TOKEN` as a required variable, so without an exported
+token the whole verification failed after fmt, check, test and the UI build had
+all succeeded. A missing token is a start gate for *operation*, not a statement
+about the repository — and a pre-flight check that fails on something it isn't
+even checking gets bypassed the second time, which is the same lesson
+`hugin_clarity.py --start` was built on. The step now supplies a placeholder for
+the syntax check only; a real exported token still wins.
 
 Single-test invocations:
 
@@ -306,6 +345,7 @@ Routes (all gated by the same auth check except `OPTIONS`):
 - `GET|POST /memory`, `POST /memory/search` — passthrough to `hm-memory`
 - `GET /memory/graph` — the structural knowledge-graph seed ingested at startup from `HM_MEMORY_GRAPH_SEED_PATH`, if any; `404` if none was ingested. Kept structurally separate from free-text `/memory` records — see `hm-memory`'s `MemoryStore::ingest_graph_seed`/`graph`.
 - `GET|POST /diagnostics` — opt-in diagnostics reports (see below)
+- `GET|POST /sessions`, `GET|DELETE /sessions/{id}`, `POST /sessions/{id}/messages` — in-memory conversation store (`hm-sessions`), **not persisted**; see `docs/production-api-contract.md`
 - `POST /chat` (+ `/api/chat`, `/gateway/chat`) — **the streaming command surface**; see below
 
 **The chat surface (`crates/hm-gateway/src/chat.rs` + `agents/brain.py`)** is the
@@ -323,14 +363,93 @@ if the cost lock is open). Same property as `hm-tool-exec`: the input *chooses*
 among fixed `(program, args)` pairs, it never *builds* one, and there is no shell
 anywhere in the path. Keep that property when adding commands.
 
+**Drei Chat-Befehle logen im Container.** Das Laufzeit-Image kopiert `config/`,
+`plugins/`, `scripts/`, `agents/` und Teile von `.claude/` — aber weder
+`crates/` noch `Cargo.toml` noch `tests/`. Im nachgebildeten Image-Layout
+gemessen: `/struktur` streamte einen rohen Python-Traceback in den Chat,
+`/supervisor` meldete **„VIOLATION — 4 Befunde"**, die reine Artefakte der
+fehlenden Dateien waren, und `/tests` antwortete `no tests ran in 0.00s`. Die
+letzten beiden sind die gefährlicheren: sie sehen aus wie ein Ergebnis. Ein
+Befund, der von einem echten Verfassungsverstoß nicht zu unterscheiden ist,
+ist schlimmer als ein Absturz. `Command.braucht` nennt jetzt die Artefakte,
+ohne die ein Befehl kein sinnvolles Ergebnis liefern kann; fehlen sie, sagt er
+das und führt nichts aus. Der Gegentest in `tests/test_brain.py` prüft beide
+Richtungen — die Absage *und* dass `/status`, das nur `scripts/` braucht,
+unverändert läuft.
+
 **Anthropic is one rung on that ladder, not a prerequisite.** `tests/test_brain.py`
 runs the brain with every `ANTHROPIC*` variable stripped from the environment and
 requires a real answer — a claim of independence that only lives in prose is not a
 claim, it is a hope.
 
+**The whole dispatch path was dead, and nothing said so.** `POST /tasks` bound
+its field as `taskType`; `hm-cli`, `hm-cron` and all four channel crates sent
+`task_type`. With `#[serde(default)]` that mismatch yields an empty string
+rather than a parse error, so the gateway answered `202 accepted: true` and
+dispatched to no plugin. Measured on a live gateway before the fix: **all six
+cron jobs and every CLI submission ran nothing**, with no error anywhere. Every
+crate had tests, all of them passed, because each side was only ever checked
+against itself — the defect lived precisely in the gap between them.
+
+The request type is now `hm_sdk::TaskSubmission`, shared by producer and
+consumer instead of re-declared per crate, with `alias = "task_type"` for
+clients outside this repository that a rename cannot reach. `hm-sdk` was the
+one crate this file called "genuinely a stub"; owning the second wire protocol
+is what it is for. **`crates/hm-gateway/tests/wire_contract.rs`** spawns the
+real binary and asserts over a real socket that the plugin received the task
+type — it imports nothing from the gateway, deliberately. Counter-checked:
+removing the alias makes exactly that test fail.
+
+Two consequences worth keeping: an empty `taskType` is now **400**, not an
+accepted `"unspecified"` that could never match a plugin; and every response
+carries `dispatch` (`plugin_dispatched` | `unhandled`, the latter with
+`dispatch_reason`). "Nothing ran" used to be expressed only by the *absence*
+of `plugin_result`.
+
+Turning the six cron jobs on for the first time exposed two more defects they
+had never been able to reach:
+
+- **`plugins/autonomy_pulse_plugin.py` corrupted its own protocol line.**
+  `autonomy_core._log()` writes to *stdout*, and `heal()`/`reflect()` call it.
+  hm-plugins reads the first stdout line, so `[20:23:20] heal: Verzeichnis
+  erstellt: diagnostics` arrived instead of the response — serde reads `[…]`
+  as a sequence whose first element `20` fails against `ok: bool`, which is
+  the live message `invalid type: integer`. It fires exactly when the
+  self-healing actually heals something. Fixed by separating the channels
+  (`contextlib.redirect_stdout(sys.stderr)`), not by removing the logging.
+- **`ops-tool` only existed in release builds.** `config/plugins.json` names
+  `target/release/hm-tool-exec`, which the container image provides and no
+  debug build does; both `ops-tool` cron jobs failed every six hours.
+  `PluginRegistry::resolve_program` now falls back to the sibling build
+  profile, and only for genuinely absent `target/<profile>/` paths.
+
 **Auth model (`hm-auth`)**: every route requires `Authorization: Bearer <HM_OWNER_TOKEN>`. The gateway process **refuses to start** if `HM_OWNER_TOKEN` is unset (fail-closed), unless `HM_GATEWAY_ALLOW_NO_AUTH=true` is explicitly set (local dev only). Token comparison is constant-time (`hm_auth::tokens_match`). Never weaken this without being asked.
 
 **Storage model (`hm-storage`)**: `FileStorage` has two real implementations. `LocalFsStorage` is local-disk only, rooted at `HM_STORAGE_ROOT` (default `./data/storage`). `RemoteHttpStorage` persists to another host's `/storage/{key}` endpoint over a hand-rolled plain-HTTP client (no TLS, no external HTTP crate) — select it with `HM_STORAGE_BACKEND=remote` + `HM_REMOTE_STORAGE_URL`; `hm-gateway` fails to start rather than silently falling back to local disk if that's misconfigured. `AppState.storage` and `MemoryStore` are generic over `Arc<dyn FileStorage>`, so this required no changes to either beyond the trait object type. `docker-compose.yml` declares `postgres`/`redis` services, but **no crate in the workspace actually connects to either** — grep confirms zero references to `sqlx`/`tokio_postgres`/`redis` in `crates/`. Don't assume the database layer is wired up; it isn't yet.
+
+**Persistenz: ein beschädigter Zustand war stiller Datenverlust.** Zwei
+Fehler griffen ineinander und wurden beide live reproduziert:
+
+`LocalFsStorage::put` schrieb mit `fs::write` — erst kürzen, dann schreiben.
+Ein Absturz, `SIGKILL`, OOM oder eine volle Platte dazwischen hinterlässt eine
+halb geschriebene Datei. Das ist hier kein Randfall: `MemoryStore` persistiert
+bei *jedem* `remember()`, und `hm-agent` schreibt pro dispatchtem Task einen
+Eintrag. Jetzt: Temp-Datei im selben Verzeichnis, `sync_all`, dann `rename` —
+auf POSIX atomar. Der Zähler im Temp-Namen ist nötig, weil zwei gleichzeitige
+Puts auf denselben Key sich sonst die Datei teilen und eine aus zwei Hälften
+zusammengesetzte Datei entstehen kann.
+
+`MemoryStore::load` las das dann mit `serde_json::from_slice(&bytes)
+.unwrap_or_default()` und `Err(_) => default()`. **Gemessen**: drei Records,
+Datei auf 4000 von 7348 Bytes gekürzt, Neustart → Gateway startet normal,
+protokolliert nichts, `GET /memory` liefert 0 Records, und der nächste
+Schreibvorgang überschreibt die Datei. Die drei Records sind weg, ohne eine
+einzige Fehlermeldung. „Noch nichts gespeichert" und „gespeichert, aber
+unlesbar" sind verschiedene Antworten und dürfen nicht zusammenfallen — auch
+ein fehlgeschlagener `exists`-Aufruf ist kein „nicht vorhanden", sondern bei
+`RemoteHttpStorage` ein nicht erreichbarer Host. Jetzt startet das Gateway
+nicht, nennt die Datei und lässt sie unangetastet, damit sie noch da ist. Das
+ist dieselbe fail-closed-Regel wie beim Owner-Token.
 
 **Plugins (`hm-plugins` + `hm-sdk`)**: task types are dispatched to external subprocesses declared in `config/plugins.json`. Each invocation writes one line of JSON (`PluginRequest`) to the child's stdin and reads one line back (`PluginResponse`) with a 5s timeout. `plugins/echo_plugin.py` is a minimal example; `plugins/llm_chat_plugin.py` (task_type `llm-chat`) is a real-but-unverified scaffold that calls a generic OpenAI-compatible completions API -- it refuses loudly unless `HM_LLM_ENABLE=true` plus `HM_LLM_API_URL`/`HM_LLM_API_KEY`/`HM_LLM_MODEL` are all explicitly set, and has only been tested against a hermetic local mock server (`tests/test_llm_chat_plugin.py`), never a real LLM API -- see `docs/xcloud-platform-plan.md` Phase 4 before assuming otherwise.
 
@@ -384,10 +503,10 @@ to check the property rather than the happy path.
 
 | Crate | `pub fn` | Tests | Reality |
 |---|---|---|---|
-| `hm-gateway` | 0¹ | 7 | Real. The only HTTP surface, 997 lines. |
-| `hm-vector` | 8 | 7 | Real. NSW/ANN index. |
-| `hm-storage` | 6 | 13 | Real. Local + remote backends. |
-| `hm-memory` | 7 | 8 | Real. |
+| `hm-gateway` | 0¹ | 7 + 4 | Real. The only HTTP surface. The extra 4 are `tests/wire_contract.rs`, which drives the compiled binary over a socket. |
+| `hm-vector` | 8 | 9 | Real. NSW/ANN index. Sortiert mit `total_cmp`, nicht `partial_cmp().unwrap()` — ein NaN im Index hätte `/memory/search` mit einer Panik beendet. |
+| `hm-storage` | 6 | 16 | Real. Local + remote backends; `put` schreibt atomar (Temp + `fsync` + `rename`). |
+| `hm-memory` | 7 | 11 | Real. `load` unterscheidet „nichts gespeichert" von „unlesbar" und startet nicht mit leerem Gedächtnis. |
 | `hm-sessions` | 13 | 5 | **Real** — not a stub. |
 | `hm-cli` | 0¹ | 0 | **Real CLI**, 233 lines: `GatewayClient` + `Status`/`Tasks`/`Memory`/`Storage` subcommands. |
 | `hm-channel-telegram` | 7 | 2 | Inbound adapter + types. **Cannot send** — see below. |
@@ -398,8 +517,8 @@ to check the property rather than the happy path.
 | `hm-auth` | 3 | 10 | Real. |
 | `hm-cron` | 2 | 4 | Thin — but see the note below. |
 | `hm-core` | 2 | 3 | Thin. |
-| `hm-plugins` | 4 | 11 | Real protocol. Tests added — see below. |
-| `hm-sdk` | 0 | 0 | **Genuinely a stub** — 20 lines, type definitions only. |
+| `hm-plugins` | 4 | 15 | Real protocol. Tests added — see below; `resolve_program` covers the release/debug profile trap. |
+| `hm-sdk` | 2 | 4 | **No longer a stub.** Owns both wire protocols: `PluginRequest`/`PluginResponse` and now `TaskSubmission`, the shared request type of `POST /tasks`. |
 
 ¹ `pub fn` 0 means the crate is a binary whose logic sits in `fn main` and private helpers, not that it is empty — read the line count next to it.
 

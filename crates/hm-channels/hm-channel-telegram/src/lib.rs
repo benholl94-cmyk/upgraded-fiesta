@@ -117,16 +117,21 @@ impl TelegramClient {
     /// Leitet eine eingehende Nachricht als Task ans Gateway weiter.
     pub fn forward_to_gateway(&self, msg: &TelegramMessage) -> Result<(), anyhow::Error> {
         let text = msg.text.as_deref().unwrap_or("");
-        let task_payload = json!({
-            "task_type": "telegram-message",
-            "payload": {
+        // Der Feldname stammt aus dem geteilten `TaskSubmission`, nicht aus
+        // einem hier ausgeschriebenen JSON-Literal: ausgeschrieben hiess er
+        // `task_type`, band am Gateway an nichts, und jede weitergeleitete
+        // Nachricht wurde mit 202 quittiert, ohne je ein Plugin zu erreichen.
+        let task_payload = serde_json::to_string(&hm_sdk::TaskSubmission::new(
+            "telegram-message",
+            String::new(),
+            json!({
                 "chat_id": msg.chat.id,
                 "text": text,
                 "from": msg.from.as_ref().map(|u| &u.first_name),
-            }
-        });
+            }),
+        ))?;
 
-        let body = task_payload.to_string();
+        let body = task_payload;
         let url = self.gateway_url.trim_start_matches("http://");
         let (host, port_str) = url.rsplit_once(':').unwrap_or((url, "8080"));
         let port: u16 = port_str.parse().unwrap_or(8080);

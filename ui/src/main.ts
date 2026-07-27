@@ -143,10 +143,20 @@ function App(): React.ReactElement {
       });
       const body = res.response as Record<string, unknown> | null;
       const pluginResult = body?.plugin_result as Record<string, unknown> | undefined;
+
+      // Ein Task, für den kein Plugin registriert ist, wird mit 202
+      // angenommen und läuft nicht. Ohne diesen Zweig fiel das auf den
+      // JSON.stringify-Fallback durch: der Nutzer sah einen rohen Objekt-Dump
+      // und konnte nicht erkennen, dass schlicht nichts ausgeführt wurde.
+      // `dispatch` sagt es direkt, statt es aus einem fehlenden Feld zu
+      // erschließen.
       const reply =
-        (pluginResult?.result as Record<string, unknown>)?.reply as string
-        ?? pluginResult?.message as string
-        ?? JSON.stringify(pluginResult ?? body ?? res);
+        body?.dispatch === "unhandled"
+          ? `Kein Plugin für 'llm-chat' registriert — es wurde nichts ausgeführt.`
+            + ` (${body?.dispatch_reason ?? "kein Grund gemeldet"})`
+          : (pluginResult?.result as Record<string, unknown>)?.reply as string
+            ?? pluginResult?.message as string
+            ?? JSON.stringify(pluginResult ?? body ?? res);
       setChatHistory(h => [...h, { role: "assistant", text: reply }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "chat_dispatch_failed";
