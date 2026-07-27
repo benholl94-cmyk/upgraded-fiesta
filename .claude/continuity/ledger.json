@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-27T05:56:21+00:00",
+  "updated": "2026-07-27T06:30:16+00:00",
   "session": 3,
   "entries": [
     {
@@ -582,6 +582,30 @@
       "text": "Zustand, der einen Neustart ueberleben soll, wird atomar geschrieben: Temp-Datei im selben Verzeichnis, sync_all, rename. fs::write kuerzt zuerst und schreibt danach — ein Absturz dazwischen hinterlaesst eine halb geschriebene Datei. Hier kein Randfall: MemoryStore persistiert bei jedem remember(), hm-agent schreibt pro Task einen Eintrag. Temp-Name braucht einen Zaehler, sonst teilen sich zwei gleichzeitige Puts dieselbe Datei.",
       "anchors": [
         "path:crates/hm-storage/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-14",
+      "session": 3,
+      "ts": "2026-07-27T06:30:16+00:00",
+      "kind": "invariante",
+      "text": "Eine Wache gilt erst als wirksam, wenn ein Test sie durch die echte Mutation zum Fallen bringt. tests/test_meta_guards.py bricht fuenf Invarianten absichtlich und verlangt jeweils den zustaendigen roten Test. Die Invariante 'jede Wache braucht einen Gegentest' stand vorher nur als Satz in CLAUDE.md und wurde von nichts nachgerechnet.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-15",
+      "session": 3,
+      "ts": "2026-07-27T06:30:16+00:00",
+      "kind": "sackgasse",
+      "text": "Ein Test im tests/-Verzeichnis ist kein Beleg, dass er laeuft. Zwei .sh-Tests lagen dort, prueften Skripte die NIE in der main-Historie existierten, wurden von pytest nie eingesammelt (es sammelt keine .sh-Dateien) und meldeten Exit 0, waehrend sie FAIL: druckten. Ein volles Testverzeichnis sieht wie Abdeckung aus. Pruefe Subjekt, Exit-Code und ob ueberhaupt jemand den Test aufruft.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
       ],
       "state": "offen",
       "weight": 1
