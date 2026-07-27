@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T04:26:13.609774+00:00",
+  "generated_at": "2026-07-27T06:08:49.112217+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -51,13 +51,13 @@
       "exists": true,
       "is_file": true,
       "path": "scripts/codex_fullstack_check.sh",
-      "size_bytes": 1024
+      "size_bytes": 1886
     },
     {
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 29881
+      "size_bytes": 32937
     },
     {
       "exists": true,
@@ -81,7 +81,7 @@
       "exists": true,
       "is_file": true,
       "path": "ui/src/main.ts",
-      "size_bytes": 15039
+      "size_bytes": 15641
     },
     {
       "exists": true,
@@ -105,7 +105,7 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 52268
+      "size_bytes": 54278
     },
     {
       "exists": true,
@@ -141,13 +141,13 @@
       "exists": true,
       "is_file": true,
       "path": "hugin/manifest.json",
-      "size_bytes": 676
+      "size_bytes": 904
     },
     {
       "exists": true,
       "is_file": true,
       "path": "plugins/autonomy_pulse_plugin.py",
-      "size_bytes": 1163
+      "size_bytes": 2094
     }
   ],
   "source_markers": {
