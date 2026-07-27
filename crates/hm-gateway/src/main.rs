@@ -207,7 +207,20 @@ struct TaskRecord {
 
 #[derive(Debug, Deserialize)]
 struct TaskInput {
-    #[serde(default, rename = "taskType")]
+    /// Accepts both spellings.
+    ///
+    /// The contract documents `taskType`, and **every internal caller sent
+    /// `task_type`**: `hm-cron`, `hm-cli tasks submit`, and all four channel
+    /// crates' `forward_to_gateway`. serde dropped the unknown field, the
+    /// type fell back to the empty string, the gateway substituted
+    /// "unspecified" -- and still answered `202 accepted`. Measured effect:
+    /// all six scheduled cron jobs dispatched nothing, silently, on every
+    /// run, while both sides reported success.
+    ///
+    /// Fixing the callers would have meant finding every one of them, and a
+    /// missed one fails exactly as silently. Accepting both spellings cannot
+    /// be forgotten.
+    #[serde(default, rename = "taskType", alias = "task_type")]
     task_type: String,
     #[serde(default)]
     objective: String,
@@ -965,14 +978,25 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         }
     };
 
+    // A missing type is refused instead of renamed. Inventing "unspecified"
+    // turned a caller's mistake into an accepted task that could never
+    // dispatch -- the caller got 202 and no plugin ever ran. Loud refusal is
+    // the house rule everywhere else here.
+    if input.task_type.trim().is_empty() {
+        return json_response(
+            400,
+            json!({
+                "status": "invalid_request",
+                "accepted": false,
+                "reason": "task type is required (field 'taskType', alias 'task_type')"
+            }),
+        );
+    }
+
     let accepted_at_unix = unix_now();
     let task = TaskRecord {
         task_id: format!("task-{}", Uuid::new_v4()),
-        task_type: if input.task_type.trim().is_empty() {
-            "unspecified".to_string()
-        } else {
-            input.task_type
-        },
+        task_type: input.task_type,
         objective: input.objective,
         payload: input.payload,
         accepted_at_unix,
@@ -1334,6 +1358,30 @@ mod audit_tests {
     /// `apply_cors` on a *finished response*, which is what actually reaches
     /// the client -- testing `allowed_origin_from` alone is what let this
     /// survive.
+    /// Der Bruch, der die ganze Task-Kette durchtrennte: jeder interne
+    /// Aufrufer sendet `task_type`, das Gateway nahm nur `taskType`. serde
+    /// verwarf das unbekannte Feld, der Typ wurde leer, das Gateway machte
+    /// daraus "unspecified" und antwortete trotzdem 202. Sechs Cron-Jobs
+    /// liefen so bei jedem Lauf ins Leere, und beide Seiten meldeten Erfolg.
+    #[test]
+    fn both_spellings_of_the_task_type_are_accepted() {
+        for koerper in [
+            r#"{"taskType":"echo","payload":{}}"#,
+            r#"{"task_type":"echo","payload":{}}"#,
+        ] {
+            let input: TaskInput = serde_json::from_str(koerper).expect(koerper);
+            assert_eq!(input.task_type, "echo", "verschluckt: {koerper}");
+        }
+    }
+
+    #[test]
+    fn a_missing_task_type_stays_empty_instead_of_being_invented() {
+        // Der Ersatzwert "unspecified" machte aus einem Fehler des Aufrufers
+        // eine angenommene Aufgabe, die nie dispatchen konnte.
+        let input: TaskInput = serde_json::from_str(r#"{"payload":{}}"#).unwrap();
+        assert_eq!(input.task_type, "");
+    }
+
     #[test]
     fn a_configured_origin_actually_reaches_the_response() {
         let out = apply_cors_from(

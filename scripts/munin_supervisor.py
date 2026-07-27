@@ -182,7 +182,17 @@ def check_git_identity() -> list[Finding]:
                      "andere macht jeden Commit auf GitHub 'Unverified'.",
             source="munin.json → gitIdentity.committer"))
 
-    r = run("git", "log", "-1", "--format=%ae")
+    # Nur eigene Commits. `git log -1` traf nach einem Reset auf den
+    # Default-Branch den letzten FREMDEN Commit -- z.B. den eines CI-Bots --
+    # und meldete dessen Adresse als Verstoss. Dieselbe Fehlerklasse wie der
+    # Stop-Hook, der einmal einen Rebase ueber Commits anderer Autoren
+    # verlangte: fremde Historie als eigene gelesen.
+    #
+    # Eigene Commits sind genau die, die noch nicht im Default-Branch sind.
+    # Gibt es keine, gibt es auch nichts zu pruefen -- eine Regel ohne
+    # Gegenstand darf nicht anschlagen.
+    base = run("git", "rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip() or "origin/main"
+    r = run("git", "log", "-1", "--format=%ae", f"{base}..HEAD")
     author_have = r.stdout.strip() if r.returncode == 0 else ""
     if author_have and author_have != author_want:
         out.append(Finding(
