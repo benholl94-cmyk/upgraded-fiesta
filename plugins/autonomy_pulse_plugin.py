@@ -49,7 +49,19 @@ def main() -> None:
         "audit_score": pulse_state.get("audit", {}).get("score"),
     }
     ok = len(pulse_state.get("alerts", [])) == 0
-    sys.stdout.write(json.dumps({"ok": ok, "result": result, "message": "autonomy-pulse complete"}) + "\n")
+    # allow_nan=False: Python schreibt fuer float('nan')/inf sonst die Literale
+    # NaN und Infinity, und die sind KEIN gueltiges JSON. Auf dem Kabel wird
+    # daraus beim Empfaenger "invalid number at line 1" -- ein Fehler, der wie
+    # ein Protokollfehler aussieht und in Wahrheit ein Zahlenfehler ist.
+    # Genau diese Meldung stand einmal im Gedaechtnis des Gateways. Lieber
+    # hier laut scheitern als dort unverstaendlich.
+    try:
+        zeile = json.dumps({"ok": ok, "result": result,
+                            "message": "autonomy-pulse complete"}, allow_nan=False)
+    except ValueError as exc:
+        zeile = json.dumps({"ok": False, "result": {},
+                            "message": f"autonomy-pulse: unzulaessiger Zahlenwert: {exc}"})
+    sys.stdout.write(zeile + "\n")
     sys.stdout.flush()
 
 if __name__ == "__main__":

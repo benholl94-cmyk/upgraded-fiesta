@@ -461,6 +461,27 @@ Env vars the gateway reads (defaults in `docs/production-api-contract.md`): `HM_
 
 **Observability/abuse protection**: every request (including rejected ones) emits one structured JSON audit line to stdout before any real work happens, and a per-IP `RateLimiter` (fixed window, `HM_RATE_LIMIT_PER_MINUTE`, default 120/min, `0` disables) rejects with `429` before the request is even read off the socket. Both are in-process/per-instance only — there is no shared rate-limit state or centralized log aggregation across multiple gateway instances; see `docs/xcloud-platform-plan.md` Phase 5 for where multi-instance concerns are tracked instead of quietly assumed solved here.
 
+**Fixed: every submitted task was silently discarded.** `TaskInput` accepted
+only `taskType`; `hm-cron`, `hm-cli tasks submit` and all four channel crates'
+`forward_to_gateway` send `task_type`. serde dropped the unknown field, the type
+fell back to empty, the gateway substituted `"unspecified"` — and answered
+`202 accepted`. Measured on a live gateway: all six cron jobs landed as
+`task 'unspecified' unhandled: no plugin registered`, on every run, while both
+sides reported success. The field now carries `alias = "task_type"`, and a
+missing type is refused with `400` instead of renamed: inventing a value turned
+a caller's mistake into an accepted task that could never dispatch. Fixing the
+callers instead would have meant finding every one of them, and a missed one
+fails exactly as silently.
+
+Dispatch working immediately exposed two things it had been hiding: the
+`ops-tool` entry in `config/plugins.json` points at `target/release/hm-tool-exec`,
+so it fails in a debug checkout and works only in the container (which copies
+the release binary); and `plugins/autonomy_pulse_plugin.py` could put invalid
+JSON on the wire, because Python writes bare `NaN`/`Infinity` literals for
+non-finite floats. That plugin now serialises with `allow_nan=False` and fails
+loudly instead — on the wire it had surfaced as `invalid number at line 1`,
+which reads like a protocol error and is a number error.
+
 **Fixed: the cron runner used to deadlock the whole gateway.** `hm-cron`'s
 `submit_task` posted to `/tasks` with **synchronous `std::net::TcpStream` and an
 unbounded `read_to_string`, from inside a tokio task** — blocking I/O on the
@@ -488,8 +509,8 @@ to check the property rather than the happy path.
 | `hm-memory` | 7 | 11 | Real. `load` unterscheidet „nichts gespeichert" von „unlesbar" und startet nicht mit leerem Gedächtnis. |
 | `hm-sessions` | 13 | 5 | **Real** — not a stub. |
 | `hm-cli` | 0¹ | 0 | **Real CLI**, 233 lines: `GatewayClient` + `Status`/`Tasks`/`Memory`/`Storage` subcommands. |
-| `hm-channel-telegram` | 7 | 2 | **Sends for real** — `send_message()` opens a `TcpStream` to the Bot API. |
-| `hm-channel-whatsapp` / `-discord` / `-slack` | 6 / 6 / 5 | 4 / 4 / 3 | Same shape as telegram; each carries real transport code. |
+| `hm-channel-telegram` | 7 | 2 | Inbound adapter + types. **Cannot send** — see below. |
+| `hm-channel-whatsapp` / `-discord` / `-slack` | 6 / 6 / 5 | 4 / 4 / 3 | Same shape as telegram, same limitation. |
 | `hm-tool-media` / `-browser` / `-web` | 3 / 2 / 2 | 4 / 3 / 5 | Thin but tested; `-web` has 10 network references. |
 | `hm-tool-exec` | 0¹ | 4 | Real, allowlist-only (see above). |
 | `hm-agent` | 3 | 2 | Real. Dispatch + memory write-through. |
@@ -500,6 +521,29 @@ to check the property rather than the happy path.
 | `hm-sdk` | 2 | 4 | **No longer a stub.** Owns both wire protocols: `PluginRequest`/`PluginResponse` and now `TaskSubmission`, the shared request type of `POST /tasks`. |
 
 ¹ `pub fn` 0 means the crate is a binary whose logic sits in `fn main` and private helpers, not that it is empty — read the line count next to it.
+
+**Correction, measured 2026-07-27**: the four channel crates **cannot send**.
+Their `*_api_post` functions `bail!` unconditionally with *"… requires HTTPS.
+Add rustls or native-tls to this crate"* — the workspace hand-rolls plain HTTP
+by design, and hand-rolling TLS is not a sane option. The row above previously
+read *"Sends for real — `send_message()` opens a `TcpStream` to the Bot API"*,
+which was false: it opens nothing and returns an error. The crates are real
+**inbound** adapters and type definitions; that is not nothing, but it is not
+sending.
+
+Worse, the four task types `telegram-message`, `discord-message`,
+`slack-message`, `whatsapp-message` pointed at `echo_plugin.py`. Posting a
+Telegram message to the gateway echoed it back and sent nothing at all.
+
+**Now connected** via `plugins/channel_send_plugin.py`: one plugin, four
+channels, TLS from the Python stdlib (`urllib`) — no new Rust dependency, no
+hand-rolled crypto. A channel is one table entry, not a new code path. It
+refuses loudly with the token's source URL when the credential is missing,
+because a channel that silently fails to send is worse than one that does not
+exist: people rely on it. Tested against a hermetic local HTTP server
+(`tests/test_channel_send_plugin.py`), including the case that matters most —
+Slack answers HTTP 200 *with* `{"ok": false}`, so checking only the status code
+reports every failure as a success.
 
 What has **not** changed: none of the channel crates has been live-tested against a real chat platform, because that needs real bot credentials (per `AGENTS.md`'s "surface gaps" rule). "Has working transport code" and "verified to work" are different claims — the table asserts the first, not the second.
 

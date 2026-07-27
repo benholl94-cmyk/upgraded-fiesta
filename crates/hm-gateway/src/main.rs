@@ -1362,6 +1362,32 @@ mod audit_tests {
     /// `apply_cors` on a *finished response*, which is what actually reaches
     /// the client -- testing `allowed_origin_from` alone is what let this
     /// survive.
+    /// Der Bruch, der die ganze Task-Kette durchtrennte: jeder interne
+    /// Aufrufer sendet `task_type`, das Gateway nahm nur `taskType`. serde
+    /// verwarf das unbekannte Feld, der Typ wurde leer, das Gateway machte
+    /// daraus "unspecified" und antwortete trotzdem 202. Sechs Cron-Jobs
+    /// liefen so bei jedem Lauf ins Leere, und beide Seiten meldeten Erfolg.
+    #[test]
+    fn both_spellings_of_the_task_type_are_accepted() {
+        for koerper in [
+            r#"{"taskType":"echo","payload":{}}"#,
+            r#"{"task_type":"echo","payload":{}}"#,
+        ] {
+            let input: TaskSubmission = serde_json::from_str(koerper).expect(koerper);
+            assert_eq!(input.task_type, "echo", "verschluckt: {koerper}");
+        }
+    }
+
+    #[test]
+    fn a_missing_task_type_stays_empty_instead_of_being_invented() {
+        // Der Ersatzwert "unspecified" machte aus einem Fehler des Aufrufers
+        // eine angenommene Aufgabe, die nie dispatchen konnte.
+        let input: TaskSubmission = serde_json::from_str(r#"{"payload":{}}"#).unwrap();
+        assert_eq!(input.task_type, "");
+        // Und genau deshalb wird sie abgewiesen statt umbenannt.
+        assert!(!input.is_dispatchable());
+    }
+
     #[test]
     fn a_configured_origin_actually_reaches_the_response() {
         let out = apply_cors_from(
