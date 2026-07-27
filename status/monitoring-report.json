@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T06:09:08.781346+00:00",
+  "generated_at": "2026-07-27T06:18:05.823392+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -105,7 +105,7 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 54278
+      "size_bytes": 55509
     },
     {
       "exists": true,
@@ -147,7 +147,7 @@
       "exists": true,
       "is_file": true,
       "path": "plugins/autonomy_pulse_plugin.py",
-      "size_bytes": 2094
+      "size_bytes": 2783
     }
   ],
   "source_markers": {
