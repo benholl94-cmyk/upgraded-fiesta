@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-27T06:30:16+00:00",
+  "updated": "2026-07-27T14:14:08+00:00",
   "session": 3,
   "entries": [
     {
@@ -606,6 +606,42 @@
       "text": "Ein Test im tests/-Verzeichnis ist kein Beleg, dass er laeuft. Zwei .sh-Tests lagen dort, prueften Skripte die NIE in der main-Historie existierten, wurden von pytest nie eingesammelt (es sammelt keine .sh-Dateien) und meldeten Exit 0, waehrend sie FAIL: druckten. Ein volles Testverzeichnis sieht wie Abdeckung aus. Pruefe Subjekt, Exit-Code und ob ueberhaupt jemand den Test aufruft.",
       "anchors": [
         "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-16",
+      "session": 3,
+      "ts": "2026-07-27T14:14:08+00:00",
+      "kind": "sackgasse",
+      "text": "Exakter Mengenschnitt als Belegsuche scheitert an deutscher Flexion: die Frage sagt 'atomarer', der Ledgereintrag 'atomar', Aehnlichkeit 0,000 — und zwar ueber ALLE 133 Faelle der Historie. Der Kern antwortete darum auf jede Frage 'nicht belegt' und das 7-GB-Modell war unbenutzbar. Ein gemeinsamer Wortanfang ab 5 Zeichen, wobei eines Praefix des anderen sein muss, loest es ohne Stemmer-Abhaengigkeit.",
+      "anchors": [
+        "path:agents/kernel.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-17",
+      "session": 3,
+      "ts": "2026-07-27T14:14:08+00:00",
+      "kind": "sackgasse",
+      "text": "Eine Schranke an Situation.kind zu haengen schaltet sie ab: das Feld setzt in der Praxis niemand, agents/brain.py uebergibt es nie. Mein erster Fix gegen 'Frage wurde verboten' machte damit die Invarianten-Schranke wirkungslos — aufgefallen nur, weil test_kernel.py sie einfordert. Unterschieden wird jetzt an der Satzform (Fragezeichen oder Fragewort am Anfang), die immer vorhanden ist.",
+      "anchors": [
+        "path:agents/kernel.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-18",
+      "session": 3,
+      "ts": "2026-07-27T14:14:08+00:00",
+      "kind": "invariante",
+      "text": "T1b gilt erst als verfuegbar, wenn llama-server auf /health mit ok antwortet. Datei-Anwesenheit reicht nicht: models/model.gguf und llama-cli lagen beide vor, tiers() meldete [x], und der erste echte Aufruf brach mit SIGABRT in cli_server::wait_ready ab. llama-cli laed ausserdem 7 GB pro Frage neu; der Server haelt sie im Speicher und antwortet in 2,9 s.",
+      "anchors": [
+        "path:scripts/hugin_local_model.py"
       ],
       "state": "offen",
       "weight": 1

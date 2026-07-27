@@ -206,6 +206,44 @@ def extract_cases(commit_limit: int = 120) -> list[Case]:
     return cases
 
 
+#: Ab dieser Laenge gilt ein gemeinsamer Wortanfang als dasselbe Wort.
+#: Kuerzer waere gefaehrlich — "ver" verbindet "verboten" mit "Verzeichnis".
+_STAMM_MIN = 5
+
+
+def _stamm_treffer(frage_wort: str, fall_wort: str) -> bool:
+    """Deutsche Flexion darf einen Beleg nicht unsichtbar machen.
+
+    Der exakte Mengenschnitt scheiterte an genau dem, wofuer er da ist:
+    die Frage sagt *atomarer*, der Ledgereintrag sagt *atomar* — kein
+    Treffer, Aehnlichkeit 0,000. Gemessen ueber alle 133 Faelle der Historie
+    war **jede** Aehnlichkeit exakt null, und der lokale Kern antwortete
+    darum auf jede Frage "nicht belegt". Ein Beleg, den niemand findet, ist
+    kein Beleg.
+
+    Kein Stemmer, keine Abhaengigkeit: ein gemeinsamer Wortanfang ab
+    `_STAMM_MIN` Zeichen genuegt, und eines der beiden Woerter muss ein
+    Praefix des anderen sein. Das faengt Flexion (atomar/atomarer,
+    Datei/Dateien, Test/Tests) und laesst blosse Silbengleichheit
+    ("Verzeichnis"/"verboten") aussen vor.
+    """
+    if frage_wort == fall_wort:
+        return True
+    kurz, lang = sorted((frage_wort, fall_wort), key=len)
+    if len(kurz) < _STAMM_MIN:
+        return False
+    return lang.startswith(kurz)
+
+
+def _lexical_coverage(frage_terme: frozenset[str], fall_terme: frozenset[str]) -> float:
+    """Wie viel von dem, wonach gefragt wird, kommt in diesem Fall vor."""
+    if not frage_terme:
+        return 0.0
+    getroffen = sum(1 for f in frage_terme
+                    if any(_stamm_treffer(f, k) for k in fall_terme))
+    return getroffen / len(frage_terme)
+
+
 def similarity(s: Situation, c: Case) -> float:
     """Struktur vor Wortlaut.
 
@@ -226,7 +264,7 @@ def similarity(s: Situation, c: Case) -> float:
     # diese Frage beantwortet. Gefragt ist "wie viel von dem, wonach ich frage,
     # kommt in diesem Fall vor" -- das ist asymmetrisch.
     st, ct = s.terms - STOP, c.terms - STOP
-    lex = len(st & ct) / len(st) if st else 0.0
+    lex = _lexical_coverage(st, ct)
 
     # Hat ein Fall keine Pfadanker, gibt es strukturell nichts zu vergleichen.
     # Ihn dann auf 0.35*lex zu daempfen hiesse, "keine Struktur" wie "keine
@@ -279,6 +317,30 @@ class Inference:
 _FORBIDS = re.compile(
     r"\b(nie(mals)?|kein[e]?[rnms]?|darf nicht|verboten|niemals)\b", re.IGNORECASE)
 
+#: Fragewoerter am Satzanfang. Die Liste ist kurz und deutsch, weil die
+#: Fragen an diesen Kern es sind; ein Fragezeichen zaehlt unabhaengig davon.
+_FRAGEWORT = re.compile(
+    r"^\s*(warum|wieso|weshalb|was|wie|wann|wer|welche[rsnm]?|wo(her|hin|durch|fuer|für)?|"
+    r"warum|ist|sind|kann|koennen|können|gibt|warum)\b", re.IGNORECASE)
+
+
+def _ist_frage(text: str) -> bool:
+    """Unterscheidet eine Frage von einem Vorhaben.
+
+    Verbieten kann man ein Vorhaben, keine Frage. Ohne diese Unterscheidung
+    beantwortete der Kern *„warum ist ein atomarer Schreibvorgang sicherer?"*
+    mit „VERWEIGERT — eine Invariante verbietet das" und zitierte dabei genau
+    die Invariante, die die Antwort enthaelt: `_FORBIDS` findet das Wort
+    *kein* auch in erklaerender Prosa („Hier *kein* Randfall …").
+
+    Nicht ueber `Situation.kind`: das Feld setzt in der Praxis niemand —
+    `agents/brain.py` uebergibt es nie. Eine Schranke an ein Feld zu haengen,
+    das leer bleibt, schaltet sie ab, statt sie zu schaerfen. Die Form des
+    Satzes ist dagegen immer vorhanden.
+    """
+    t = text.strip()
+    return t.endswith("?") or bool(_FRAGEWORT.match(t))
+
 
 def infer(s: Situation, cases: list[Case] | None = None) -> Inference:
     """Situation -> begruendete Empfehlung, Ablehnung oder Verbot."""
@@ -292,9 +354,18 @@ def infer(s: Situation, cases: list[Case] | None = None) -> Inference:
                     key=lambda t: -t[0] * t[1].weight)
 
     # 1. Harte Schranke: eine einschlaegige Invariante, die verbietet.
+    #
+    # Nur gegen einen **Vorschlag**, nie gegen eine Frage. `_FORBIDS` sucht
+    # Verneinungen im Fliesstext, und eine Invariante wie "Hier *kein*
+    # Randfall: MemoryStore persistiert bei jedem remember()" ist erklaerend,
+    # nicht verbietend. Ohne diese Unterscheidung beantwortete der Kern die
+    # Frage "warum ist ein atomarer Schreibvorgang sicherer" mit
+    # "VERWEIGERT — eine Invariante verbietet das" und zitierte dabei genau
+    # die Invariante, die die Antwort enthaelt. Eine Frage kann man nicht
+    # verbieten; verbieten kann man nur ein Vorhaben.
     blocking = [c for sc, c in scored[:12]
-                if c.kind == "invariante" and sc >= MIN_SIMILARITY
-                and _FORBIDS.search(c.text)]
+                if not _ist_frage(s.text) and c.kind == "invariante"
+                and sc >= MIN_SIMILARITY and _FORBIDS.search(c.text)]
     if blocking:
         return Inference(
             "verboten",

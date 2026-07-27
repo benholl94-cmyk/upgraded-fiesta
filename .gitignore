@@ -96,3 +96,15 @@ self_space_workspace_/
 # toter Daten, die hier schon einmal aufgeraeumt wurde.
 data/storage/
 .claude/relay/
+
+# Lokaler Modellkern (T1b). Beides ist reproduzierbar, aber zu gross und zu
+# maschinenabhaengig fuer die Historie:
+#   models/model.gguf   7,03 GB — laege nach einem Commit in JEDEM Clone fuer
+#                       immer, auch nach dem Loeschen. Gepinnt in
+#                       config/model.json (Repo, Datei, SHA-256).
+#   vendor/llama.cpp/   selbst gebaute Binaries plus Quellbaum, gebaut mit
+#                       -DGGML_NATIVE=ON also auf die CPU dieser Maschine.
+# Wiederherstellung, ohne Rueckfrage:
+#   python3 scripts/hugin_local_model.py setup
+models/
+vendor/

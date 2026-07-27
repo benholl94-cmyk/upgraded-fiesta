@@ -221,6 +221,54 @@ chat turn answered `brain not startable`. Green in a checkout, dead in
 production; the same failure class as the plugin dispatch that was missing from
 the image before.
 
+## T1b lokal — das Modell laeuft wirklich
+
+`models/model.gguf` war monatelang eine Zeile in einem Bericht: *„fehlt, 6,6 GB"*.
+Sie wurde nie geholt. Jetzt ist sie ein Befehl:
+
+```sh
+python3 scripts/hugin_local_model.py setup     # holen, pruefen, bauen, starten
+python3 scripts/hugin_local_model.py status    # fragt den Dienst, nicht die Platte
+python3 scripts/hugin_local_model.py ask "..." # eine Frage, Exit-Code sagt ob es klappte
+```
+
+Gemessen auf dieser Maschine (4 Kerne, CPU-only): Download 7.029.535.392 B,
+SHA-256 stimmt mit `config/model.json`; llama.cpp aus der Quelle gebaut;
+Prompt 37,3 t/s, Generierung 11,7 t/s; eine geerdete Antwort in 2,9 s.
+
+**Server, nicht CLI.** `llama-cli` laed die 7 GB pro Frage neu und bricht in
+aktuellen Builds mit SIGABRT in `cli_server::wait_ready` ab — live gesehen.
+`llama-server` haelt das Modell im Speicher; `agents/brain.py` spricht es ueber
+`/v1/chat/completions` an und streamt tokenweise.
+
+Modell und Binaries stehen in `.gitignore`: 7 GB laegen sonst in jedem Clone
+fuer immer. `hugin_local_model.py setup` stellt beides reproduzierbar her.
+
+**Drei Fehler, die erst der erste echte Lauf zeigte** — alle drei sahen vorher
+richtig aus:
+
+- **Verfuegbarkeit wurde aus Dateien geschlossen.** `tiers()` prueft jetzt den
+  Dienst. Vorher lagen Modell und Binary vor, T1b meldete `[x]`, und der
+  Aufruf stuerzte ab. Dieselbe Invariante wie bei `hugin_clarity.py`:
+  gemessen, nie gelesen.
+- **Die Belegsuche fand nichts, wegen deutscher Flexion.** Die Frage sagt
+  *atomarer*, der Ledgereintrag *atomar*; der exakte Mengenschnitt ergab
+  0,000 — ueber **alle 133** Faelle der Historie. Der Kern antwortete darum
+  auf jede Frage „nicht belegt", und das Modell war unbenutzbar. Jetzt genuegt
+  ein gemeinsamer Wortanfang ab 5 Zeichen, wobei eines ein Praefix des anderen
+  sein muss. Gegenprobe im Test: eine sachfremde Frage bleibt bei 0,000.
+- **Eine Frage wurde verboten.** `_FORBIDS` fand das Wort *kein* in der
+  erklaerenden Invariante „Hier *kein* Randfall …" und antwortete
+  „VERWEIGERT" — unter Zitat genau der Invariante, die die Antwort enthielt.
+  Jetzt blockieren Invarianten nur Vorhaben, nicht Fragen; unterschieden wird
+  an der Satzform, **nicht** an `Situation.kind` — dieses Feld setzt in der
+  Praxis niemand, und eine Schranke an ein leeres Feld zu haengen schaltet sie
+  ab, statt sie zu schaerfen. Der Gegentest prueft beide Richtungen.
+
+`tests/test_local_model.py` haelt alle drei fest (15 Tests). Die zwei, die das
+echte Modell befragen, ueberspringen sich mit Angabe des Befehls, wenn der
+Dienst nicht laeuft — der Rest laeuft immer.
+
 ## Metatests — prueft die Wachen, oder sehen sie nur so aus?
 
 `tests/test_meta_guards.py` rechnet die Invariante *„Jede Wache braucht einen

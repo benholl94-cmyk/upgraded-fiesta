@@ -79,9 +79,25 @@ def test_a_question_answers_from_repo_evidence_without_any_model():
 
 
 def test_an_unanswerable_question_says_so_instead_of_inventing():
+    """Ohne Praezedenzfall wird nicht formuliert, sondern abgelehnt.
+
+    Der Wortlaut haengt von der tragenden Stufe ab und ist nicht die
+    Aussage des Tests: ohne Modell antwortet T0 mit „nicht beantwortbar",
+    mit lokalem Modell antwortet der geerdete Prompt mit „nicht belegt".
+    Beides ist dieselbe Weigerung. Geprueft wird die Weigerung — und
+    zusaetzlich, dass eben **nicht** ueber Quantenchemie fabuliert wird;
+    ohne diese zweite Haelfte waere der Test durch jede beliebige
+    Ablehnungsfloskel zu bestehen.
+    """
     evs = list(brain.handle("voellig unverwandtes thema quantenchemie xyzzy"))
-    text = " ".join(e.text for e in evs if e.typ == "token").lower()
-    assert "nicht beantwortbar" in text or "kein praezedenzfall" in text
+    # Ohne Trennzeichen zusammensetzen: gestreamte Token sind Wortstuecke und
+    # tragen ihren Abstand selbst. Ein `" ".join` machte aus „nicht belegt"
+    # das unauffindbare „nic ht  be le gt" — der Test scheiterte an seiner
+    # eigenen Montage, nicht am Verhalten.
+    text = "".join(e.text for e in evs if e.typ == "token").lower()
+    weigerung = ("nicht beantwortbar", "kein praezedenzfall", "nicht belegt")
+    assert any(w in text for w in weigerung), f"keine Weigerung, sondern: {text[:200]!r}"
+    assert "quanten" not in text, f"Thema wurde erfunden statt abgelehnt: {text[:200]!r}"
 
 
 # ---------------------------------------------------------------------------

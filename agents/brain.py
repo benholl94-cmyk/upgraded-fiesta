@@ -220,7 +220,11 @@ def run_command(name: str, rest: str) -> Iterator[Event]:
 # ---------------------------------------------------------------------------
 
 MODEL_PATHS = ("models/model.gguf",)
-LLAMA_BINS = ("llama.cpp/build/bin/llama-cli", "llama-cli")
+#: `vendor/llama.cpp/bin/llama-cli` ist der Ort, an den
+#: `scripts/hugin_local_model.py build` das selbst gebaute Binary legt — ohne
+#: diesen Eintrag fand `_llama_binary()` es nicht, und T1b blieb OFFEN,
+#: obwohl Modell und Laufzeit beide vorhanden waren.
+LLAMA_BINS = ("vendor/llama.cpp/bin/llama-cli", "llama.cpp/build/bin/llama-cli", "llama-cli")
 
 
 def _llama_binary() -> str | None:
@@ -242,24 +246,57 @@ def _model_file() -> Path | None:
     return None
 
 
+#: Der lokale Modellserver. `llama-server` haelt das 7-GB-Modell einmal im
+#: Speicher und beantwortet Anfragen in Sekunden; `llama-cli` laed es pro
+#: Frage neu (~40 s) und stuerzt in diesem Build ausserdem ab.
+LOCAL_LLM_URL = os.environ.get("HM_LOCAL_LLM_URL", "http://127.0.0.1:8081")
+
+
+def local_llm_status(timeout: float = 2.0) -> tuple[bool, str]:
+    """Fragt den Server, statt Dateien zu zaehlen.
+
+    Gibt (erreichbar, Begruendung) zurueck. Die Begruendung nennt im
+    Negativfall den Befehl, der es behebt — eine Stufe, die nur `False`
+    meldet, laesst den Betreiber raten.
+    """
+    import urllib.error
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"{LOCAL_LLM_URL}/health", timeout=timeout) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+        if payload.get("status") == "ok":
+            return True, f"llama-server antwortet auf {LOCAL_LLM_URL}"
+        return False, f"llama-server laedt noch ({payload.get('status')})"
+    except urllib.error.HTTPError as e:
+        return False, f"llama-server antwortet mit HTTP {e.code} — laedt vermutlich noch"
+    except Exception:
+        pass
+
+    if _model_file() is None:
+        return False, ("models/model.gguf fehlt — "
+                       "python3 scripts/hugin_local_model.py setup")
+    return False, (f"Modell liegt bereit, aber auf {LOCAL_LLM_URL} antwortet nichts — "
+                   "python3 scripts/hugin_local_model.py start")
+
+
 def tiers() -> list[tuple[str, bool, str]]:
     """(Stufe, verfuegbar, Begruendung) -- jede Zeile nachgerechnet.
 
     Der Supervisor-Grundsatz gilt auch hier: eine Stufe gilt nicht als
-    verfuegbar, weil sie konfiguriert ist, sondern weil die Datei da ist.
+    verfuegbar, weil sie konfiguriert ist, und auch nicht, weil die Datei da
+    ist, sondern weil sie **antwortet**.
+
+    Die vorige Fassung pruefte die Anwesenheit von `models/model.gguf` und
+    eines `llama-cli`. Beides lag vor, T1b meldete `[x]` — und der erste
+    echte Aufruf brach mit SIGABRT ab (`cli_server::wait_ready`). Genau die
+    Fehlerklasse, die dieses Repo als Invariante festhaelt: Verfuegbarkeit
+    wird gemessen, nie gelesen.
     """
     out = [(T0, True, "Befehle, Pruefungen, Belege — braucht kein Modell")]
 
-    mdl, bina = _model_file(), _llama_binary()
-    if mdl and bina:
-        out.append((T1B, True, f"{mdl.name} + {Path(bina).name}"))
-    else:
-        fehlt = []
-        if not mdl:
-            fehlt.append("models/model.gguf (Workflow hugin-kern.yml holt sie)")
-        if not bina:
-            fehlt.append("llama-cli")
-        out.append((T1B, False, "fehlt: " + ", ".join(fehlt)))
+    erreichbar, grund = local_llm_status()
+    out.append((T1B, erreichbar, grund))
 
     # Zwei getrennte try-Bloecke: faellt die Budget-Abfrage aus, darf sie
     # nicht die schon ermittelte T1-Zeile mitreissen. Ein gemeinsamer Block
@@ -339,35 +376,64 @@ def _answer_t0(question: str, belege: list, verboten: list) -> Iterator[Event]:
 
 
 def _answer_local(prompt: str) -> Iterator[Event]:
-    """Lokales GGUF, tokenweise. Kein Netz, keine Gegenstelle, kein Konto."""
-    import hugin_model
-    binary, model = _llama_binary(), _model_file()
-    cfg = hugin_model.config().get("laufzeit", {})
-    grammar = REPO / ".claude" / "relay" / "schema.gbnf"
-    grammar.parent.mkdir(parents=True, exist_ok=True)
-    grammar.write_text(hugin_model.GRAMMAR, encoding="utf-8")
+    """Lokales GGUF ueber den eigenen `llama-server`, tokenweise gestreamt.
 
-    argv = [binary, "--model", str(model), "--prompt", prompt,
-            "--grammar-file", str(grammar),
-            "--threads", str(cfg.get("threads", os.cpu_count() or 4)),
-            "--ctx-size", str(cfg.get("context", 8192)),
-            "--temp", str(cfg.get("temp", 0.2)),
-            "--n-predict", "700", "--no-display-prompt", "--simple-io"]
-    yield _info(f"lokales Modell: {Path(model).name}", tier=T1B)
-    proc = subprocess.Popen(argv, cwd=REPO, stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, text=True, bufsize=1)
+    Kein Netz nach draussen, keine Gegenstelle, kein Konto — der Server
+    laeuft auf `LOCAL_LLM_URL` und haelt das Modell im Speicher.
+
+    **Warum nicht mehr `llama-cli`.** Die vorige Fassung startete pro Frage
+    einen Prozess mit `--model models/model.gguf`. Zwei gemessene Gruende
+    dagegen: das 7-GB-Modell wird dabei jedes Mal neu geladen (~40 s vor dem
+    ersten Token), und in diesem Build bricht `llama-cli` mit SIGABRT in
+    `cli_server::wait_ready` ab. Ueber den Server kam dieselbe Frage in
+    2,9 s zurueck.
+    """
+    import urllib.error
+    import urllib.request
+
+    import hugin_model
+    cfg = hugin_model.config().get("laufzeit", {})
+
+    koerper = json.dumps({
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": cfg.get("temp", 0.2),
+        "max_tokens": 700,
+        "stream": True,
+    }).encode("utf-8")
+
+    yield _info(f"lokales Modell ueber {LOCAL_LLM_URL}", tier=T1B)
+    req = urllib.request.Request(
+        f"{LOCAL_LLM_URL}/v1/chat/completions", data=koerper,
+        headers={"Content-Type": "application/json"},
+    )
     try:
-        for line in proc.stdout:
-            yield Event("token", line.rstrip("\n"))
-        code = proc.wait(timeout=CMD_TIMEOUT_S)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        yield Event("fehler", "lokales Modell abgebrochen (Zeit)")
+        with urllib.request.urlopen(req, timeout=CMD_TIMEOUT_S) as antwort:
+            for rohzeile in antwort:
+                zeile = rohzeile.decode("utf-8", "replace").strip()
+                if not zeile.startswith("data:"):
+                    continue
+                nutzlast = zeile[5:].strip()
+                if nutzlast == "[DONE]":
+                    break
+                try:
+                    stueck = json.loads(nutzlast)
+                except json.JSONDecodeError:
+                    continue
+                text = (stueck.get("choices") or [{}])[0].get("delta", {}).get("content")
+                if text:
+                    yield Event("token", text)
+    except urllib.error.URLError as exc:
+        # Kein stiller Ausfall: der Aufrufer erfaehrt, dass die Stufe wegbrach,
+        # und womit sie zurueckkommt.
+        yield Event("fehler", f"lokaler Modellserver nicht erreichbar: {exc.reason}. "
+                              "python3 scripts/hugin_local_model.py start")
+        yield Event("ende", "", {"tier": T1B, "exit": 1})
         return
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-    yield Event("ende", "", {"tier": T1B, "exit": code})
+    except TimeoutError:
+        yield Event("fehler", "lokales Modell abgebrochen (Zeit)")
+        yield Event("ende", "", {"tier": T1B, "exit": 1})
+        return
+    yield Event("ende", "", {"tier": T1B, "exit": 0})
 
 
 def _oracle():
@@ -448,9 +514,14 @@ def answer(question: str, paths: tuple[str, ...] = ()) -> Iterator[Event]:
     yield _info(f"{len(belege)} Beleg(e) aus der Repo-Historie",
                 belege=len(belege))
 
-    if _model_file() and _llama_binary():
+    # Gemessen, nicht gelesen: die vorige Fassung pruefte hier die Anwesenheit
+    # von Modelldatei und Binary. Beides lag vor, der Aufruf brach mit SIGABRT
+    # ab, und der Aufrufer bekam einen Absturz statt einer Antwort.
+    erreichbar, grund = local_llm_status()
+    if erreichbar:
         yield from _answer_local(prompt)
         return
+    yield _info(f"lokales Modell nicht bereit: {grund}", tier=T1B)
 
     frei = _remote_providers()
     if frei:
