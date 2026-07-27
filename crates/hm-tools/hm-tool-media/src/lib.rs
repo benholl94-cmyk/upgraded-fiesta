@@ -212,10 +212,10 @@ pub fn run_plugin() {
 
 #[cfg(test)]
 mod tests {
-    // `Write` kommt bereits ueber `use super::*` herein (Zeile 14); der
-    // zusaetzliche Import war redundant und liess `cargo clippy --all-targets
-    // -- -D warnings` scheitern. CI prueft ohne `--all-targets`, deshalb ist
-    // es nie aufgefallen.
+    // `use super::*` bringt bereits `std::io::Write` mit (Zeile 14) -- ein
+    // zweiter Import derselben Eigenschaft ist redundant und faellt unter
+    // `cargo clippy --all-targets` als unbenutzt auf. Die CI prueft ohne
+    // --all-targets und sah ihn deshalb nie.
     use super::*;
 
     #[test]
