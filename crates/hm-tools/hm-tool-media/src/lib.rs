@@ -212,8 +212,11 @@ pub fn run_plugin() {
 
 #[cfg(test)]
 mod tests {
+    // `Write` kommt bereits ueber `use super::*` herein (Zeile 14); der
+    // zusaetzliche Import war redundant und liess `cargo clippy --all-targets
+    // -- -D warnings` scheitern. CI prueft ohne `--all-targets`, deshalb ist
+    // es nie aufgefallen.
     use super::*;
-    use std::io::Write as _;
 
     #[test]
     fn detect_png_by_magic_bytes() {

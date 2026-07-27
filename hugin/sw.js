@@ -1,17 +1,46 @@
 /* HUGIN Service Worker — Cache-First, Offline-capable */
-const CACHE = 'hugin-v7';
+/* Cache-Version bei jeder Shell-Aenderung erhoehen: 'activate' loescht alles,
+   was nicht CACHE heisst. Bleibt die Version stehen, behaelt ein bereits
+   installiertes Geraet die alte Shell — die neuen Icons kaemen dort nie an. */
+const CACHE = 'hugin-v8';
 const SHELL = [
   './',
   './index.html',
   './hugin.html',
   './manifest.json',
+  /* PNG zuerst: iOS wertet fuer den Home-Bildschirm kein SVG aus, und was
+     nicht im Shell-Cache liegt, fehlt bei der Offline-Installation. */
+  './apple-touch-icon-180.png',
+  './icon-192.png',
+  './icon-512.png',
   './icon-512.svg',
   './icon-192.svg',
 ];
 
+/* Ohne diese beiden gibt es keine App — schlagen sie fehl, soll die
+   Installation fehlschlagen. */
+const CORE = ['./', './index.html'];
+
+/* `cache.addAll` ist alles-oder-nichts: EINE fehlende Datei laesst die ganze
+   Installation scheitern, und damit faellt der Offline-Betrieb komplett aus —
+   nicht nur das fehlende Symbol. Vorher stand die gesamte Shell in einem
+   einzigen addAll; mit den drei neu hinzugekommenen PNG-Dateien waeren das
+   drei zusaetzliche Gelegenheiten gewesen, alles zu verlieren.
+   Der Kern bleibt deshalb hart, der Rest wird einzeln und nachsichtig
+   geholt — ein fehlendes Icon kostet dann das Icon und nicht die App. */
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(async c => {
+      await c.addAll(CORE);
+      const optional = SHELL.filter(url => !CORE.includes(url));
+      const results = await Promise.allSettled(optional.map(url => c.add(url)));
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.warn('SW: Shell-Eintrag nicht cachebar:', optional[i], r.reason);
+        }
+      });
+      await self.skipWaiting();
+    })
   );
 });
 

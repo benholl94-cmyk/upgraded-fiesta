@@ -6,6 +6,7 @@ license.workspace=true
 [dependencies]
 hm-storage={path="../hm-storage"}
 hm-plugins={path="../hm-plugins"}
+hm-sdk={path="../hm-sdk"}
 hm-memory={path="../hm-memory"}
 hm-agent={path="../hm-agent"}
 hm-auth={path="../hm-auth"}

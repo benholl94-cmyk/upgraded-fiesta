@@ -205,15 +205,12 @@ struct TaskRecord {
     remote_addr: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct TaskInput {
-    #[serde(default, rename = "taskType")]
-    task_type: String,
-    #[serde(default)]
-    objective: String,
-    #[serde(default)]
-    payload: Value,
-}
+/// The request side of `POST /tasks` is `hm_sdk::TaskSubmission`, shared with
+/// every producer (`hm-cli`, `hm-cron`, the channel crates) instead of being
+/// re-declared here. It used to be a private struct in this file that bound
+/// only `taskType` while all of those senders wrote `task_type` -- one
+/// declaration per side, agreeing by coincidence until they stopped.
+use hm_sdk::TaskSubmission;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -238,7 +235,10 @@ async fn main() -> anyhow::Result<()> {
 
     let storage: Arc<dyn FileStorage> = build_storage_backend()?;
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
-    let memory = MemoryStore::load(storage.clone(), memory_key).await;
+    // Fail-closed, like the owner token and the storage backend: a memory
+    // state that exists but cannot be read is an operator-visible problem,
+    // not a reason to start with an empty memory and overwrite it.
+    let memory = MemoryStore::load(storage.clone(), memory_key).await?;
 
     // Optional: ingest the structural knowledge-graph seed produced by
     // scripts/generate_knowledge_graph_seed.py. A missing/malformed seed
@@ -792,7 +792,11 @@ struct RememberInput {
 #[derive(Debug, Deserialize)]
 struct SearchInput {
     query: String,
-    #[serde(default = "default_top_k", rename = "topK")]
+    /// Same alias, same reason as `TaskInput::task_type`: `hm-cli memory
+    /// recall --top-k N` sent `top_k`, which bound to nothing and fell back
+    /// to the default. The flag was accepted, echoed nowhere, and ignored --
+    /// a request for 2 results returned 5.
+    #[serde(default = "default_top_k", rename = "topK", alias = "top_k")]
     top_k: usize,
 }
 
@@ -951,7 +955,7 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         );
     }
 
-    let input = match serde_json::from_slice::<TaskInput>(&body) {
+    let input = match serde_json::from_slice::<TaskSubmission>(&body) {
         Ok(input) => input,
         Err(error) => {
             return json_response(
@@ -965,14 +969,28 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         }
     };
 
+    // A task with no type can never reach a plugin, so accepting it means
+    // promising work that provably will not happen. It used to be recorded as
+    // "unspecified" and answered `202 accepted: true`, which is precisely how
+    // the `task_type`/`taskType` mismatch stayed invisible: the caller was
+    // told yes, and nothing ran. Rejecting is the honest answer, and it names
+    // the likely cause instead of leaving the caller to guess.
+    if !input.is_dispatchable() {
+        return json_response(
+            400,
+            json!({
+                "status": "invalid_request",
+                "accepted": false,
+                "reason": "taskType is required and must not be empty; \
+                           a task without a type matches no plugin and would run nothing"
+            }),
+        );
+    }
+
     let accepted_at_unix = unix_now();
     let task = TaskRecord {
         task_id: format!("task-{}", Uuid::new_v4()),
-        task_type: if input.task_type.trim().is_empty() {
-            "unspecified".to_string()
-        } else {
-            input.task_type
-        },
+        task_type: input.task_type,
         objective: input.objective,
         payload: input.payload,
         accepted_at_unix,
@@ -989,17 +1007,27 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         "agent_managed": true
     });
 
+    // `dispatch` is always present, both when a plugin ran and when none did.
+    // Previously "no plugin was registered" was expressed only by the absence
+    // of `plugin_result` -- a caller had to know to look for a field that
+    // isn't there, and every caller that didn't read it as "nothing happened".
     let outcome = state
         .agent
         .dispatch(&task.task_type, &task.objective, task.payload.clone())
         .await;
-    if let TaskOutcome::PluginDispatched {
-        ok,
-        result,
-        message,
-    } = outcome
-    {
-        response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
+    match outcome {
+        TaskOutcome::PluginDispatched {
+            ok,
+            result,
+            message,
+        } => {
+            response["dispatch"] = json!("plugin_dispatched");
+            response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
+        }
+        TaskOutcome::Unhandled { reason } => {
+            response["dispatch"] = json!("unhandled");
+            response["dispatch_reason"] = json!(reason);
+        }
     }
 
     json_response(202, response)

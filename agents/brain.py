@@ -96,17 +96,39 @@ class Command:
     argv: tuple[str, ...]
     zweck: str
     nimmt_text: bool = False    # haengt genau EIN Argument an, als ein argv-Element
+    #: Pfade relativ zum Repo-Wurzelverzeichnis, ohne die dieser Befehl kein
+    #: sinnvolles Ergebnis liefern kann.
+    #:
+    #: Das Laufzeit-Image kopiert `config/`, `plugins/`, `scripts/`, `agents/`
+    #: und Teile von `.claude/` — aber weder `crates/` noch `Cargo.toml` noch
+    #: `tests/`. Ohne diese Prüfung lief der Befehl trotzdem los, und zwar in
+    #: drei verschiedene Sorten falscher Antwort, alle im Container gemessen:
+    #:
+    #:   /struktur   ein roher Python-Traceback im Chat
+    #:   /supervisor "VIOLATION — 4 Befunde", die reine Artefakte der
+    #:               fehlenden Dateien sind und wie echte Verfassungs-
+    #:               verstoesse aussehen
+    #:   /tests      "no tests ran in 0.00s" — eine leere, gruen wirkende
+    #:               Testsuite statt der Aussage, dass gar keine da ist
+    #:
+    #: Die zweite und dritte sind die gefaehrlicheren: sie sehen nach einem
+    #: Ergebnis aus. Ein Befehl, der seine Voraussetzung nicht hat, muss das
+    #: sagen, statt eine Antwort zu erfinden.
+    braucht: tuple[str, ...] = ()
 
 
 COMMANDS: dict[str, Command] = {
     "status":     Command(("python3", "scripts/hugin_relay.py", "status"),
                           "Welche Stufe traegt gerade"),
     "supervisor": Command(("python3", "scripts/munin_supervisor.py", "--quick"),
-                          "Verfassungs-Audit"),
+                          "Verfassungs-Audit",
+                          braucht=("Cargo.toml", "crates", "tests")),
     "tests":      Command(("python3", "-m", "pytest", "tests/", "-q"),
-                          "Testsuite"),
+                          "Testsuite",
+                          braucht=("tests",)),
     "struktur":   Command(("python3", "scripts/validate_repo.py"),
-                          "Strukturpruefung"),
+                          "Strukturpruefung",
+                          braucht=("Cargo.toml", "crates")),
     "queue":      Command(("python3", "scripts/hugin_relay.py", "queue"),
                           "Was im Subroom wartet"),
     "drain":      Command(("python3", "scripts/hugin_relay.py", "drain"),
@@ -147,6 +169,20 @@ def run_command(name: str, rest: str) -> Iterator[Event]:
     if cmd is None:
         yield Event("fehler", f"Unbekannter Befehl /{name}")
         yield from (_info(l) for l in command_help())
+        return
+
+    # Voraussetzungen zuerst, denn ein Befehl ohne seine Dateien liefert
+    # keine Fehlermeldung, sondern eine falsche Antwort — siehe die
+    # Begruendung an `Command.braucht`.
+    fehlend = [p for p in cmd.braucht if not (REPO / p).exists()]
+    if fehlend:
+        yield Event(
+            "fehler",
+            f"/{name} ist in dieser Installation nicht verfuegbar: "
+            f"{', '.join(fehlend)} fehlt. "
+            "Das Laufzeit-Image traegt nur config/, plugins/, scripts/ und agents/ — "
+            "dieser Befehl braucht den vollstaendigen Checkout.",
+        )
         return
 
     argv = list(cmd.argv)
