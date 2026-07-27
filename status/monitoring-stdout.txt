@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T10:12:36.843836+00:00",
+  "generated_at": "2026-07-27T15:17:52.191648+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -187,82 +187,82 @@ info: component clippy is up to date
     Updating crates.io index
      Locking 80 packages to latest compatible versions
  Downloading crates ...
-  Downloaded zmij v1.0.23
-  Downloaded anstyle-query v1.1.5
-  Downloaded is_terminal_polyfill v1.70.2
-  Downloaded windows-link v0.2.1
-  Downloaded once_cell_polyfill v1.70.2
-  Downloaded anstyle-wincon v3.0.11
   Downloaded serde_derive v1.0.229
-  Downloaded anstyle-parse v1.0.0
-  Downloaded anstyle v1.0.14
-  Downloaded anstream v1.0.0
+  Downloaded once_cell_polyfill v1.70.2
   Downloaded utf8parse v0.2.2
-  Downloaded colorchoice v1.0.5
-  Downloaded serde_core v1.0.229
-  Downloaded uuid v1.24.0
-  Downloaded wasm-bindgen v0.2.126
-  Downloaded scopeguard v1.2.0
-  Downloaded iana-time-zone-haiku v0.1.2
-  Downloaded itoa v1.0.18
-  Downloaded clap_derive v4.6.4
-  Downloaded serde_json v1.0.151
-  Downloaded strsim v0.11.1
-  Downloaded wasm-bindgen-shared v0.2.126
-  Downloaded wasm-bindgen-macro v0.2.126
-  Downloaded android_system_properties v0.1.5
-  Downloaded heck v0.5.0
-  Downloaded windows-core v0.62.2
   Downloaded clap_lex v1.1.0
-  Downloaded errno v0.3.14
-  Downloaded futures-core v0.3.33
-  Downloaded tokio-macros v2.7.1
-  Downloaded windows-result v0.4.1
-  Downloaded windows-implement v0.60.2
-  Downloaded futures-task v0.3.33
-  Downloaded wasi v0.11.1+wasi-snapshot-preview1
-  Downloaded async-trait v0.1.91
-  Downloaded find-msvc-tools v0.1.9
-  Downloaded quote v1.0.47
-  Downloaded once_cell v1.21.4
-  Downloaded bitflags v2.13.1
-  Downloaded iana-time-zone v0.1.65
-  Downloaded core-foundation-sys v0.8.7
+  Downloaded itoa v1.0.18
+  Downloaded strsim v0.11.1
+  Downloaded colorchoice v1.0.5
+  Downloaded anstyle-query v1.1.5
+  Downloaded wasm-bindgen-shared v0.2.126
   Downloaded windows-strings v0.5.1
+  Downloaded heck v0.5.0
+  Downloaded anstyle-wincon v3.0.11
+  Downloaded windows-implement v0.60.2
+  Downloaded is_terminal_polyfill v1.70.2
+  Downloaded wasm-bindgen-macro v0.2.126
+  Downloaded futures-task v0.3.33
+  Downloaded iana-time-zone-haiku v0.1.2
   Downloaded windows-interface v0.59.3
   Downloaded cfg-if v1.0.4
-  Downloaded redox_syscall v0.5.18
-  Downloaded unicode-ident v1.0.24
-  Downloaded parking_lot_core v0.9.12
-  Downloaded lock_api v0.4.14
-  Downloaded autocfg v1.5.1
-  Downloaded slab v0.4.12
+  Downloaded tokio-macros v2.7.1
+  Downloaded errno v0.3.14
+  Downloaded futures-core v0.3.33
+  Downloaded android_system_properties v0.1.5
+  Downloaded windows-result v0.4.1
+  Downloaded quote v1.0.47
+  Downloaded anstyle-parse v1.0.0
+  Downloaded zmij v1.0.23
+  Downloaded anstyle v1.0.14
+  Downloaded anstream v1.0.0
   Downloaded signal-hook-registry v1.4.8
-  Downloaded shlex v2.0.1
-  Downloaded anyhow v1.0.104
+  Downloaded autocfg v1.5.1
+  Downloaded windows-link v0.2.1
+  Downloaded slab v0.4.12
+  Downloaded scopeguard v1.2.0
   Downloaded rustversion v1.0.23
+  Downloaded lock_api v0.4.14
+  Downloaded shlex v2.0.1
+  Downloaded redox_syscall v0.5.18
+  Downloaded async-trait v0.1.91
   Downloaded pin-project-lite v0.2.17
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded serde_core v1.0.229
+  Downloaded anyhow v1.0.104
+  Downloaded once_cell v1.21.4
+  Downloaded parking_lot_core v0.9.12
+  Downloaded core-foundation-sys v0.8.7
+  Downloaded clap_derive v4.6.4
+  Downloaded parking_lot v0.12.5
   Downloaded smallvec v1.15.2
+  Downloaded wasi v0.11.1+wasi-snapshot-preview1
+  Downloaded iana-time-zone v0.1.65
+  Downloaded r-efi v6.0.0
+  Downloaded bitflags v2.13.1
   Downloaded num-traits v0.2.19
+  Downloaded uuid v1.24.0
+  Downloaded getrandom v0.4.3
+  Downloaded windows-core v0.62.2
   Downloaded log v0.4.33
   Downloaded proc-macro2 v1.0.107
-  Downloaded serde v1.0.229
+  Downloaded unicode-ident v1.0.24
   Downloaded clap v4.6.4
-  Downloaded getrandom v0.4.3
-  Downloaded r-efi v6.0.0
-  Downloaded socket2 v0.6.5
-  Downloaded parking_lot v0.12.5
-  Downloaded cc v1.4.0
-  Downloaded wasm-bindgen-macro-support v0.2.126
   Downloaded bytes v1.12.1
+  Downloaded serde v1.0.229
+  Downloaded socket2 v0.6.5
+  Downloaded wasm-bindgen-macro-support v0.2.126
+  Downloaded mio v1.2.2
+  Downloaded cc v1.4.0
+  Downloaded wasm-bindgen v0.2.126
+  Downloaded bumpalo v3.20.3
   Downloaded js-sys v0.3.103
   Downloaded memchr v2.8.3
-  Downloaded bumpalo v3.20.3
-  Downloaded mio v1.2.2
+  Downloaded serde_json v1.0.151
   Downloaded clap_builder v4.6.2
   Downloaded futures-util v0.3.33
-  Downloaded syn v3.0.3
   Downloaded chrono v0.4.45
+  Downloaded syn v3.0.3
   Downloaded syn v2.0.119
   Downloaded libc v0.2.189
   Downloaded tokio v1.53.1
@@ -274,12 +274,12 @@ info: component clippy is up to date
    Compiling anyhow v1.0.104
    Compiling serde v1.0.229
    Compiling zmij v1.0.23
-   Compiling serde_json v1.0.151
     Checking hm-core v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-core)
-    Checking memchr v2.8.3
-   Compiling syn v3.0.3
+   Compiling serde_json v1.0.151
     Checking itoa v1.0.18
    Compiling libc v0.2.189
+   Compiling syn v3.0.3
+    Checking memchr v2.8.3
     Checking cfg-if v1.0.4
    Compiling parking_lot_core v0.9.12
     Checking scopeguard v1.2.0
@@ -300,15 +300,15 @@ info: component clippy is up to date
     Checking utf8parse v0.2.2
     Checking anstyle-parse v1.0.0
     Checking uuid v1.24.0
-    Checking anstyle-query v1.1.5
+    Checking anstyle v1.0.14
+    Checking iana-time-zone v0.1.65
     Checking colorchoice v1.0.5
     Checking is_terminal_polyfill v1.70.2
-    Checking iana-time-zone v0.1.65
-    Checking anstyle v1.0.14
-   Compiling heck v0.5.0
-    Checking anstream v1.0.0
+    Checking anstyle-query v1.1.5
     Checking clap_lex v1.1.0
+    Checking anstream v1.0.0
     Checking strsim v0.11.1
+   Compiling heck v0.5.0
     Checking clap_builder v4.6.2
    Compiling serde_derive v1.0.229
    Compiling async-trait v0.1.91
@@ -320,11 +320,11 @@ info: component clippy is up to date
     Checking hm-vector v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-vector)
     Checking chrono v0.4.45
     Checking hm-tool-exec v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-exec)
+    Checking hm-channel-slack v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-slack)
+    Checking hm-channel-discord v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-discord)
     Checking hm-channel-telegram v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-telegram)
     Checking hm-channel-whatsapp v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-whatsapp)
-    Checking hm-channel-discord v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-discord)
     Checking hm-cli v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-cli)
-    Checking hm-channel-slack v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-channels/hm-channel-slack)
     Checking hm-tool-web v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-web)
     Checking hm-tool-media v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-media)
     Checking hm-tool-browser v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-tools/hm-tool-browser)
@@ -335,9 +335,9 @@ info: component clippy is up to date
     Checking hm-memory v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-memory)
     Checking hm-agent v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-agent)
     Checking hm-gateway v0.1.0 (/home/runner/work/upgraded-fiesta/upgraded-fiesta/crates/hm-gateway)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 13.68s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.92s
 
-added 23 packages in 7s
+added 23 packages in 8s
 
 > fullstack-heavy-metal-ui@0.1.0 build
 > vite build
@@ -350,527 +350,5 @@ dist/index.html                   0.54 kB │ gzip:  0.33 kB
 dist/assets/index-BHTA4Dg9.css    2.33 kB │ gzip:  1.03 kB
 dist/assets/index-DaP-JaFZ.js   203.01 kB │ gzip: 64.16 kB
 
-[32m✓ built in 126ms[39m
+[32m✓ built in 135ms[39m
 Codex fullstack setup complete.
-{
-  "generated_at": "2026-07-27T14:15:12.174955+00:00",
-  "marker_failures": [],
-  "missing_files": [],
-  "ok": true,
-  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
-  "platform_config": {
-    "endpoint_count": 4,
-    "endpoint_ids": [
-      "primary",
-      "gateway-local",
-      "openclaw",
-      "gateway-fallback"
-    ],
-    "exists": true,
-    "has_timeout": true,
-    "has_zero_staked_status": true
-  },
-  "required_files": [
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/setup.sh",
-      "size_bytes": 149
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/run-trigger.txt",
-      "size_bytes": 262
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/codex-setup.yml",
-      "size_bytes": 2894
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/rust-ci.yml",
-      "size_bytes": 657
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_setup.sh",
-      "size_bytes": 753
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_check.sh",
-      "size_bytes": 1886
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/production-api-contract.md",
-      "size_bytes": 32937
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/ui-control-plane-implementation.md",
-      "size_bytes": 2227
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/public/platform-config.json",
-      "size_bytes": 1030
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 11336
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/main.ts",
-      "size_bytes": 15641
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/styles.css",
-      "size_bytes": 3086
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/index.html",
-      "size_bytes": 445
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/Dockerfile",
-      "size_bytes": 271
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 55509
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docker-compose.yml",
-      "size_bytes": 1081
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Cargo.toml",
-      "size_bytes": 1017
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Makefile",
-      "size_bytes": 330
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/secret-scan.yml",
-      "size_bytes": 511
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/hugin-pages.yml",
-      "size_bytes": 747
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "hugin/manifest.json",
-      "size_bytes": 904
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "plugins/autonomy_pulse_plugin.py",
-      "size_bytes": 2783
-    }
-  ],
-  "source_markers": {
-    "endpoint_states_present": {
-      "degraded": true,
-      "offline": true,
-      "online": true,
-      "unknown": true,
-      "zero_staked": true
-    },
-    "gateway_agent_managed_present": true,
-    "gateway_routes_present": {
-      "GET /api/health": true,
-      "GET /gateway/health": true,
-      "GET /health": true,
-      "GET /tasks": true,
-      "POST /api/tasks": true,
-      "POST /gateway/tasks": true,
-      "POST /tasks": true
-    },
-    "gateway_zero_staked_present": true,
-    "ui_dispatch_present": true
-  }
-}
-{
-  "generated_at": "2026-07-27T14:22:26.407796+00:00",
-  "marker_failures": [],
-  "missing_files": [],
-  "ok": true,
-  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
-  "platform_config": {
-    "endpoint_count": 4,
-    "endpoint_ids": [
-      "primary",
-      "gateway-local",
-      "openclaw",
-      "gateway-fallback"
-    ],
-    "exists": true,
-    "has_timeout": true,
-    "has_zero_staked_status": true
-  },
-  "required_files": [
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/setup.sh",
-      "size_bytes": 149
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/run-trigger.txt",
-      "size_bytes": 262
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/codex-setup.yml",
-      "size_bytes": 2894
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/rust-ci.yml",
-      "size_bytes": 657
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_setup.sh",
-      "size_bytes": 753
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_check.sh",
-      "size_bytes": 1886
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/production-api-contract.md",
-      "size_bytes": 32937
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/ui-control-plane-implementation.md",
-      "size_bytes": 2227
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/public/platform-config.json",
-      "size_bytes": 1030
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 11336
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/main.ts",
-      "size_bytes": 15641
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/styles.css",
-      "size_bytes": 3086
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/index.html",
-      "size_bytes": 445
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/Dockerfile",
-      "size_bytes": 271
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 55509
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docker-compose.yml",
-      "size_bytes": 1081
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Cargo.toml",
-      "size_bytes": 1017
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Makefile",
-      "size_bytes": 330
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/secret-scan.yml",
-      "size_bytes": 511
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/hugin-pages.yml",
-      "size_bytes": 747
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "hugin/manifest.json",
-      "size_bytes": 904
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "plugins/autonomy_pulse_plugin.py",
-      "size_bytes": 2783
-    }
-  ],
-  "source_markers": {
-    "endpoint_states_present": {
-      "degraded": true,
-      "offline": true,
-      "online": true,
-      "unknown": true,
-      "zero_staked": true
-    },
-    "gateway_agent_managed_present": true,
-    "gateway_routes_present": {
-      "GET /api/health": true,
-      "GET /gateway/health": true,
-      "GET /health": true,
-      "GET /tasks": true,
-      "POST /api/tasks": true,
-      "POST /gateway/tasks": true,
-      "POST /tasks": true
-    },
-    "gateway_zero_staked_present": true,
-    "ui_dispatch_present": true
-  }
-}
-{
-  "generated_at": "2026-07-27T14:25:54.120469+00:00",
-  "marker_failures": [],
-  "missing_files": [],
-  "ok": true,
-  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
-  "platform_config": {
-    "endpoint_count": 4,
-    "endpoint_ids": [
-      "primary",
-      "gateway-local",
-      "openclaw",
-      "gateway-fallback"
-    ],
-    "exists": true,
-    "has_timeout": true,
-    "has_zero_staked_status": true
-  },
-  "required_files": [
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/setup.sh",
-      "size_bytes": 149
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".codex/run-trigger.txt",
-      "size_bytes": 262
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/codex-setup.yml",
-      "size_bytes": 2894
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/rust-ci.yml",
-      "size_bytes": 657
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_setup.sh",
-      "size_bytes": 753
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "scripts/codex_fullstack_check.sh",
-      "size_bytes": 1886
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/production-api-contract.md",
-      "size_bytes": 32937
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docs/ui-control-plane-implementation.md",
-      "size_bytes": 2227
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/public/platform-config.json",
-      "size_bytes": 1030
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/endpoint-rotation.ts",
-      "size_bytes": 11336
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/main.ts",
-      "size_bytes": 15641
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/src/styles.css",
-      "size_bytes": 3086
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/index.html",
-      "size_bytes": 445
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "ui/Dockerfile",
-      "size_bytes": 271
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 55509
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "docker-compose.yml",
-      "size_bytes": 1081
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Cargo.toml",
-      "size_bytes": 1017
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "Makefile",
-      "size_bytes": 330
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/secret-scan.yml",
-      "size_bytes": 511
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": ".github/workflows/hugin-pages.yml",
-      "size_bytes": 747
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "hugin/manifest.json",
-      "size_bytes": 904
-    },
-    {
-      "exists": true,
-      "is_file": true,
-      "path": "plugins/autonomy_pulse_plugin.py",
-      "size_bytes": 2783
-    }
-  ],
-  "source_markers": {
-    "endpoint_states_present": {
-      "degraded": true,
-      "offline": true,
-      "online": true,
-      "unknown": true,
-      "zero_staked": true
-    },
-    "gateway_agent_managed_present": true,
-    "gateway_routes_present": {
-      "GET /api/health": true,
-      "GET /gateway/health": true,
-      "GET /health": true,
-      "GET /tasks": true,
-      "POST /api/tasks": true,
-      "POST /gateway/tasks": true,
-      "POST /tasks": true
-    },
-    "gateway_zero_staked_present": true,
-    "ui_dispatch_present": true
-  }
-}
