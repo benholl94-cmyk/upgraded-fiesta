@@ -101,9 +101,7 @@ impl DiscordClient {
         #[cfg(feature = "tls")]
         {
             use anyhow::Context;
-            let url = format!(
-                "https://discord.com/api/v10/channels/{channel_id}/messages"
-            );
+            let url = format!("https://discord.com/api/v10/channels/{channel_id}/messages");
             let body = json!({ "content": content });
             let body_bytes = serde_json::to_vec(&body).context("discord: serialize body")?;
             let raw = hm_sdk::tls::post(

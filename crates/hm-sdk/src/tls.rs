@@ -110,9 +110,7 @@ mod imp {
         let tcp = TcpStream::connect((host.as_str(), port)).await?;
         let mut tls = Stream::new(conn, tcp);
 
-        let mut request = format!(
-            "GET {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n"
-        );
+        let mut request = format!("GET {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n");
         for (k, v) in headers {
             request.push_str(&format!("{k}: {v}\r\n"));
         }
@@ -131,7 +129,11 @@ mod imp {
 /// fuehrt. Niemand soll stillschweigend HTTP statt HTTPS senden.
 #[cfg(not(feature = "tls"))]
 mod imp {
-    pub async fn post(_url: &str, _headers: &[(&str, &str)], _body: &[u8]) -> anyhow::Result<Vec<u8>> {
+    pub async fn post(
+        _url: &str,
+        _headers: &[(&str, &str)],
+        _body: &[u8],
+    ) -> anyhow::Result<Vec<u8>> {
         anyhow::bail!(
             "hm-sdk::tls::post requires the 'tls' feature. \
              Build the calling crate with --features tls (e.g. \
@@ -161,7 +163,9 @@ mod tests {
     #[cfg(not(feature = "tls"))]
     #[tokio::test]
     async fn post_without_tls_feature_returns_helpful_error() {
-        let err = post("https://example.com/foo", &[], b"{}").await.unwrap_err();
+        let err = post("https://example.com/foo", &[], b"{}")
+            .await
+            .unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("requires the 'tls' feature"),
@@ -194,7 +198,8 @@ mod tests {
     #[cfg(feature = "tls")]
     #[test]
     fn split_https_url_with_explicit_port() {
-        let (host, port, path) = split_https_url("https://api.example.com:8443/v1/messages").unwrap();
+        let (host, port, path) =
+            split_https_url("https://api.example.com:8443/v1/messages").unwrap();
         assert_eq!(host, "api.example.com");
         assert_eq!(port, 8443);
         assert_eq!(path, "/v1/messages");

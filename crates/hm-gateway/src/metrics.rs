@@ -112,7 +112,10 @@ mod tests {
         // Header im Text-Format auftauchen — sonst hat der Init-Pfad
         // versagt und Scraper sehen eine leere Seite.
         let body = String::from_utf8(render()).expect("utf-8");
-        assert!(body.contains("gateway_requests_total"), "requests metric missing");
+        assert!(
+            body.contains("gateway_requests_total"),
+            "requests metric missing"
+        );
         assert!(
             body.contains("gateway_request_duration_seconds"),
             "duration metric missing"
@@ -143,9 +146,7 @@ mod tests {
         observe_plugin_dispatch("echo", "MELTDOWN");
         // Wenn das Cardinality-Budget gebrochen waere, wuerde dieser
         // Zugriff mit panic antworten ("Duplicate label").
-        let value = PLUGIN_DISPATCH
-            .with_label_values(&["echo", "_other"])
-            .get();
+        let value = PLUGIN_DISPATCH.with_label_values(&["echo", "_other"]).get();
         assert!(value > 0.0, "_other bucket must catch unknown outcomes");
     }
 }
