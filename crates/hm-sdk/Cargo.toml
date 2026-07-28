@@ -7,6 +7,9 @@ license.workspace=true
 hm-core={path="../hm-core"}
 serde.workspace=true
 serde_json.workspace=true
+# anyhow wird sowohl in den TLS-Funktionen als auch im Stub-Pfad verwendet.
+# Stub-Fehler ("requires the 'tls' feature") nutzen anyhow::bail!.
+anyhow.workspace=true
 # TLS-Bausteine, alle optional. Aktiviert durch das Feature `tls`, das die
 # Channel-Crates und hm-tool-web in Cargo.toml einschalten.
 rustls={workspace=true,optional=true}
