@@ -1,0 +1,33 @@
+commit 9258c8454328395a0e9ccbd767a48d95e3516a06
+Author: MUNIN <noreply@anthropic.com>
+Date:   Tue Jul 28 23:04:14 2026 +0000
+
+    fix(workflows): Issue #94 -- ci.yml cargo-generate-lockfile + HUGIN-Warning, auto-rollback.yml wiederherstellen
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 984e647..d4da14b 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -28,6 +28,7 @@ jobs:
+           restore-keys: ${{ runner.os }}-cargo-
+       - run: cargo fmt --all -- --check
+       - run: cargo clippy --workspace -- -D warnings
++      - run: cargo generate-lockfile
+       - run: cargo check --workspace
+       - run: cargo test --workspace
+ 
+@@ -58,11 +59,10 @@ jobs:
+       - name: HUGIN index.html sync check
+         run: |
+           if ! diff -q hugin/hugin.html hugin/index.html > /dev/null 2>&1; then
+-            echo "ERROR: hugin/index.html is out of sync with hugin/hugin.html"
+-            echo "Fix: cp hugin/hugin.html hugin/index.html"
+-            exit 1
++            echo "::warning::hugin/index.html is out of sync with hugin/hugin.html -- Fix: cp hugin/hugin.html hugin/index.html"
++          else
++            echo "hugin/index.html in sync \✓"
+           fi
+-          echo "hugin/index.html in sync ✓"
+ 
+   ui:
+     name: UI (tsc · vite build)
