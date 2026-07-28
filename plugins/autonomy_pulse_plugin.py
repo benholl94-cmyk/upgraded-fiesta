@@ -29,12 +29,15 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import autonomy_core  # type: ignore
+import logging
+log = logging.getLogger(__name__)
 
 def main() -> None:
     line = sys.stdin.readline()
     try:
         _req = json.loads(line)
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in autonomy_pulse_plugin: %s", exc)
         _req = {}
 
     with contextlib.redirect_stdout(sys.stderr):

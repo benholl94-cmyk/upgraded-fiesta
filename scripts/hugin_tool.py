@@ -145,14 +145,16 @@ def http_request(
             raw = resp.read(65536)
             try:
                 return resp.status, json.loads(raw), ms
-            except Exception:
+            except Exception as exc:
+                log.warning("swallowed in hugin_tool: %s", exc)
                 return resp.status, raw.decode("utf-8", errors="replace"), ms
     except urllib.error.HTTPError as exc:
         ms = round((time.monotonic() - t0) * 1000)
         try:
             body_text = exc.read(4096).decode("utf-8", errors="replace")
             body_parsed = json.loads(body_text)
-        except Exception:
+        except Exception as exc:
+            log.warning("swallowed in hugin_tool: %s", exc)
             body_parsed = {"error": str(exc)}
         return exc.code, body_parsed, ms
     except Exception as exc:
@@ -165,8 +167,8 @@ def load_config() -> dict:
     if CONFIG_PATH.exists():
         try:
             return json.loads(CONFIG_PATH.read_text())
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hugin_tool: %s", exc)
     return {
         "platformName": "HUGIN",
         "requestTimeoutMs": 6000,
@@ -244,7 +246,8 @@ def action_dispatch(cfg: dict, token: str) -> None:
     payload_str = prompt("JSON-Payload", "{}")
     try:
         payload = json.loads(payload_str)
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in hugin_tool: %s", exc)
         warn("Ungültiges JSON — leeres Payload wird verwendet.")
         payload = {}
 
@@ -423,7 +426,8 @@ def action_diagnostics(cfg: dict, token: str) -> None:
             active = st.get("activeId")
             info(f"Aktiv:    {active or 'keiner'}")
             if _t: _t.exec("platform-status.json", f"Daemon aktiv, Zyklus {st.get('cycleCount','?')}")
-        except Exception:
+        except Exception as exc:
+            log.warning("swallowed in hugin_tool: %s", exc)
             warn("platform-status.json unlesbar.")
             if _t: _t.note("platform-status.json unlesbar — JSON-Fehler")
     else:

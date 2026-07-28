@@ -44,6 +44,8 @@ import argparse
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+import logging
+log = logging.getLogger(__name__)
 
 REPO_ROOT  = Path(__file__).resolve().parent.parent
 LEDGER_PATH   = REPO_ROOT / "logs" / "hugin_knowledge_ledger.json"
@@ -109,8 +111,8 @@ class KnowledgeLedger:
         if LEDGER_PATH.exists():
             try:
                 return json.loads(LEDGER_PATH.read_text())
-            except Exception:
-                pass
+            except Exception as exc:
+                log.warning("swallowed in hugin_growth: %s", exc)
         return {"version": 1, "entries": [], "stats": {"total_uses": 0, "entries_count": 0}}
 
     def _save(self):
@@ -194,8 +196,8 @@ class KnowledgeLedger:
                     entry = json.loads(line)
                     self.learn("metric", f"score:{entry['task'][:40]}",
                                str(entry["score"]), source="reflect_log")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning("swallowed in hugin_growth: %s", exc)
 
 
 # ── L6: CycleOrchestrator ────────────────────────────────────────────────────
@@ -308,8 +310,8 @@ class RateCalibrator:
         if LIMITS_STATE.exists():
             try:
                 return json.loads(LIMITS_STATE.read_text())
-            except Exception:
-                pass
+            except Exception as exc:
+                log.warning("swallowed in hugin_growth: %s", exc)
         return {"calibration": {}, "events": []}
 
     def _save(self):
@@ -392,8 +394,8 @@ class GrowthMetrics:
             for line in REFLECT_LOG.read_text().splitlines()[-20:]:
                 try:
                     scores.append(json.loads(line)["score"])
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning("swallowed in hugin_growth: %s", exc)
         avg_score = sum(scores) / len(scores) if scores else 0
         score_trend = "↑" if len(scores) >= 2 and scores[-1] >= scores[0] else "→" if len(scores) < 2 else "↓"
 
@@ -407,8 +409,8 @@ class GrowthMetrics:
             try:
                 st = json.loads(LIMITS_STATE.read_text())
                 pattern_count += len(st.get("known_patterns", []))
-            except Exception:
-                pass
+            except Exception as exc:
+                log.warning("swallowed in hugin_growth: %s", exc)
 
         return {
             "commits_7d": commits_7d,

@@ -40,6 +40,8 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+import logging
+log = logging.getLogger(__name__)
 
 # ── Pfade ─────────────────────────────────────────────────────────────────────
 ROOT        = Path(__file__).resolve().parent.parent
@@ -63,7 +65,8 @@ def _log(msg: str) -> None:
 def _read_json(path: Path, default=None):
     try:
         return json.loads(path.read_text()) if path.exists() else default
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in autonomy_core: %s", exc)
         return default
 
 def _write_json(path: Path, data) -> None:
@@ -89,6 +92,7 @@ def _run_script(args: list[str], timeout: int = 30) -> tuple[bool, str]:
     except subprocess.TimeoutExpired:
         return False, "timeout"
     except Exception as e:
+        log.warning("swallowed in autonomy_core: %s", exc)
         return False, str(e)
 
 # ── Pulse — Herzschlag ────────────────────────────────────────────────────────
@@ -139,14 +143,16 @@ def _collect_metrics() -> dict:
     try:
         r = subprocess.run(["ps", "aux", "--no-headers"], capture_output=True, text=True, timeout=5)
         m["process_count"] = len(r.stdout.strip().splitlines())
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in autonomy_core: %s", exc)
         m["process_count"] = -1
 
     # Disk-Nutzung Workspace
     try:
         r = subprocess.run(["du", "-sh", str(ROOT)], capture_output=True, text=True, timeout=10)
         m["workspace_size"] = r.stdout.split()[0] if r.stdout else "?"
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in autonomy_core: %s", exc)
         m["workspace_size"] = "?"
 
     # Letzter Git-Commit
@@ -156,7 +162,8 @@ def _collect_metrics() -> dict:
             cwd=ROOT, capture_output=True, text=True, timeout=5
         )
         m["last_commit"] = r.stdout.strip()
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in autonomy_core: %s", exc)
         m["last_commit"] = "unknown"
 
     # Offene Git-Dateien (uncommitted)
@@ -166,7 +173,8 @@ def _collect_metrics() -> dict:
             cwd=ROOT, capture_output=True, text=True, timeout=5
         )
         m["uncommitted_files"] = len([l for l in r.stdout.strip().splitlines() if l.strip()])
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in autonomy_core: %s", exc)
         m["uncommitted_files"] = -1
 
     # Security-Score aus letztem Report
@@ -359,6 +367,7 @@ def run_loop(interval: int) -> None:
             _append_console_log("autonomy_stop", {"msg": "Shutdown via SIGINT"})
             break
         except Exception as e:
+            log.warning("swallowed in autonomy_core: %s", exc)
             _log(f"autonomy_core: Ausnahme im Hauptloop: {e}")
             _append_console_log("autonomy_error", {"error": str(e)})
         time.sleep(interval)

@@ -47,6 +47,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import logging
+log = logging.getLogger(__name__)
 
 WORKSPACE = Path(__file__).parent.parent
 REPORT_PATH = WORKSPACE / ".claude/persona/security-report.json"
@@ -593,8 +595,8 @@ def watch_loop(interval: int = 30) -> None:
                         entries.append({"ts": ts, "type": "security_alert", "msg": a})
                     log["entries"] = entries[-200:]
                     log_path.write_text(json.dumps(log, indent=2))
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning("swallowed in security_sentinel: %s", exc)
         else:
             print(f"[{ts}] OK — alle Layer sauber", flush=True)
 

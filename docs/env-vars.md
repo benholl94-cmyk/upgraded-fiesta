@@ -34,7 +34,7 @@ rerun the script to refresh.
 | `HM_LLM_ENABLE` | `true` | `plugins/llm_chat_plugin.py:77` |
 | `HM_LLM_KEYS_FILE` | `~/.config/hm-gateway/llm-keys.json` | `scripts/llm_key_manager.py:10` |
 | `HM_LLM_MODEL` | `gpt-4o` | `plugins/llm_chat_plugin.py:81` |
-| `HM_LOCAL_LLM_URL` | `http://127.0.0.1:8081` | `agents/brain.py:252` |
+| `HM_LOCAL_LLM_URL` | `http://127.0.0.1:8081` | `agents/brain.py:255` |
 | `HM_MEMORY_GRAPH_SEED_PATH` | `data/graph-seed.json` | `crates/hm-gateway/src/main.rs:267` |
 | `HM_MEMORY_KEY` | `memory/index.json` | `crates/hm-gateway/src/main.rs:257` |
 | `HM_OLLAMA_ENABLE` | `true` | `plugins/llm_chat_plugin.py:62` |

@@ -88,7 +88,8 @@ def limit_signal(text: str):
     try:
         from agents import limits
         return limits.parse(text or "")
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in hugin_relay: %s", exc)
         # Faellt agents/ aus, bleibt die alte Musterliste als Notnagel --
         # lieber grob erkennen als gar nicht.
         for p in LIMIT_PATTERNS:
@@ -140,7 +141,8 @@ def free_providers() -> tuple[str, ...]:
     try:
         from agents import budget
         return budget.free_providers()
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in hugin_relay: %s", exc)
         return ()
 
 
