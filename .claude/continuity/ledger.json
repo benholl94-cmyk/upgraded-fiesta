@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-27T14:14:08+00:00",
+  "updated": "2026-07-28T22:22:13+00:00",
   "session": 3,
   "entries": [
     {
@@ -645,6 +645,42 @@
       ],
       "state": "offen",
       "weight": 1
+    },
+    {
+      "id": "s3-19",
+      "session": 3,
+      "ts": "2026-07-28T22:22:07+00:00",
+      "kind": "sackgasse",
+      "text": "Codespace-OAuth-Token hat KEINEN workflow-Scope. Folge: jede Anpassung an .github/workflows/*.yml kann vom Codespace nicht gepusht werden — kein PR-Push, kein Force-Push, kein direkter main-Push. Workaround: 1) Branch lokal vorbereiten + force-push, 2) Patch-Inhalt als heredoc/komplettes File in Issue-Kommentar posten, 3) Master pusht manuell mit vollwertigem Token. Erkennbar an der Push-Fehlermeldung 'refusing to allow an OAuth App to create or update workflow ... without workflow scope'.",
+      "anchors": [
+        "path:.github/workflows"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-20",
+      "session": 3,
+      "ts": "2026-07-28T22:22:10+00:00",
+      "kind": "entscheidung",
+      "text": "Wave1-Tests (test_auto_rollback_workflow_exists, test_ci_yml_generates_lockfile, test_ci_hugin_sync_is_warning_not_failure) bleiben rot bis Master ci.yml + auto-rollback.yml nach main pusht. PR #93 (Rust) ist gemerged, der CI-Rot kommt ausschliesslich aus diesen zwei fehlenden Workflow-Files. PRs #94 (P0/blocker, Patch liegt im Kommentar #5110098437 bereit) und #90 (Duplikat) sind offen.",
+      "anchors": [
+        "path:tests/test_wave1_smoke.py"
+      ],
+      "state": "offen",
+      "weight": 4
+    },
+    {
+      "id": "s3-21",
+      "session": 3,
+      "ts": "2026-07-28T22:22:13+00:00",
+      "kind": "invariante",
+      "text": "Master-Ping erreicht Master via Issue-Kommentar + Label-Tag 'bug' auf issue #94. Versand-Kanäle: gh CLI issue comment (vom Codespace aus), Email-Notification (GitHub → Master), Mentions via @benholl94-cmyk. Reaktionszeit: ~45 Min Master-Push von monitoring-bot-Updates sichtbar — Workflow-Push bleibt aus.",
+      "anchors": [
+        "path:scripts/munin_bridge.py"
+      ],
+      "state": "offen",
+      "weight": 2
     }
   ]
 }
