@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-27T20:07:51.861129+00:00",
+  "generated_at": "2026-07-28T20:02:34.169149+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
-  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
+  "platform": "Production-Master_Grade-Platform-Fullstack-API_Agent_managed",
   "platform_config": {
     "endpoint_count": 4,
     "endpoint_ids": [
@@ -57,7 +57,7 @@
       "exists": true,
       "is_file": true,
       "path": "docs/production-api-contract.md",
-      "size_bytes": 32937
+      "size_bytes": 33943
     },
     {
       "exists": true,
@@ -98,32 +98,32 @@
     {
       "exists": true,
       "is_file": true,
-      "path": "ui/Dockerfile",
-      "size_bytes": 271
+      "path": "Dockerfile.ui",
+      "size_bytes": 206
     },
     {
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 55509
+      "size_bytes": 58103
     },
     {
       "exists": true,
       "is_file": true,
       "path": "docker-compose.yml",
-      "size_bytes": 1081
+      "size_bytes": 1440
     },
     {
       "exists": true,
       "is_file": true,
       "path": "Cargo.toml",
-      "size_bytes": 1017
+      "size_bytes": 2050
     },
     {
       "exists": true,
       "is_file": true,
       "path": "Makefile",
-      "size_bytes": 330
+      "size_bytes": 3804
     },
     {
       "exists": true,
