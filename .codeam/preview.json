@@ -1,0 +1,16 @@
+{
+  "framework": "Rust",
+  "command": "cargo",
+  "args": [
+    "run",
+    "-p",
+    "hm-gateway"
+  ],
+  "port": 8080,
+  "ready_pattern": "hm-gateway listening on",
+  "env": {
+    "HM_GATEWAY_BIND": "0.0.0.0:8080"
+  },
+  "setup_commands": [],
+  "notes": "Gateway boots without Postgres/Redis but full functionality needs them; UI in ui/ has no vite dev script — only the gateway binary serves the HTTP API."
+}

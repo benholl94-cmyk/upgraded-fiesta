@@ -68,3 +68,5 @@
 sync.remote: "git+https://github.com/benholl94-cmyk/upgraded-fiesta.git"
 dolt:
     shared-server: true
+export:
+    auto: true
