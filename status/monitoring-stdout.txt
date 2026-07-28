@@ -259,3 +259,177 @@ error[E0433]: cannot find module or crate `anyhow` in this scope
 For more information about this error, try `rustc --explain E0433`.
 error: could not compile `hm-sdk` (lib) due to 4 previous errors
 warning: build failed, waiting for other jobs to finish...
+{
+  "generated_at": "2026-07-28T20:10:04.415240+00:00",
+  "marker_failures": [],
+  "missing_files": [],
+  "ok": true,
+  "platform": "Production-Master_Grade-Platform-Fullstack-API_Agent_managed",
+  "platform_config": {
+    "endpoint_count": 4,
+    "endpoint_ids": [
+      "primary",
+      "gateway-local",
+      "openclaw",
+      "gateway-fallback"
+    ],
+    "exists": true,
+    "has_timeout": true,
+    "has_zero_staked_status": true
+  },
+  "required_files": [
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".codex/setup.sh",
+      "size_bytes": 149
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".codex/run-trigger.txt",
+      "size_bytes": 262
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/codex-setup.yml",
+      "size_bytes": 2894
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/rust-ci.yml",
+      "size_bytes": 657
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "scripts/codex_fullstack_setup.sh",
+      "size_bytes": 753
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "scripts/codex_fullstack_check.sh",
+      "size_bytes": 1886
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "docs/production-api-contract.md",
+      "size_bytes": 33943
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "docs/ui-control-plane-implementation.md",
+      "size_bytes": 2227
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/public/platform-config.json",
+      "size_bytes": 1030
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/src/endpoint-rotation.ts",
+      "size_bytes": 11336
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/src/main.ts",
+      "size_bytes": 15641
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/src/styles.css",
+      "size_bytes": 3086
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "ui/index.html",
+      "size_bytes": 445
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "Dockerfile.ui",
+      "size_bytes": 206
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "crates/hm-gateway/src/main.rs",
+      "size_bytes": 58103
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "docker-compose.yml",
+      "size_bytes": 1440
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "Cargo.toml",
+      "size_bytes": 2050
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "Makefile",
+      "size_bytes": 3804
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/secret-scan.yml",
+      "size_bytes": 511
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": ".github/workflows/hugin-pages.yml",
+      "size_bytes": 747
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "hugin/manifest.json",
+      "size_bytes": 904
+    },
+    {
+      "exists": true,
+      "is_file": true,
+      "path": "plugins/autonomy_pulse_plugin.py",
+      "size_bytes": 2783
+    }
+  ],
+  "source_markers": {
+    "endpoint_states_present": {
+      "degraded": true,
+      "offline": true,
+      "online": true,
+      "unknown": true,
+      "zero_staked": true
+    },
+    "gateway_agent_managed_present": true,
+    "gateway_routes_present": {
+      "GET /api/health": true,
+      "GET /gateway/health": true,
+      "GET /health": true,
+      "GET /tasks": true,
+      "POST /api/tasks": true,
+      "POST /gateway/tasks": true,
+      "POST /tasks": true
+    },
+    "gateway_zero_staked_present": true,
+    "ui_dispatch_present": true
+  }
+}
