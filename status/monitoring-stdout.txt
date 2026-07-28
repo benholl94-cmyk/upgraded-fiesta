@@ -352,3 +352,28 @@ dist/assets/index-DaP-JaFZ.js   203.01 kB │ gzip: 64.16 kB
 
 [32m✓ built in 131ms[39m
 Codex fullstack setup complete.
+Traceback (most recent call last):
+  File "/home/runner/work/upgraded-fiesta/upgraded-fiesta/scripts/monitor_platform.py", line 123, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/upgraded-fiesta/upgraded-fiesta/scripts/monitor_platform.py", line 115, in main
+    report = build_report()
+             ^^^^^^^^^^^^^^
+  File "/home/runner/work/upgraded-fiesta/upgraded-fiesta/scripts/monitor_platform.py", line 88, in build_report
+    manifest = read_json(MANIFEST)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/upgraded-fiesta/upgraded-fiesta/scripts/monitor_platform.py", line 36, in read_json
+    data = json.load(handle)
+           ^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/json/decoder.py", line 338, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/json/decoder.py", line 356, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 8 column 250 (char 537)
