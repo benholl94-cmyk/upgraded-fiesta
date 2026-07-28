@@ -816,8 +816,14 @@ async fn storage_get(state: &AppState, key: &str) -> Vec<u8> {
 
 async fn storage_delete(state: &AppState, key: &str) -> Vec<u8> {
     match state.storage.delete(key).await {
-        Ok(true) => json_response(200, json!({ "status": "deleted", "existed": true, "key": key })),
-        Ok(false) => json_response(404, json!({ "status": "not_found", "existed": false, "key": key })),
+        Ok(true) => json_response(
+            200,
+            json!({ "status": "deleted", "existed": true, "key": key }),
+        ),
+        Ok(false) => json_response(
+            404,
+            json!({ "status": "not_found", "existed": false, "key": key }),
+        ),
         Err(error) => json_response(
             400,
             json!({ "status": "storage_error", "key": key, "reason": error.to_string() }),

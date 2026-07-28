@@ -88,7 +88,9 @@ fn parse_host_port(url: &str) -> Result<(String, u16, String), WebError> {
     } else if let Some(s) = url.strip_prefix("http://") {
         ("http", s)
     } else {
-        return Err(WebError::UnsupportedScheme { url: url.to_string() });
+        return Err(WebError::UnsupportedScheme {
+            url: url.to_string(),
+        });
     };
 
     let default_port: u16 = if scheme == "https" { 443 } else { 80 };
@@ -136,9 +138,8 @@ fn fetch_http(req: &FetchRequest) -> Result<FetchResult, WebError> {
     }
 
     let addr = format!("{host}:{port}");
-    let mut stream = TcpStream::connect(&addr).map_err(|e| WebError::Read(format!(
-        "connection failed to {addr}: {e}"
-    )))?;
+    let mut stream = TcpStream::connect(&addr)
+        .map_err(|e| WebError::Read(format!("connection failed to {addr}: {e}")))?;
 
     let http_request = format!(
         "{method} {path} HTTP/1.0\r\n\

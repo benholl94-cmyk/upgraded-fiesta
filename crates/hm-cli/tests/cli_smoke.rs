@@ -31,8 +31,14 @@ fn clap_routes_help_without_gateway_call() {
         .expect("hm-cli --help muss sofort exiten, nicht connecten");
     assert!(out.status.success(), "hm-cli --help sollte exit 0");
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("status"), "--help listet das status-Subcommand");
-    assert!(stdout.contains("memory"), "--help listet das memory-Subcommand");
+    assert!(
+        stdout.contains("status"),
+        "--help listet das status-Subcommand"
+    );
+    assert!(
+        stdout.contains("memory"),
+        "--help listet das memory-Subcommand"
+    );
 }
 
 #[test]
@@ -49,13 +55,17 @@ fn status_without_token_exits_nonzero() {
         .expect("hm-cli status muss sofort terminieren");
     // Wenn die Binary unerreichbar ist, ist exit-code != 0 OK.
     // Wir testen nur, dass sie ueberhaupt fehlschlaegt (nicht still haengt).
-    assert!(!out.status.success(),
+    assert!(
+        !out.status.success(),
         "status ohne Token sollte !=0 exiten (war: {:?})",
-        out.status);
+        out.status
+    );
     let stderr = String::from_utf8_lossy(&out.stderr);
     // Es MUSS eine Diagnose auf stderr stehen.
-    assert!(!stderr.trim().is_empty(),
-        "stderr ist leer — der Fehler wurde stillschweigend geschluckt");
+    assert!(
+        !stderr.trim().is_empty(),
+        "stderr ist leer — der Fehler wurde stillschweigend geschluckt"
+    );
 }
 
 #[test]
@@ -68,8 +78,10 @@ fn unknown_subcommand_exits_with_usage_hint() {
         .timeout(std::time::Duration::from_secs(3))
         .output()
         .expect("hm-cli unbekanntes Subcommand muss terminieren");
-    assert!(!out.status.success(),
-        "Unbekanntes Subcommand sollte !=0 exiten");
+    assert!(
+        !out.status.success(),
+        "Unbekanntes Subcommand sollte !=0 exiten"
+    );
     let stderr = String::from_utf8_lossy(&out.stderr);
     // clap schreibt typischerweise "Usage:" oder "error:" auf stderr.
     assert!(
