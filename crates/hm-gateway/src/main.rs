@@ -1,4 +1,5 @@
 mod chat;
+mod metrics;
 
 use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
@@ -23,6 +24,8 @@ use tokio::{
     sync::Mutex,
     task::JoinSet,
 };
+use tracing::{debug, error, info, warn};
+use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
 /// How long shutdown waits for in-flight connections to finish after a
@@ -214,6 +217,19 @@ use hm_sdk::TaskSubmission;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Subscriber-Init: EnvFilter liest RUST_LOG (Default "info,hm_gateway=debug").
+    // Idempotent — `try_init()` schluckt nur den zweiten Aufruf im selben
+    // Prozess (z.B. wenn ein Test die main-Funktion zweimal ruft), failt
+    // aber NICHT lautlos. Ohne Subscriber waeren alle tracing-Macros
+    // stillschweigende No-Ops — das war genau der alte eprintln-Pfad.
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info,hm_gateway=debug")),
+        )
+        .with_target(true)
+        .try_init();
+
     let bind = env::var("HM_GATEWAY_BIND")
         .ok()
         .unwrap_or_else(resolve_configured_bind);
@@ -229,7 +245,11 @@ async fn main() -> anyhow::Result<()> {
     let plugin_manifest =
         env::var("HM_PLUGIN_MANIFEST").unwrap_or_else(|_| "config/plugins.json".to_string());
     let plugins = PluginRegistry::from_manifest_file(&plugin_manifest).unwrap_or_else(|error| {
-        eprintln!("hm-gateway: ignoring unreadable plugin manifest {plugin_manifest}: {error}");
+        warn!(
+            plugin_manifest = %plugin_manifest,
+            error = %error,
+            "ignoring unreadable plugin manifest, continuing with empty registry"
+        );
         PluginRegistry::empty()
     });
 
@@ -248,14 +268,18 @@ async fn main() -> anyhow::Result<()> {
         match std::fs::read(&graph_seed_path) {
             Ok(bytes) => {
                 if let Err(error) = memory.ingest_graph_seed(&bytes).await {
-                    eprintln!(
-                        "hm-gateway: ignoring invalid graph seed at {graph_seed_path}: {error}"
+                    warn!(
+                        graph_seed_path = %graph_seed_path,
+                        error = %error,
+                        "ignoring invalid graph seed, continuing without graph memory"
                     );
                 }
             }
             Err(error) => {
-                eprintln!(
-                    "hm-gateway: could not read HM_MEMORY_GRAPH_SEED_PATH={graph_seed_path}: {error}"
+                warn!(
+                    graph_seed_path = %graph_seed_path,
+                    error = %error,
+                    "could not read HM_MEMORY_GRAPH_SEED_PATH, continuing without graph memory"
                 );
             }
         }
@@ -277,12 +301,11 @@ async fn main() -> anyhow::Result<()> {
                 .map(|v| v == "true")
                 .unwrap_or(false);
             if !allow_no_auth {
-                eprintln!(
-                    "hm-gateway: refusing to start without owner authentication ({error}). \
-                     Set {} to a real secret, or explicitly set {}=true to run without auth \
-                     (local development only -- never in a reachable deployment).",
-                    hm_auth::OWNER_TOKEN_VAR,
-                    ALLOW_NO_AUTH_VAR
+                error!(
+                    error = %error,
+                    owner_token_var = %hm_auth::OWNER_TOKEN_VAR,
+                    allow_no_auth_var = %ALLOW_NO_AUTH_VAR,
+                    "refusing to start without owner authentication; set the owner token or set HM_GATEWAY_ALLOW_NO_AUTH=true for local development only"
                 );
                 std::process::exit(1);
             }
@@ -294,19 +317,18 @@ async fn main() -> anyhow::Result<()> {
                 || bind.starts_with("localhost:")
                 || bind.starts_with("[::1]");
             if !loopback {
-                eprintln!(
-                    "hm-gateway: refusing to start. {}=true is only honoured on a \
-                     loopback bind, but HM_GATEWAY_BIND is {bind:?}. Either bind to \
-                     127.0.0.1 or set a real {}.",
-                    ALLOW_NO_AUTH_VAR,
-                    hm_auth::OWNER_TOKEN_VAR
+                error!(
+                    allow_no_auth_var = %ALLOW_NO_AUTH_VAR,
+                    owner_token_var = %hm_auth::OWNER_TOKEN_VAR,
+                    bind = %bind,
+                    "refusing to start: HM_GATEWAY_ALLOW_NO_AUTH=true is only honoured on a loopback bind"
                 );
                 std::process::exit(1);
             }
-            eprintln!(
-                "hm-gateway: WARNING -- running with no owner authentication ({} is set) \
-                 on loopback {bind:?}. Every route is unauthenticated.",
-                ALLOW_NO_AUTH_VAR
+            warn!(
+                allow_no_auth_var = %ALLOW_NO_AUTH_VAR,
+                bind = %bind,
+                "running with no owner authentication on loopback; every route is unauthenticated"
             );
             None
         }
@@ -344,10 +366,14 @@ async fn main() -> anyhow::Result<()> {
                 Ok(jobs) => {
                     run_cron(jobs, cron_gateway_url, cron_token, cron_shutdown_rx).await;
                 }
-                Err(e) => eprintln!("hm-cron: could not load {cron_config_clone}: {e}"),
+                Err(e) => error!(
+                    cron_config = %cron_config_clone,
+                    error = %e,
+                    "hm-cron could not load cron config, scheduler disabled"
+                ),
             }
         });
-        println!("hm-gateway: cron scheduler started from {cron_config}");
+        info!(cron_config = %cron_config, "cron scheduler started");
     }
 
     let state = AppState {
@@ -365,7 +391,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let listener = TcpListener::bind(&bind).await?;
-    println!("hm-gateway listening on {bind}");
+    info!(bind = %bind, "hm-gateway listening");
 
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut connections = JoinSet::new();
@@ -376,25 +402,25 @@ async fn main() -> anyhow::Result<()> {
                 let (stream, remote_addr) = match accepted {
                     Ok(pair) => pair,
                     Err(error) => {
-                        eprintln!("hm-gateway: accept() failed, continuing: {error}");
+                        warn!(error = %error, "accept() failed, continuing");
                         continue;
                     }
                 };
                 let state = state.clone();
                 connections.spawn(async move {
                     if let Err(error) = handle_connection(stream, remote_addr, state).await {
-                        eprintln!("hm-gateway request failed: {error}");
+                        warn!(error = %error, "request handler returned error");
                     }
                 });
                 while connections.try_join_next().is_some() {}
             }
             _ = tokio::signal::ctrl_c() => {
-                println!("hm-gateway received SIGINT, shutting down gracefully");
+                info!("received SIGINT, shutting down gracefully");
                 let _ = cron_shutdown_tx.send(true);
                 break;
             }
             _ = sigterm.recv() => {
-                println!("hm-gateway received SIGTERM, shutting down gracefully");
+                info!("received SIGTERM, shutting down gracefully");
                 let _ = cron_shutdown_tx.send(true);
                 break;
             }
@@ -402,18 +428,18 @@ async fn main() -> anyhow::Result<()> {
     }
 
     drop(listener);
-    println!(
-        "hm-gateway draining {} in-flight connection(s)",
-        connections.len()
+    info!(
+        in_flight = connections.len(),
+        "hm-gateway draining in-flight connection(s)"
     );
     let drain_deadline = tokio::time::sleep(SHUTDOWN_DRAIN);
     tokio::pin!(drain_deadline);
     loop {
         tokio::select! {
             _ = &mut drain_deadline => {
-                eprintln!(
-                    "hm-gateway drain timed out with {} connection(s) still running; exiting anyway",
-                    connections.len()
+                warn!(
+                    in_flight = connections.len(),
+                    "drain timed out, exiting anyway with connections still running"
                 );
                 break;
             }
@@ -424,7 +450,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
-    println!("hm-gateway stopped");
+    info!("hm-gateway stopped");
     Ok(())
 }
 
@@ -684,6 +710,20 @@ async fn route_inner(request: HttpRequest, remote_addr: SocketAddr, state: AppSt
 
     match (request.method.as_str(), request.path.as_str()) {
         ("GET", "/") => json_response(200, gateway_info(&state).await),
+        // Prometheus-Scraper. Authenticated wie alle anderen Routes — ein
+        // offener Metrics-Endpoint verraet Pfadnamen, Status-Code-Verteilung
+        // und Latenzen an jeden, der ihn kennt. Wer das oeffentlich will,
+        // setzt einen Reverse-Proxy mit eigener Auth-Schicht davor.
+        ("GET", "/metrics") => {
+            let body = metrics::render();
+            let mut response = Vec::with_capacity(body.len() + 64);
+            response.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+            response.extend_from_slice(b"Content-Type: text/plain; version=0.0.4\r\n");
+            response.extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
+            response.extend_from_slice(b"Connection: close\r\n\r\n");
+            response.extend_from_slice(&body);
+            response
+        }
         ("GET", "/health") | ("GET", "/api/health") | ("GET", "/gateway/health") => {
             json_response(200, health_payload(&state).await)
         }
@@ -776,7 +816,8 @@ async fn storage_get(state: &AppState, key: &str) -> Vec<u8> {
 
 async fn storage_delete(state: &AppState, key: &str) -> Vec<u8> {
     match state.storage.delete(key).await {
-        Ok(()) => json_response(200, json!({ "status": "deleted", "key": key })),
+        Ok(true) => json_response(200, json!({ "status": "deleted", "existed": true, "key": key })),
+        Ok(false) => json_response(404, json!({ "status": "not_found", "existed": false, "key": key })),
         Err(error) => json_response(
             400,
             json!({ "status": "storage_error", "key": key, "reason": error.to_string() }),
@@ -1276,6 +1317,10 @@ fn extract_status_code(response: &[u8]) -> u16 {
 /// this repo ships (`deploy/hm-gateway.service`), stdout goes straight to
 /// journald, so this is a real, queryable audit trail with no extra
 /// plumbing required, not a logging framework that still needs wiring up.
+///
+/// Spiegelung: dieselben Felder gehen parallel in `tracing::info!` rein, damit
+/// Operatoren, die nur die tracing-Sicht sehen (Container-Stderr, JSON-Subscriber),
+/// nicht den Audit-Trail verlieren. Die journald-Zeile bleibt das Source-of-Truth.
 fn audit_log(remote_addr: SocketAddr, method: &str, path: &str, status: u16, latency: Duration) {
     println!(
         "{}",
@@ -1289,6 +1334,17 @@ fn audit_log(remote_addr: SocketAddr, method: &str, path: &str, status: u16, lat
             "latency_ms": latency.as_millis(),
         })
     );
+    info!(
+        remote_addr = %remote_addr,
+        method = %method,
+        path = %path,
+        status = status,
+        latency_ms = latency.as_millis() as u64,
+        "request"
+    );
+    // Prometheus-Counter + Histogram befuellen. `metrics` ist global und
+    // threadsicher (once_cell::Lazy + prometheus::Registry mit Mutex innen).
+    metrics::observe_request(path, method, status, latency.as_secs_f64());
 }
 
 // ── Sessions routes ──────────────────────────────────────────────────────────

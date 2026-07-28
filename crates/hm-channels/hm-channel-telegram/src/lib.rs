@@ -63,17 +63,51 @@ struct TelegramResponse<T> {
     description: Option<String>,
 }
 
-// ── HTTP-Hilfsfunktion (plain TCP, kein TLS — Telegram erfordert HTTPS) ──────
+// ── HTTP-Hilfsfunktion — Telegram API erfordert HTTPS ─────────────────────────
+//
+// Mit Cargo-Feature `tls` wird der echte HTTPS-Pfad ueber
+// `hm_sdk::tls::post` aktiviert. Ohne das Feature geben wir einen klaren
+// Fehler zurueck, der den Bediener zum Aktivieren fuehrt -- lautloses
+// "Mache nichts" waere genau die Klasse von Bug, die hier schon einmal
+// jede ausgehende Nachricht verschluckt hat.
 
-fn telegram_api_post(token: &str, method: &str, _body: &Value) -> Result<Value, anyhow::Error> {
-    // Telegram API erfordert HTTPS. Ohne TLS-Bibliothek geben wir einen
-    // klaren Fehler zurück — in Production eine TLS-fähige Implementierung verwenden.
-    anyhow::bail!(
-        "Telegram API requires HTTPS. \
-         Add rustls or native-tls to this crate to enable live requests. \
-         Method: {method}, Token: {}***",
-        &token[..token.len().min(8)]
-    )
+fn telegram_api_post(token: &str, method: &str, body: &Value) -> Result<Value, anyhow::Error> {
+    #[cfg(not(feature = "tls"))]
+    {
+        let _ = (token, method, body);
+        anyhow::bail!(
+            "Telegram API requires HTTPS. \
+             Build this crate with --features tls (e.g. \
+             `cargo build -p hm-channel-telegram --features tls`). \
+             Method: {method}, Token: {}***",
+            &token[..token.len().min(8)]
+        )
+    }
+
+    #[cfg(feature = "tls")]
+    {
+        use anyhow::Context;
+        let url = format!("https://api.telegram.org/bot{token}/{method}");
+        let body_bytes = serde_json::to_vec(body).context("telegram: serialize body")?;
+        let raw = hm_sdk::tls::post(
+            &url,
+            &[("Content-Type", "application/json")],
+            &body_bytes,
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("telegram: TLS POST failed: {e}"))?;
+        // Statuszeile extrahieren -- Telegram liefert JSON im Body auch
+        // bei HTTP-Fehler, also kein early return bei !=200.
+        let text = String::from_utf8_lossy(&raw);
+        let status_line = text.lines().next().unwrap_or("");
+        let body_only = text
+            .split_once("\r\n\r\n")
+            .map(|(_, b)| b)
+            .unwrap_or("");
+        let parsed: Value = serde_json::from_str(body_only)
+            .map_err(|e| anyhow::anyhow!("telegram: invalid JSON body for {status_line}: {e}"))?;
+        Ok(parsed)
+    }
 }
 
 /// Simulierte Implementierung für Tests und lokale Entwicklung.

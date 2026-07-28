@@ -581,7 +581,7 @@ socket that accepts and never answers, then asserts that unrelated work keeps
 making progress. That second defect only surfaced *because* the test was written
 to check the property rather than the happy path.
 
-**Known drift**: `deploy/fullstack-compose.yml` runs `deploy/gateway_service.py` under the name "gateway" — a trivial, unrelated placeholder HTTP server with no auth/plugins/memory/storage. It is not `crates/hm-gateway` and doesn't read any of the `HM_*` vars `.env.production.example` defines for the real one. The root `docker-compose.yml` (via the root `Dockerfile`) is what actually builds and runs the real Rust gateway.
+**Reconciled (Wave 1, 2026-07-28)**: `deploy/fullstack-compose.yml` builds the real Rust gateway via `build: { context: ., dockerfile: Dockerfile }`; the stdlib placeholder `deploy/gateway_service.py` was deleted in Wave 1 and is no longer referenced by any compose file or install script. The root `docker-compose.yml` (via the root `Dockerfile`) is what builds and runs the gateway in single-host mode.
 
 ## Architecture: rest of the Rust workspace
 

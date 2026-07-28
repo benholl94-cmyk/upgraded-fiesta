@@ -3,9 +3,9 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: heavy
-      POSTGRES_PASSWORD: metal
-      POSTGRES_DB: heavy_metal
+      POSTGRES_USER: ${POSTGRES_USER:-heavy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env before running compose}
+      POSTGRES_DB: ${POSTGRES_DB:-heavy_metal}
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -30,7 +30,12 @@ services:
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
   ui:
-    build: ./ui
+    # Hinweis: das Root-Dockerfile baut das Rust-Gateway; das UI-Image
+    # liegt in ./Dockerfile.ui (Nginx + Vite-Output). Wer ein Image
+    # fuer das Frontend bauen will, nimmt explizit `Dockerfile.ui`.
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
     depends_on: [gateway]
     ports: ["3000:80"]
 volumes:

@@ -10,3 +10,11 @@ hm-auth={path="../../hm-auth"}
 anyhow.workspace=true
 serde.workspace=true
 serde_json.workspace=true
+# `tls` aktiviert den echten HTTPS-Pfad (rustls + webpki-roots). Ohne
+# dieses Feature schlaegt jeder HTTPS-Aufruf mit einer klaren Meldung
+# fehl, statt unbemerkt HTTP-auf-HTTPS zu mischen.
+rustls={workspace=true,optional=true}
+rustls-webpki={workspace=true,optional=true}
+webpki-roots={workspace=true,optional=true}
+[features]
+tls=["dep:rustls","dep:rustls-webpki","dep:webpki-roots"]

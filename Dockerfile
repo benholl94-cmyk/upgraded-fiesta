@@ -7,6 +7,11 @@ FROM debian:bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
+# Non-root user. uid 65532 = standard "nobody" in distroless images.
+# hm-gateway braucht keine Privilegien -- bind:8080 ist unprivileged.
+RUN groupadd -r hm && useradd -r -g hm -u 65532 hm \
+    && mkdir -p /app /data/storage \
+    && chown -R hm:hm /app /data/storage
 WORKDIR /app
 COPY --from=builder /app/target/release/hm-gateway /app/hm-gateway
 COPY --from=builder /app/target/release/hm-tool-exec /app/target/release/hm-tool-exec
@@ -28,4 +33,5 @@ COPY .claude/persona/ /app/.claude/persona/
 # Der Chat-Pfad startet `python3 -m agents.brain` mit diesem Arbeitsverzeichnis.
 ENV HM_BRAIN_REPO=/app
 EXPOSE 8080
+USER hm
 CMD ["/app/hm-gateway"]

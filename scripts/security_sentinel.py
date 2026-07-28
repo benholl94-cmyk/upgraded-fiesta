@@ -1,3 +1,15 @@
+
+# Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
+# aufgerufen waere ein No-Op, weil `_configure_once()` einen
+# Flag abfragt, bevor sie Handler anhaengt.
+import os as _os, sys as _sys
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_PARENT = _os.path.dirname(_HERE)
+_SCRIPTS = _os.path.join(_PARENT, 'scripts')
+if _SCRIPTS not in _sys.path:
+    _sys.path.insert(0, _SCRIPTS)
+from _log import get_logger
+log = get_logger(__name__)
 #!/usr/bin/env python3
 """
 MUNIN Security Sentinel — Layer-Validierung, Quantisierung und Härtung.

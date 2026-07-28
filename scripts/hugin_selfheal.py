@@ -49,6 +49,18 @@ ist gefaehrlicher als einer, der stehen bleibt.
 
 from __future__ import annotations
 
+# Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
+# aufgerufen waere ein No-Op, weil `_configure_once()` einen
+# Flag abfragt, bevor sie Handler anhaengt.
+import os as _os, sys as _sys
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_PARENT = _os.path.dirname(_HERE)
+_SCRIPTS = _os.path.join(_PARENT, 'scripts')
+if _SCRIPTS not in _sys.path:
+    _sys.path.insert(0, _SCRIPTS)
+from _log import get_logger
+log = get_logger(__name__)
+
 import argparse
 import json
 import os
@@ -202,7 +214,34 @@ def p_anker() -> Schritt:
                                   "gehoert, weiss nur ein Mensch.")
 
 
-PRUEFUNGEN = (p_supervisor, p_tests, p_clarity, p_anker)
+def p_monitoring_required_files() -> Schritt:
+    """Liest `monitoring/required-files.json` und prueft, dass jede dort
+    gelistete Datei tatsaechlich existiert. Eine 'required'-Datei, die
+    fehlt, ist ein Drift-Signal (jemand hat eine Datei umbenannt oder
+    geloescht, ohne den Selbsterhalt zu informieren)."""
+    rf_path = REPO / "monitoring" / "required-files.json"
+    if not rf_path.is_file():
+        return Schritt("monitoring_required", "monitoring/required-files.json",
+                       NICHTS, "Datei fehlt; Pruefung uebersprungen")
+    try:
+        data = json.loads(rf_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return Schritt("monitoring_required", "monitoring/required-files.json",
+                       ESKALIERT, f"JSON-Parse-Fehler: {exc}",
+                       braucht_master="monitoring/required-files.json ist kaputt "
+                                      "— bitte reparieren oder loeschen.")
+    fehlend = [f for f in data.get("required_files", []) if not (REPO / f).exists()]
+    if not fehlend:
+        return Schritt("monitoring_required", "monitoring/required-files.json",
+                       NICHTS, f"{len(data.get('required_files', []))} Dateien vorhanden")
+    return Schritt("monitoring_required", "monitoring/required-files.json",
+                   ESKALIERT,
+                   f"{len(fehlend)} required-files fehlen: " + ", ".join(fehlend[:5]),
+                   braucht_master="Eine 'required'-Datei fehlt. Bitte entweder "
+                                  "wiederherstellen oder aus der Liste entfernen.")
+
+
+PRUEFUNGEN = (p_supervisor, p_tests, p_clarity, p_anker, p_monitoring_required_files)
 
 
 # ---------------------------------------------------------------------------

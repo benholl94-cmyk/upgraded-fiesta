@@ -13,6 +13,18 @@ Usage:
 
 from __future__ import annotations
 
+# Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
+# aufgerufen waere ein No-Op, weil `_configure_once()` einen
+# Flag abfragt, bevor sie Handler anhaengt.
+import os as _os, sys as _sys
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_PARENT = _os.path.dirname(_HERE)
+_SCRIPTS = _os.path.join(_PARENT, 'scripts')
+if _SCRIPTS not in _sys.path:
+    _sys.path.insert(0, _SCRIPTS)
+from _log import get_logger
+log = get_logger(__name__)
+
 import html.parser
 import json
 import os
@@ -120,7 +132,12 @@ def _store_memory(url: str, name: str, text: str, tags: list[str]) -> bool:
     try:
         with urllib.request.urlopen(req, timeout=10):
             return True
-    except Exception:
+    except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+        # Engere Auswahl: URLError (DNS, HTTP-Fehler), TimeoutError,
+        # ConnectionError. Andere Fehler (z.B. ValueError bei kaputter URL)
+        # sollen sichtbar bleiben und nicht stillschweigend in 'False'
+        # kollabieren.
+        log.debug("url reachable check failed", extra={"error": str(exc)})
         return False
 
 
@@ -171,10 +188,16 @@ def run_loop() -> list[dict]:
                 "stored": stored, "ok": True,
             })
         except urllib.error.HTTPError as e:
+            log.warning("feed http error", extra={"name": name, "url": url, "code": e.code})
             results.append({"name": name, "url": url, "ok": False, "detail": f"HTTP {e.code}"})
         except urllib.error.URLError as e:
+            log.warning("feed url error", extra={"name": name, "url": url, "reason": str(e.reason)})
             results.append({"name": name, "url": url, "ok": False, "detail": str(e.reason)})
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
+            # Engerer Fang: Strukturprobleme im Feed (kaputtes JSON, fehlende
+            # Felder). Andere Fehler (MemoryError, KeyboardInterrupt) sollen
+            # weiterhin eskalieren.
+            log.warning("feed parse error", extra={"name": name, "url": url, "error": str(e)})
             results.append({"name": name, "url": url, "ok": False, "detail": str(e)})
 
     _save_state(state)

@@ -3,6 +3,11 @@ use serde_json::Value;
 
 pub const NAME: &str = "sdk";
 
+/// Optionaler HTTPS-Client (siehe `tls` Modul). Aktiviert durch das
+/// Cargo-Feature `tls`; ohne das Feature liefern `post`/`get` einen klaren
+/// Fehler statt lautlos HTTP-auf-HTTPS zu mischen.
+pub mod tls;
+
 /// One request, written as a single line of JSON to a plugin process's stdin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginRequest {

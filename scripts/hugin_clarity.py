@@ -47,6 +47,18 @@ ist er schlechter als keiner.
 
 from __future__ import annotations
 
+# Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
+# aufgerufen waere ein No-Op, weil `_configure_once()` einen
+# Flag abfragt, bevor sie Handler anhaengt.
+import os as _os, sys as _sys
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_PARENT = _os.path.dirname(_HERE)
+_SCRIPTS = _os.path.join(_PARENT, 'scripts')
+if _SCRIPTS not in _sys.path:
+    _sys.path.insert(0, _SCRIPTS)
+from _log import get_logger
+log = get_logger(__name__)
+
 import argparse
 import json
 import os
@@ -214,6 +226,9 @@ def p_fluechtig() -> list[Punkt]:
         "ungepusht", "Ist die Arbeit dauerhaft?",
         OK if n == 0 else OFFEN,
         f"{n} Commit(s) lokal, nicht auf dem Remote" if n else "alles gepusht",
+        braucht=("ein entscheidender Commit-Push (manuell oder durch "
+                 "munin_continuity seal --push), damit die Commits nicht "
+                 "nur in diesem Container existieren") if n else "",
         befehl="python3 scripts/munin_continuity.py seal --push",
         warum="Ungepusht heisst nicht vorhanden — so ging 29b701c verloren."))
     return out
@@ -242,9 +257,10 @@ UNGEPRUEFT = (
     ("compose-platzhalter",
      "Was startet deploy/fullstack-compose.yml unter dem Namen 'gateway'?",
      "nichts — die Antwort ist bekannt und unangenehm",
-     "deploy/gateway_service.py, ein trivialer Platzhalter ohne Auth, Plugins, "
-     "Memory oder Storage. NICHT crates/hm-gateway. Das echte Gateway baut die "
-     "root docker-compose.yml."),
+     "Bis 2026-07-28 lief dort ein stdlib-Platzhalter `deploy/gateway_service.py`; "
+     "seit Wave 1 baut das compose das echte Rust-Gateway aus dem root "
+     "`Dockerfile`. Wenn dieser Befund noch 'platzhalter' anzeigt, ist die "
+     "Aenderung nicht durch."),
 )
 
 

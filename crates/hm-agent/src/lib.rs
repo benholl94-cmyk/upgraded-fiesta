@@ -127,7 +127,7 @@ mod tests {
         let outcome = agent.dispatch("nonexistent", "do a thing", json!({})).await;
         match outcome {
             TaskOutcome::Unhandled { reason } => assert!(reason.contains("nonexistent")),
-            other => panic!("expected Unhandled, got {other:?}"),
+            other => panic!("expected Unhandled, got {other:?}"),  // test-only assertion
         }
 
         let records = agent.memory.list().await;

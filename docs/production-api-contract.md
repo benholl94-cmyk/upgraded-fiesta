@@ -53,6 +53,39 @@ Every request produces one structured JSON line on stdout (`{"audit": true, "ts_
 
 Requests are additionally rate-limited per source IP (`HM_RATE_LIMIT_PER_MINUTE`, default 120/minute, fixed window) *before* the request is even read off the socket -- an abusive client is rejected with `429` before it can make the gateway parse a body, run auth, or dispatch a task. This is in-process and per-instance (not shared across multiple gateway replicas); a shared/distributed limiter is a Phase 5/scaling concern, not something this single-instance gateway claims to solve.
 
+### Prometheus metrics endpoint
+
+```
+GET /metrics
+```
+
+Authenticated like every other route. Returns the Prometheus text exposition
+format (`Content-Type: text/plain; version=0.0.4`). Three metric families ship
+by default:
+
+- `gateway_requests_total{path,method,status}` — counter, incremented per
+  served request from `audit_log`.
+- `gateway_request_duration_seconds{path,method}` — histogram, observed per
+  request from `audit_log`.
+- `gateway_plugin_dispatch_total{task_type,outcome}` — counter, incremented
+  per plugin dispatch with `outcome ∈ {ok, error, timeout, _other}`. The
+  `_other` bucket catches unknown outcomes so a buggy plugin cannot blow up
+  label cardinality.
+
+```console
+$ curl -H "Authorization: Bearer $HM_OWNER_TOKEN" http://localhost:8080/metrics
+HTTP/1.1 200 OK
+Content-Type: text/plain; version=0.0.4
+
+# HELP gateway_requests_total Total HTTP requests served, partitioned by path/method/status
+# TYPE gateway_requests_total counter
+gateway_requests_total{path="/health",method="GET",status="200"} 42
+...
+```
+
+Scrape target for Prometheus: `http://<gateway>:8080/metrics` with the owner
+bearer token in the scrape config's `authorization.credentials`.
+
 ```console
 # client side:
 $ curl http://localhost:8080/health
@@ -586,13 +619,10 @@ non-root-user or read-only-rootfs hardening for the container path yet,
 since that needs an actual container build+run pass to confirm volume
 permissions don't break on first boot).
 
-**Known drift, not yet reconciled**: `deploy/fullstack-compose.yml` runs a
-completely different, trivial placeholder (`deploy/gateway_service.py`, a
-stdlib `BaseHTTPRequestHandler` with no auth/plugins/memory/storage) under
-the name "gateway" -- it is unrelated to `crates/hm-gateway` and does not
-read any of the `HM_*` variables `.env.production.example` sets up for the
-real gateway. Don't assume `deploy/fullstack-compose.yml` deploys the real
-gateway; it currently doesn't.
+**Reconciled (Wave 1, 2026-07-28)**: `deploy/fullstack-compose.yml` builds the
+real Rust gateway via `build: { context: ., dockerfile: Dockerfile }`; the
+old `deploy/gateway_service.py` stdlib placeholder has been deleted and
+is no longer referenced by any compose file, install script, or doc.
 
 ## Operational guarantees
 

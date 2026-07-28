@@ -108,13 +108,57 @@ impl WhatsAppClient {
     }
 
     /// Sendet eine Text-Nachricht via WhatsApp Business Cloud API.
-    /// Erfordert HTTPS.
-    pub fn send_message(&self, to: &str, text: &str) -> Result<(), anyhow::Error> {
-        anyhow::bail!(
-            "WhatsApp API requires HTTPS (Meta Graph API). \
-             Add rustls to this crate. to={to}, text_len={}",
-            text.len()
-        )
+    /// Erfordert HTTPS (siehe `Cargo.toml` Feature `tls`).
+    pub async fn send_message(&self, to: &str, text: &str) -> Result<(), anyhow::Error> {
+        #[cfg(not(feature = "tls"))]
+        {
+            let _ = (to, text);
+            anyhow::bail!(
+                "WhatsApp API requires HTTPS (Meta Graph API). \
+                 Build this crate with --features tls (e.g. \
+                 `cargo build -p hm-channel-whatsapp --features tls`). \
+                 to={to}, text_len={}",
+                text.len()
+            )
+        }
+
+        #[cfg(feature = "tls")]
+        {
+            use anyhow::Context;
+            let url = format!(
+                "https://graph.facebook.com/v20.0/{}/messages",
+                self.phone_number_id
+            );
+            let body = json!({
+                "messaging_product": "whatsapp",
+                "to": to,
+                "type": "text",
+                "text": { "body": text },
+            });
+            let body_bytes = serde_json::to_vec(&body).context("whatsapp: serialize body")?;
+            let raw = hm_sdk::tls::post(
+                &url,
+                &[
+                    ("Authorization", &format!("Bearer {}", self.token)),
+                    ("Content-Type", "application/json"),
+                ],
+                &body_bytes,
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("whatsapp: TLS POST failed: {e}"))?;
+            // Meta Graph liefert 200 + JSON-Body mit `error` Feld bei Fehler.
+            let text_resp = String::from_utf8_lossy(&raw);
+            let body_only = text_resp
+                .split_once("\r\n\r\n")
+                .map(|(_, b)| b)
+                .unwrap_or("");
+            let parsed: serde_json::Value = serde_json::from_str(body_only)
+                .map_err(|e| anyhow::anyhow!("whatsapp: invalid JSON body: {e}"))?;
+            if let Some(err) = parsed.get("error") {
+                anyhow::bail!("whatsapp: API error response: {err}");
+            }
+            Ok(())
+        }
     }
 
     /// Verarbeitet einen eingehenden Webhook und leitet Nachrichten ans Gateway weiter.

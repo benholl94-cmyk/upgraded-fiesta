@@ -31,7 +31,12 @@ fn unique_suffix() -> u64 {
 pub trait FileStorage: Send + Sync {
     async fn put(&self, key: &str, bytes: &[u8]) -> anyhow::Result<()>;
     async fn get(&self, key: &str) -> anyhow::Result<Vec<u8>>;
-    async fn delete(&self, key: &str) -> anyhow::Result<()>;
+    /// Liefert `true` wenn der Schluessel existierte und geloescht wurde,
+    /// `false` wenn er nicht da war. Bisher (`Result<()>`) hat `NotFound`
+    /// stillschweigend zu `Ok(())` kollabiert — `DELETE /storage/{key}`
+    /// antwortete immer "deleted", egal ob etwas da war. Diese Information
+    /// ist die Grundlage einer ehrlichen Speicherschicht.
+    async fn delete(&self, key: &str) -> anyhow::Result<bool>;
     async fn exists(&self, key: &str) -> anyhow::Result<bool>;
 }
 
@@ -142,11 +147,11 @@ impl FileStorage for LocalFsStorage {
         Ok(fs::read(path).await?)
     }
 
-    async fn delete(&self, key: &str) -> anyhow::Result<()> {
+    async fn delete(&self, key: &str) -> anyhow::Result<bool> {
         let path = self.resolve(key)?;
         match fs::remove_file(path).await {
-            Ok(()) => Ok(()),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Ok(()) => Ok(true),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
             Err(error) => Err(error.into()),
         }
     }
@@ -278,15 +283,15 @@ impl FileStorage for RemoteHttpStorage {
         }
     }
 
-    async fn delete(&self, key: &str) -> anyhow::Result<()> {
+    async fn delete(&self, key: &str) -> anyhow::Result<bool> {
         let (status, body) = self.request("DELETE", key, None).await?;
-        if (200..300).contains(&status) {
-            Ok(())
-        } else {
-            anyhow::bail!(
-                "remote DELETE {key} failed: HTTP {status} {}",
+        match status {
+            200..=299 => Ok(true),
+            404 => Ok(false),
+            other => anyhow::bail!(
+                "remote DELETE {key} failed: HTTP {other} {}",
                 String::from_utf8_lossy(&body)
-            )
+            ),
         }
     }
 
@@ -340,9 +345,29 @@ mod tests {
     async fn delete_is_idempotent() {
         let (storage, _dir) = temp_storage();
         storage.put("a.txt", b"x").await.unwrap();
-        storage.delete("a.txt").await.unwrap();
-        storage.delete("a.txt").await.unwrap();
+        // Erstes Loeschen: true (existierte).
+        assert!(storage.delete("a.txt").await.unwrap());
+        // Zweites Loeschen: false (nicht mehr da) — vorher loggte sich der
+        // Wert hinter Ok(()) weg. Beide Aufrufe muessen jetzt unterscheidbar
+        // sein, sonst kann `DELETE /storage/{key}` nicht ehrlich antworten.
+        assert!(!storage.delete("a.txt").await.unwrap());
         assert!(!storage.exists("a.txt").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn delete_returns_false_when_missing() {
+        let (storage, _dir) = temp_storage();
+        // Frischer Storage, Schluessel war nie da: false, kein Fehler.
+        assert!(!storage.delete("never-existed.txt").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn delete_returns_true_when_present() {
+        let (storage, _dir) = temp_storage();
+        storage.put("present.txt", b"x").await.unwrap();
+        assert!(storage.delete("present.txt").await.unwrap());
+        // Anschliessend nicht mehr da.
+        assert!(!storage.exists("present.txt").await.unwrap());
     }
 
     #[tokio::test]

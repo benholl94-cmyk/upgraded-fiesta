@@ -126,8 +126,8 @@ honestly from this sandbox):
 1. ~~Reconcile the two divergent compose files~~ — done: `deploy/fullstack-compose.yml`
    now uses `build: { context: ., dockerfile: Dockerfile }` (the real Rust gateway)
    and `Dockerfile.ui` (multi-stage node:22→nginx:1.27 build for the UI). The
-   placeholder `deploy/gateway_service.py` is still present for historical reference
-   but is no longer referenced by any compose file.
+   placeholder `deploy/gateway_service.py` was deleted in Wave 1 (2026-07-28) and
+   is no longer present in the repo.
 2. ~~Fix the Dockerfile packaging gap~~ — done above.
 3. Stand up `deploy/hm-gateway.service` for real on one non-sandbox host
    (a VPS, a spare machine, a cloud VM) and confirm `systemd-analyze verify`

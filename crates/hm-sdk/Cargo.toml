@@ -7,3 +7,12 @@ license.workspace=true
 hm-core={path="../hm-core"}
 serde.workspace=true
 serde_json.workspace=true
+# TLS-Bausteine, alle optional. Aktiviert durch das Feature `tls`, das die
+# Channel-Crates und hm-tool-web in Cargo.toml einschalten.
+rustls={workspace=true,optional=true}
+rustls-webpki={workspace=true,optional=true}
+webpki-roots={workspace=true,optional=true}
+tokio={workspace=true,optional=true,features=["net","io-util","time"]}
+[features]
+tls=["dep:rustls","dep:rustls-webpki","dep:webpki-roots","dep:tokio"]
+default=[]

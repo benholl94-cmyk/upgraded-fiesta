@@ -41,6 +41,8 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use tokio::process::Command;
 
+use crate::error::GatewayError;
+
 /// A chat turn takes as long as the model takes. This bound exists so a wedged
 /// child cannot hold a connection (and a rate-limiter slot) forever.
 const TURN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1800);
@@ -59,37 +61,99 @@ pub struct ChatInput {
 /// Rejects anything that would turn a context path into an option or escape
 /// the repository. Returns the reason, so the client learns what was wrong
 /// instead of silently getting fewer files than it asked for.
-fn check_file(arg: &str) -> Result<(), String> {
+fn check_file(arg: &str) -> Result<(), GatewayError> {
     if arg.is_empty() {
-        return Err("empty file argument".into());
+        return Err(GatewayError::Internal("empty file argument".into()));
     }
     if arg.starts_with('-') {
-        return Err(format!("{arg:?} would be read as an option, not a path"));
+        return Err(GatewayError::Internal(format!(
+            "{arg:?} would be read as an option, not a path"
+        )));
     }
     if arg.contains('\0') || arg.contains('\n') {
-        return Err("file argument contains a control character".into());
+        return Err(GatewayError::Internal(
+            "file argument contains a control character".into(),
+        ));
     }
     let p = Path::new(arg);
     if p.is_absolute() || p.components().any(|c| c.as_os_str() == "..") {
-        return Err(format!("{arg:?} must be a relative path inside the repo"));
+        return Err(GatewayError::Internal(format!(
+            "{arg:?} must be a relative path inside the repo"
+        )));
     }
     Ok(())
 }
 
-pub fn validate(input: &ChatInput) -> Result<(), String> {
+pub fn validate(input: &ChatInput) -> Result<(), GatewayError> {
     if input.line.trim().is_empty() {
-        return Err("line must not be empty".into());
+        return Err(GatewayError::Internal("line must not be empty".into()));
     }
     if input.line.len() > MAX_LINE_BYTES {
-        return Err(format!("line exceeds {MAX_LINE_BYTES} bytes"));
+        return Err(GatewayError::Internal(format!(
+            "line exceeds {MAX_LINE_BYTES} bytes"
+        )));
     }
     if input.files.len() > MAX_FILES {
-        return Err(format!("at most {MAX_FILES} context files"));
+        return Err(GatewayError::Internal(format!(
+            "at most {MAX_FILES} context files"
+        )));
     }
     for f in &input.files {
         check_file(f)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample(line: &str) -> ChatInput {
+        ChatInput {
+            line: line.to_string(),
+            files: vec![],
+        }
+    }
+
+    #[test]
+    fn validate_rejects_empty_line() {
+        let err = validate(&sample("")).unwrap_err();
+        assert!(matches!(err, GatewayError::Internal(_)), "got: {err:?}");
+        assert!(err.to_string().contains("not be empty"));
+    }
+
+    #[test]
+    fn validate_rejects_oversized_line() {
+        let big = "x".repeat(MAX_LINE_BYTES + 1);
+        let err = validate(&sample(&big)).unwrap_err();
+        assert!(err.to_string().contains("exceeds"));
+    }
+
+    #[test]
+    fn validate_rejects_too_many_files() {
+        let mut input = sample("hello");
+        input.files = (0..MAX_FILES + 1).map(|i| format!("file{i}")).collect();
+        let err = validate(&input).unwrap_err();
+        assert!(err.to_string().contains("at most"));
+    }
+
+    #[test]
+    fn check_file_rejects_option_flag() {
+        let err = check_file("-rf").unwrap_err();
+        assert!(err.to_string().contains("option"));
+    }
+
+    #[test]
+    fn check_file_rejects_parent_traversal() {
+        let err = check_file("../etc/passwd").unwrap_err();
+        assert!(err.to_string().contains("relative path"));
+    }
+
+    #[test]
+    fn check_file_rejects_absolute() {
+        let err = check_file("/etc/passwd").unwrap_err();
+        assert!(err.to_string().contains("relative path"));
+    }
 }
 
 pub fn sse_headers(origin_header: &str) -> String {

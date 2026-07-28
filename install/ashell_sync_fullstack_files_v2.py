@@ -6,7 +6,6 @@ BASE = "https://raw.githubusercontent.com/benholl94-cmyk/upgraded-fiesta/main/"
 FILES = [
     ".env.production.example",
     "deploy/fullstack-compose.yml",
-    "deploy/gateway_service.py",
     "scripts/fullstack_up.sh",
     "scripts/fullstack_down.sh",
     "scripts/fullstack_status.sh",

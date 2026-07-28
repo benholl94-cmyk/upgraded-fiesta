@@ -1,0 +1,40 @@
+# .gitleaks.toml — Custom allowlist for this repo.
+#
+# Default gitleaks rules are conservative: they flag anything that
+# looks like an API key, token, or password. That's correct for the
+# public-internet threat model. For THIS repo, we need allowlist
+# exceptions for two patterns:
+#
+# 1. `.env.production.example` contains intentional `change-me-*`
+#    placeholders. Without an allowlist, every commit to that file
+#    produces a CI failure that masks the real signals.
+# 2. `.env.local` / `.env.*.local` are local development files that
+#    shouldn't be committed AT ALL — but if they sneak in, the secret
+#    inside is real and needs reporting. So we DO NOT allowlist those;
+#    the standard rules apply.
+#
+# This file MUST be checked in. gitleaks picks it up from the repo root
+# automatically.
+
+[allowlist]
+description = "Allow intentional placeholders in .env.production.example"
+paths = [
+  '''.env.production.example''',
+]
+
+# Regex must match the line content. The default regex matches
+# AWS keys, GitHub PATs, OpenAI sk-, etc. We explicitly whitelist
+# `change-me-` prefixed values that appear in the example file.
+regexes = [
+  '''change-me-[a-z0-9-]+''',
+  '''change-me-or-leave-empty-for-no-auth''',
+]
+
+# Stopwords: words that, when they appear as variable values, are NOT
+# secrets. (`metal` was the literal in the OLD docker-compose.yml and
+# could appear in old branches.)
+stopwords = [
+  "metal",
+  "change-me-generate-a-real-secret",
+  "change-me-before-use",
+]
