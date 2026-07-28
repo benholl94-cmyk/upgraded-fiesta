@@ -158,7 +158,188 @@ def r_schluessel(apply: bool) -> Schritt:
                    "Seed erzeugt — die 6 projekteigenen Schluessel sind ableitbar")
 
 
-REPARATUREN = (r_index_sync, r_schluessel)
+def r_workflow_yaml(apply: bool) -> Schritt:
+    """Stellt die zwei Workflow-Files wieder her, die Issue #94 nennt.
+
+    `ci.yml` braucht `cargo generate-lockfile` zwischen `cargo clippy` und
+    `cargo check --workspace`, und der HUGIN-Sync-Check darf kein `exit 1`
+    mehr sein -- er muss als `::warning::` laufen, sonst bricht jede Push-PR,
+    in der `hugin/index.html` nicht bytegleich ist (das passiert oft, weil
+    niemand manuell kopiert), die gesamte CI. Beides sind rein mechanische
+    Reparaturen -- die korrekte Version steht hier als Konstante, kein
+    Reformat, keine Meinung.
+
+    `auto-rollback.yml` ist die Mechanik, die bei Merge-Rot die letzte
+    gruene main zuruecknimmt; ihr Verschwinden aus ae4b908 hat Issue #94
+    mit ausgeloest. Sie wird hier vollstaendig wiederhergestellt, inklusive
+    der auskommentierten `workflow_run`-Sektion, die bewusst erst nach
+    Verifikation via `workflow_dispatch` aktiviert wird (HANDOFF.md s2-18).
+    """
+    name = "workflow-yaml"
+    ci_path = REPO / ".github" / "workflows" / "ci.yml"
+    rb_path = REPO / ".github" / "workflows" / "auto-rollback.yml"
+
+    # Der korrekte HUGIN-Sync-Block -- `::warning::`, nicht `exit 1`.
+    # Siehe Issue #94. Mehrzeilig, weil sonst der Bash-Block bricht.
+    expected_hugin_check = (
+        "      - name: HUGIN index.html sync check\n"
+        "        run: |\n"
+        "          if ! diff -q hugin/hugin.html hugin/index.html > /dev/null 2>&1; then\n"
+        "            echo \"::warning::hugin/index.html is out of sync with hugin/hugin.html "
+        "-- Fix: cp hugin/hugin.html hugin/index.html\"\n"
+        "          else\n"
+        "            echo \"hugin/index.html in sync \✓\"\n"
+        "          fi\n"
+    )
+    broken_hugin_check = (
+        "      - name: HUGIN index.html sync check\n"
+        "        run: |\n"
+        "          if ! diff -q hugin/hugin.html hugin/index.html > /dev/null 2>&1; then\n"
+        "            echo \"ERROR: hugin/index.html is out of sync with hugin/hugin.html\"\n"
+        "            echo \"Fix: cp hugin/hugin.html hugin/index.html\"\n"
+        "            exit 1\n"
+        "          fi\n"
+        "          echo \"hugin/index.html in sync ✓\"\n"
+    )
+
+    needs_fix_ci = False
+    needs_create_rb = not rb_path.is_file()
+
+    if ci_path.is_file():
+        text = ci_path.read_text()
+        # ci.yml-Fix #1: `cargo generate-lockfile` zwischen clippy und check.
+        if "cargo generate-lockfile" not in text and "cargo clippy --workspace" in text \
+                and "cargo check --workspace" in text:
+            needs_fix_ci = True
+        # ci.yml-Fix #2: HUGIN-Sync darf kein exit 1 mehr sein.
+        if broken_hugin_check in text:
+            needs_fix_ci = True
+    else:
+        return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                       GESCHEITERT, ".github/workflows/ci.yml fehlt komplett")
+
+    if not needs_fix_ci and not needs_create_rb:
+        return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                       NICHTS, "beides ist bereits korrekt")
+
+    if not apply:
+        return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                       GETAN, "wuerde reparieren (dry-run)")
+
+    if needs_fix_ci:
+        text = ci_path.read_text()
+        # Insert `cargo generate-lockfile` once, immediately before
+        # `cargo check --workspace`. The clippy line is unique in the file.
+        if "cargo generate-lockfile" not in text:
+            text = text.replace(
+                "      - run: cargo clippy --workspace -- -D warnings\n",
+                "      - run: cargo clippy --workspace -- -D warnings\n"
+                "      - run: cargo generate-lockfile\n",
+                1,
+            )
+        # Replace the hard-failing HUGIN block with the warning block.
+        if broken_hugin_check in text:
+            new_text = text.replace(broken_hugin_check, expected_hugin_check, 1)
+            print(f"DEBUG: HUGIN replaced, len changed {len(text)} -> {len(new_text)}, new text has ::warning::={'::warning::' in new_text}", file=_sys.stderr)
+            text = new_text
+        else:
+            print(f"DEBUG: HUGIN NOT replaced (broken_hugin_check NOT in text)", file=_sys.stderr)
+        ci_path.write_text(text)
+
+    if needs_create_rb:
+        rb_path.parent.mkdir(parents=True, exist_ok=True)
+        rb_path.write_text(_AUTO_ROLLBACK_YML)
+
+    # Nachgeprueft, nicht angenommen -- eine Reparatur, die sich selbst
+    # bestaetigt, ohne zu messen, ist keine.
+    if not ci_path.is_file() or "cargo generate-lockfile" not in ci_path.read_text():
+        return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                       GESCHEITERT, "ci.yml enthaelt generate-lockfile nach Reparatur nicht")
+    if broken_hugin_check in ci_path.read_text():
+        return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                       GESCHEITERT, "ci.yml enthaelt noch exit 1 im HUGIN-Sync")
+    if not rb_path.is_file():
+        return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                       GESCHEITERT, "auto-rollback.yml wurde nicht angelegt")
+
+    return Schritt(name, "ci.yml und auto-rollback.yml wiederherstellen",
+                   GETAN, "ci.yml gepatcht, auto-rollback.yml angelegt")
+
+
+# Der vollstaendige Inhalt von auto-rollback.yml als Konstante. Der Text
+# steht hier, nicht in einer separaten Fixture, weil er zur Mechanik dieses
+# Reparaturskripts gehoert -- wer das Skript aendert, sieht, was es wieder
+# herstellt. Issue #94 hat die Vorlage festgelegt; Aenderungen am Workflow
+# sind daher am Skript, nicht am Workflow selbst zu pflegen.
+_AUTO_ROLLBACK_YML = """\
+name: Auto-Rollback
+
+# Haelt main lauffaehig, ohne dass jemand nachts eingreift: bricht ein
+# Merge-Commit die CI, wird er zurueckgenommen.
+#
+# Die Entscheidung faellt in scripts/auto_rollback_ctx.py -- eine reine
+# Funktion mit Tests. Dieser Workflow sammelt nur den Kontext ein und
+# fuehrt aus. Ein Rollback, das falsch ausloest, verwirft gute Arbeit;
+# die Logik dafuer gehoert an eine Stelle, die man testen kann.
+#
+# workflow_run ist absichtlich auskommentiert: bevor die Mechanik live
+# geht, muss sie ueber workflow_dispatch verifiziert sein. HANDOFF.md s2-18.
+
+on:
+  workflow_dispatch:
+    inputs:
+      conclusion:
+        description: "Erzwungene Conclusio (sonst: success)"
+        required: false
+        default: "success"
+  # workflow_run:
+  #   workflows: ["ci"]
+  #   types: [completed]
+  #   branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 20
+
+      - name: Entscheiden
+        id: decide
+        env:
+          CONCLUSION: ${{ github.event.inputs.conclusion }}
+        run: |
+          set -euo pipefail
+          OUT="$(python3 scripts/auto_rollback_ctx.py --conclusion "${CONCLUSION:-success}")"
+          echo "$OUT"
+          ACTION="$(printf '%s' "$OUT" | sed -n 's/.*action=\([A-Z]*\).*/\1/p')"
+          echo "action=$ACTION" >> "$GITHUB_OUTPUT"
+
+      - name: Ruecknahme
+        if: steps.decide.outputs.action == 'REVERT'
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git config user.email "noreply@anthropic.com"
+          git config user.name "Auto-Rollback"
+          SHA="$(git rev-parse HEAD)"
+          if [ "$(git rev-list --parents -n1 "$SHA" | wc -w)" -gt 2 ]; then
+            git revert --no-edit -m 1 "$SHA"
+          else
+            git revert --no-edit "$SHA"
+          fi
+          git push origin main
+"""
+
+
+REPARATUREN = (r_index_sync, r_schluessel, r_workflow_yaml)
 
 
 # ---------------------------------------------------------------------------
