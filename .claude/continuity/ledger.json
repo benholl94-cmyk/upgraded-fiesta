@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-28T22:22:13+00:00",
+  "updated": "2026-07-28T22:23:02+00:00",
   "session": 3,
   "entries": [
     {
@@ -678,6 +678,18 @@
       "text": "Master-Ping erreicht Master via Issue-Kommentar + Label-Tag 'bug' auf issue #94. Versand-Kanäle: gh CLI issue comment (vom Codespace aus), Email-Notification (GitHub → Master), Mentions via @benholl94-cmyk. Reaktionszeit: ~45 Min Master-Push von monitoring-bot-Updates sichtbar — Workflow-Push bleibt aus.",
       "anchors": [
         "path:scripts/munin_bridge.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-22",
+      "session": 3,
+      "ts": "2026-07-28T22:23:02+00:00",
+      "kind": "notiz",
+      "text": "Anker-Korrektur zu s3-19: gemeint war das Verzeichnis .github/workflows selbst (16 .yml-Dateien, inkl. auto-rollback.yml), nicht eine spezifische Datei. Anker war zu eng gegriffen — workflow-YAML-Edits landen im Verzeichnis, sind also weiterhin gueltige Andockstelle.",
+      "anchors": [
+        "path:.github/workflows/ci.yml"
       ],
       "state": "offen",
       "weight": 2
