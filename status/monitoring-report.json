@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-28T20:26:38.908453+00:00",
+  "generated_at": "2026-07-28T20:41:47.194498+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -105,7 +105,7 @@
       "exists": true,
       "is_file": true,
       "path": "crates/hm-gateway/src/main.rs",
-      "size_bytes": 58103
+      "size_bytes": 58173
     },
     {
       "exists": true,
