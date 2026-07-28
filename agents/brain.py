@@ -44,6 +44,7 @@ SSE weiter und muss den Inhalt nicht verstehen.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -52,6 +53,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
+
+log = logging.getLogger(__name__)
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
@@ -270,8 +273,8 @@ def local_llm_status(timeout: float = 2.0) -> tuple[bool, str]:
         return False, f"llama-server laedt noch ({payload.get('status')})"
     except urllib.error.HTTPError as e:
         return False, f"llama-server antwortet mit HTTP {e.code} — laedt vermutlich noch"
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("swallowed in brain: %s", exc)
 
     if _model_file() is None:
         return False, ("models/model.gguf fehlt — "
@@ -308,6 +311,7 @@ def tiers() -> list[tuple[str, bool, str]]:
         out.append((T1, bool(frei),
                     f"{len(frei)} von {len(alle)} keylosen Providern erreichbar"))
     except Exception as exc:
+        log.warning("swallowed in brain: %s", exc)
         out.append((T1, False, f"agents.budget nicht ladbar: {exc}"))
     try:
         from agents import budget
@@ -321,6 +325,7 @@ def tiers() -> list[tuple[str, bool, str]]:
                     "kostenpflichtige Provider gesperrt" if gebremst
                     else "Kostensperre geloest — kostenpflichtige Aufrufe moeglich"))
     except Exception as exc:
+        log.warning("swallowed in brain: %s", exc)
         # Unbekannt heisst gesperrt, nie erlaubt — dieselbe Richtung wie
         # cost_class(), wo Unbekanntes als kostenpflichtig gilt.
         out.append((T2, False, f"Kostenstand unbekannt, deshalb gesperrt: {exc}"))
@@ -343,8 +348,8 @@ def _grounded(question: str, paths: tuple[str, ...]) -> tuple[str, list, list]:
         belege = list(r.evidence)
         if r.verdict == "verboten":
             verboten = list(r.blocking)
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("swallowed in brain: %s", exc)
     return prompt, belege, verboten
 
 
@@ -482,7 +487,8 @@ def _remote_providers(pruefe_dienste: bool = True) -> list[str]:
     try:
         from agents import budget
         gate = getattr(_oracle(), "PROVIDERS", {})
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in brain: %s", exc)
         return []
     out = []
     for name in budget.free_providers():
@@ -535,6 +541,7 @@ def answer(question: str, paths: tuple[str, ...] = ()) -> Iterator[Event]:
             yield Event("ende", "", {"tier": T1, "provider": frei[0]})
             return
         except Exception as exc:
+            log.warning("swallowed in brain: %s", exc)
             yield _info(f"Provider {frei[0]} nicht erreichbar: {exc}")
 
     yield from _answer_t0(question, belege, verboten)
@@ -584,14 +591,14 @@ def main(argv: list[str] | None = None) -> int:
     worst = 0
     try:
         worst = _emit(handle(a.line, tuple(a.file)), a.json)
-    except BrokenPipeError:
+    except BrokenPipeError as exc:
         # Der Empfaenger ist weg (Verbindung getrennt, `| head`). Das ist der
         # Normalfall beim Streamen und kein Fehler -- ein Traceback hier
         # faerbte jeden abgebrochenen Chat rot.
         try:
             sys.stdout.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in brain: %s", exc)
         return 0
     return worst
 

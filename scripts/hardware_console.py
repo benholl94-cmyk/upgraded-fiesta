@@ -94,8 +94,8 @@ def _log_event(event_type: str, data: dict) -> None:
         log["entries"] = log["entries"][-200:]  # Ring-Buffer
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         LOG_FILE.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("swallowed in hardware_console: %s", exc)
 
 
 # ── Git / Repo-Status ─────────────────────────────────────────────────────────
@@ -127,8 +127,8 @@ def get_munin_state() -> dict:
     if STATE_FILE.exists():
         try:
             return json.loads(STATE_FILE.read_text())
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hardware_console: %s", exc)
     return {}
 
 
@@ -161,7 +161,8 @@ def _gateway_health() -> bool:
         )
         with urllib.request.urlopen(req, timeout=3):
             return True
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in hardware_console: %s", exc)
         return False
 
 
@@ -181,6 +182,7 @@ def _gateway_post(path: str, body: dict) -> dict | None:
         with urllib.request.urlopen(req, timeout=5) as r:
             return json.loads(r.read())
     except Exception as e:
+        log.warning("swallowed in hardware_console: %s", exc)
         return {"error": str(e)}
 
 
@@ -195,8 +197,8 @@ def _watch_repo(interval: int = 10) -> None:
             if current != last:
                 broadcast("repo-update", {"repo": current})
                 last = current
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hardware_console: %s", exc)
         time.sleep(interval)
 
 
@@ -211,8 +213,8 @@ def _watch_status_file(interval: int = 5) -> None:
                     data = json.loads(STATUS_FILE.read_text())
                     broadcast("munin-status", {"status": data})
                     last_ts = ts
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hardware_console: %s", exc)
         time.sleep(interval)
 
 
@@ -527,7 +529,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         try:
             data = json.loads(body) if body else {}
-        except Exception:
+        except Exception as exc:
+            log.warning("swallowed in hardware_console: %s", exc)
             self._json({"error": "invalid JSON"}, 400)
             return
 
@@ -576,6 +579,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                 STATUS_FILE.write_text(json.dumps(status, indent=2) + "\n")
                 result["written"] = str(STATUS_FILE.relative_to(REPO_ROOT))
             except Exception as e:
+                log.warning("swallowed in hardware_console: %s", exc)
                 result["error"] = str(e)
 
         elif inject_type == "ping":
@@ -604,8 +608,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             init_msg = f"event: init\ndata: {json.dumps(status)}\n\n"
             self.wfile.write(init_msg.encode())
             self.wfile.flush()
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hardware_console: %s", exc)
 
         try:
             while True:
@@ -618,8 +622,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     hb = f"event: heartbeat\ndata: {json.dumps({'ts': _now_iso()})}\n\n"
                     self.wfile.write(hb.encode())
                     self.wfile.flush()
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hardware_console: %s", exc)
         finally:
             with _clients_lock:
                 if q in _clients:
@@ -663,7 +667,8 @@ def main() -> None:
         s.connect(("8.8.8.8", 80))
         lan_ip = s.getsockname()[0]
         s.close()
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in hardware_console: %s", exc)
         lan_ip = args.bind
 
     print(f"\n\033[1m\033[96m◈ MUNIN Hardware Console\033[0m")

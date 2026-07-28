@@ -70,6 +70,8 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+import logging
+log = logging.getLogger(__name__)
 
 REPO = Path(__file__).resolve().parent.parent
 ESKALATION = REPO / "status" / "selbsterhalt.json"
@@ -190,7 +192,8 @@ def p_clarity() -> Schritt:
     r = _run(sys.executable, "scripts/hugin_clarity.py", "--json")
     try:
         daten = json.loads(r.stdout)
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in hugin_selfheal: %s", exc)
         return Schritt("clarity", "Einsatzbereitschaft", GESCHEITERT,
                        "Clarity-Ausgabe nicht lesbar")
     offen = [p for g in daten for p in g["punkte"] if p.get("stand") == "OFFEN"]
@@ -262,7 +265,8 @@ def eskalation_schreiben(schritte: list[Schritt]) -> dict:
     if ESKALATION.is_file():
         try:
             vorher = json.loads(ESKALATION.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:
+            log.warning("swallowed in hugin_selfheal: %s", exc)
             vorher = {}
     war_offen = bool(vorher.get("offen"))
 

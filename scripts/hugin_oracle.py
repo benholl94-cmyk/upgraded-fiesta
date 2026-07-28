@@ -35,6 +35,8 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+import logging
+log = logging.getLogger(__name__)
 
 # ── Pfade ──────────────────────────────────────────────────────────────────
 REPO_ROOT   = Path(__file__).parent.parent
@@ -225,6 +227,7 @@ class OllamaAdapter(ProviderAdapter):
             if models:
                 return models[0]
         except Exception as e:
+            log.warning("swallowed in hugin_oracle: %s", exc)
             print(f"[hugin/local] Ollama model detection failed: {e}", file=sys.stderr)
         return "llama3.2"  # Fallback — überschreibe mit HUGIN_LOCAL_MODEL
 
@@ -235,7 +238,8 @@ class OllamaAdapter(ProviderAdapter):
                 timeout=2,
             )
             return True
-        except Exception:
+        except Exception as exc:
+            log.warning("swallowed in hugin_oracle: %s", exc)
             return False
 
     def call(self, prompt: str, skill: str) -> str:
@@ -354,6 +358,7 @@ class SecurityGate:
             # Output-Gate
             response = self.sanitize_output(response, skill)
         except Exception as e:
+            log.warning("swallowed in hugin_oracle: %s", exc)
             error    = str(e)
             response = ""
             raise

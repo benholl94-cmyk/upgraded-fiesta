@@ -16,6 +16,8 @@ import os
 import sys
 import urllib.error
 import urllib.request
+import logging
+log = logging.getLogger(__name__)
 
 MAX_CHARS_DEFAULT = 8000
 GATEWAY_URL = os.environ.get("HM_GATEWAY_URL", "http://localhost:8080")
@@ -85,7 +87,8 @@ def _store_in_memory(url: str, text: str, tags: list[str]) -> bool:
     try:
         with urllib.request.urlopen(req, timeout=10):
             return True
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in fetch_url_plugin: %s", exc)
         return False
 
 
@@ -118,6 +121,7 @@ def main() -> int:
         _respond(False, {"reason": str(e.reason), "url": url}, f"URL error fetching {url}")
         return 0
     except Exception as e:
+        log.warning("swallowed in fetch_url_plugin: %s", exc)
         _respond(False, {"reason": str(e), "url": url}, "fetch-url unexpected error")
         return 0
 
