@@ -11,7 +11,7 @@ rerun the script to refresh.
 
 | Variable | Default in `.env.production.example` | First use in code |
 |----------|--------------------------------------|-------------------|
-| `HM_ALLOWED_ORIGINS` | `https://benholl94-cmyk.github.io` | `crates/hm-gateway/src/main.rs:1167` |
+| `HM_ALLOWED_ORIGINS` | `https://benholl94-cmyk.github.io` | `crates/hm-gateway/src/main.rs:1173` |
 | `HM_BRAIN_PYTHON` | `python3` | `crates/hm-gateway/src/main.rs:584` |
 | `HM_BRAIN_REPO` | `.` | `crates/hm-gateway/src/main.rs:531` |
 | `HM_BROWSER_CDP_URL` | `ws://localhost:9222` | `crates/hm-tools/hm-tool-browser/src/lib.rs:8` |
@@ -43,11 +43,11 @@ rerun the script to refresh.
 | `HM_OWNER_TOKEN` | `change-me-generate-a-real-secret` | `crates/hm-auth/src/lib.rs:6` |
 | `HM_PLUGIN_MANIFEST` | `config/plugins.json` | `crates/hm-gateway/src/main.rs:246` |
 | `HM_RATE_LIMIT_PER_MINUTE` | `120` | `crates/hm-gateway/src/main.rs:343` |
-| `HM_REMOTE_STORAGE_TOKEN` | `change-me` | `crates/hm-gateway/src/main.rs:1091` |
-| `HM_REMOTE_STORAGE_URL` | `http://storage-host:8080` | `crates/hm-gateway/src/main.rs:1079` |
+| `HM_REMOTE_STORAGE_TOKEN` | `change-me` | `crates/hm-gateway/src/main.rs:1097` |
+| `HM_REMOTE_STORAGE_URL` | `http://storage-host:8080` | `crates/hm-gateway/src/main.rs:1085` |
 | `HM_SLACK_APP_TOKEN` | `...` | `crates/hm-channels/hm-channel-slack/src/lib.rs:8` |
 | `HM_SLACK_BOT_TOKEN` | `...` | `crates/hm-channels/hm-channel-slack/src/lib.rs:7` |
-| `HM_STORAGE_BACKEND` | `remote` | `crates/hm-gateway/src/main.rs:1077` |
+| `HM_STORAGE_BACKEND` | `remote` | `crates/hm-gateway/src/main.rs:1083` |
 | `HM_STORAGE_ROOT` | `./data/storage` | `crates/hm-gateway/tests/wire_contract.rs:86` |
 | `HM_TELEGRAM_BOT_TOKEN` | `...` | `crates/hm-channels/hm-channel-telegram/src/lib.rs:8` |
 | `HM_TESTCHAN_EMPTY_BOT_TOKEN` | `_(fehlt — bitte ergaenzen)_` | `crates/hm-auth/src/lib.rs:68` |
