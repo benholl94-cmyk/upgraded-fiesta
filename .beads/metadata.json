@@ -1,9 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "server",
-  "dolt_database": "upgraded_fiesta_7f208bd5",
-  "project_id": "8460ce2e-815e-4b75-9e71-8a4cb9874264",
-  "global_dolt_database": "beads_global",
-  "global_project_id": "00000000-0000-0000-0000-000000000000"
-}
