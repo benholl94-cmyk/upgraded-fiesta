@@ -318,7 +318,7 @@ jobs:
           set -euo pipefail
           OUT="$(python3 scripts/auto_rollback_ctx.py --conclusion "${CONCLUSION:-success}")"
           echo "$OUT"
-          ACTION="$(printf '%s' "$OUT" | sed -n 's/.*action=\([A-Z]*\).*/\1/p')"
+          ACTION="$(printf '%s' "$OUT" | sed -n 's/.*action=\([A-Z]*\).*/\\1/p')"
           echo "action=$ACTION" >> "$GITHUB_OUTPUT"
 
       - name: Ruecknahme
