@@ -11,9 +11,9 @@ rerun the script to refresh.
 
 | Variable | Default in `.env.production.example` | First use in code |
 |----------|--------------------------------------|-------------------|
-| `HM_ALLOWED_ORIGINS` | `https://benholl94-cmyk.github.io` | `crates/hm-gateway/src/main.rs:1173` |
-| `HM_BRAIN_PYTHON` | `python3` | `crates/hm-gateway/src/main.rs:584` |
-| `HM_BRAIN_REPO` | `.` | `crates/hm-gateway/src/main.rs:531` |
+| `HM_ALLOWED_ORIGINS` | `https://benholl94-cmyk.github.io` | `crates/hm-gateway/src/main.rs:1174` |
+| `HM_BRAIN_PYTHON` | `python3` | `crates/hm-gateway/src/main.rs:585` |
+| `HM_BRAIN_REPO` | `.` | `crates/hm-gateway/src/main.rs:532` |
 | `HM_BROWSER_CDP_URL` | `ws://localhost:9222` | `crates/hm-tools/hm-tool-browser/src/lib.rs:8` |
 | `HM_CHANNEL_DRY_RUN` | `true` | `plugins/channel_send_plugin.py:129` |
 | `HM_CLAUDE_MODEL` | `claude-sonnet-4-6` | `plugins/claude_tool_plugin.py:13` |
@@ -22,11 +22,11 @@ rerun the script to refresh.
 | `HM_CONSOLE_PORT` | `7799` | `scripts/hardware_console.py:21` |
 | `HM_CONSOLE_SECRET` | `change-me-or-leave-empty-for-no-auth` | `scripts/hardware_console.py:25` |
 | `HM_CRON_CONFIG` | `config/cron.json` | `crates/hm-cron/src/lib.rs:3` |
-| `HM_DIAGNOSTICS_KEY` | `diagnostics/reports.json` | `crates/hm-gateway/src/main.rs:289` |
+| `HM_DIAGNOSTICS_KEY` | `diagnostics/reports.json` | `crates/hm-gateway/src/main.rs:290` |
 | `HM_DISCORD_BOT_TOKEN` | `...` | `crates/hm-channels/hm-channel-discord/src/lib.rs:8` |
 | `HM_FOO` | `_(fehlt — bitte ergaenzen)_` | `scripts/dump_env_vars.py:67` |
 | `HM_GATEWAY_ALLOW_NO_AUTH` | `true` | `crates/hm-auth/src/lib.rs:11` |
-| `HM_GATEWAY_BIND` | `0.0.0.0:8080` | `crates/hm-gateway/src/main.rs:233` |
+| `HM_GATEWAY_BIND` | `0.0.0.0:8080` | `crates/hm-gateway/src/main.rs:234` |
 | `HM_GATEWAY_URL` | `http://127.0.0.1:8080` | `crates/hm-channels/hm-channel-discord/src/lib.rs:4` |
 | `HM_LLM_ACTIVE_FILE` | `openai` | `plugins/llm_chat_plugin.py:43` |
 | `HM_LLM_API_KEY` | `sk-...` | `plugins/llm_chat_plugin.py:80` |
@@ -35,19 +35,19 @@ rerun the script to refresh.
 | `HM_LLM_KEYS_FILE` | `~/.config/hm-gateway/llm-keys.json` | `scripts/llm_key_manager.py:10` |
 | `HM_LLM_MODEL` | `gpt-4o` | `plugins/llm_chat_plugin.py:81` |
 | `HM_LOCAL_LLM_URL` | `http://127.0.0.1:8081` | `agents/brain.py:255` |
-| `HM_MEMORY_GRAPH_SEED_PATH` | `data/graph-seed.json` | `crates/hm-gateway/src/main.rs:267` |
-| `HM_MEMORY_KEY` | `memory/index.json` | `crates/hm-gateway/src/main.rs:257` |
+| `HM_MEMORY_GRAPH_SEED_PATH` | `data/graph-seed.json` | `crates/hm-gateway/src/main.rs:268` |
+| `HM_MEMORY_KEY` | `memory/index.json` | `crates/hm-gateway/src/main.rs:258` |
 | `HM_OLLAMA_ENABLE` | `true` | `plugins/llm_chat_plugin.py:62` |
 | `HM_OLLAMA_MODEL` | `llama3` | `plugins/llm_chat_plugin.py:69` |
 | `HM_OLLAMA_URL` | `http://localhost:11434` | `plugins/llm_chat_plugin.py:68` |
 | `HM_OWNER_TOKEN` | `change-me-generate-a-real-secret` | `crates/hm-auth/src/lib.rs:6` |
-| `HM_PLUGIN_MANIFEST` | `config/plugins.json` | `crates/hm-gateway/src/main.rs:246` |
-| `HM_RATE_LIMIT_PER_MINUTE` | `120` | `crates/hm-gateway/src/main.rs:343` |
-| `HM_REMOTE_STORAGE_TOKEN` | `change-me` | `crates/hm-gateway/src/main.rs:1097` |
-| `HM_REMOTE_STORAGE_URL` | `http://storage-host:8080` | `crates/hm-gateway/src/main.rs:1085` |
+| `HM_PLUGIN_MANIFEST` | `config/plugins.json` | `crates/hm-gateway/src/main.rs:247` |
+| `HM_RATE_LIMIT_PER_MINUTE` | `120` | `crates/hm-gateway/src/main.rs:344` |
+| `HM_REMOTE_STORAGE_TOKEN` | `change-me` | `crates/hm-gateway/src/main.rs:1098` |
+| `HM_REMOTE_STORAGE_URL` | `http://storage-host:8080` | `crates/hm-gateway/src/main.rs:1086` |
 | `HM_SLACK_APP_TOKEN` | `...` | `crates/hm-channels/hm-channel-slack/src/lib.rs:8` |
 | `HM_SLACK_BOT_TOKEN` | `...` | `crates/hm-channels/hm-channel-slack/src/lib.rs:7` |
-| `HM_STORAGE_BACKEND` | `remote` | `crates/hm-gateway/src/main.rs:1083` |
+| `HM_STORAGE_BACKEND` | `remote` | `crates/hm-gateway/src/main.rs:1084` |
 | `HM_STORAGE_ROOT` | `./data/storage` | `crates/hm-gateway/tests/wire_contract.rs:86` |
 | `HM_TELEGRAM_BOT_TOKEN` | `...` | `crates/hm-channels/hm-channel-telegram/src/lib.rs:8` |
 | `HM_TESTCHAN_EMPTY_BOT_TOKEN` | `_(fehlt — bitte ergaenzen)_` | `crates/hm-auth/src/lib.rs:68` |
@@ -61,7 +61,7 @@ rerun the script to refresh.
 | `HM_WHATSAPP_BOT_TOKEN` | `...` | `crates/hm-channels/hm-channel-whatsapp/src/lib.rs:8` |
 | `HM_WHATSAPP_PHONE_ID` | `...` | `crates/hm-channels/hm-channel-whatsapp/src/lib.rs:9` |
 | `HM_WHATSAPP_VERIFY_TOKEN` | `...` | `crates/hm-channels/hm-channel-whatsapp/src/lib.rs:10` |
-| `HM_ZERO_STAKED` | `false` | `crates/hm-gateway/src/main.rs:236` |
+| `HM_ZERO_STAKED` | `false` | `crates/hm-gateway/src/main.rs:237` |
 
 ## Konvention
 

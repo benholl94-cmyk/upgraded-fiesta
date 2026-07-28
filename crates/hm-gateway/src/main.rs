@@ -1,4 +1,5 @@
 mod chat;
+mod error;
 mod metrics;
 
 use hm_agent::{Agent, TaskOutcome};
@@ -24,7 +25,7 @@ use tokio::{
     sync::Mutex,
     task::JoinSet,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
@@ -569,7 +570,7 @@ async fn chat_turn(stream: &mut TcpStream, request: HttpRequest, state: &AppStat
     if let Err(reason) = chat::validate(&input) {
         let body = json_response(
             400,
-            json!({ "status": "invalid_request", "reason": reason }),
+            json!({ "status": "invalid_request", "reason": reason.to_string() }),
         );
         let _ = stream.write_all(&body).await;
         let _ = stream.shutdown().await;

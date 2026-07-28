@@ -258,7 +258,7 @@ pub async fn stream_chat(
 }
 
 #[cfg(test)]
-mod tests {
+mod chat_stream_tests {
     use super::*;
 
     #[test]

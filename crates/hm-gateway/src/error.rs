@@ -17,6 +17,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[allow(dead_code)] // bewusst vorgehaltene API-Flaeche; Aufrufer folgen in spaeteren Wellen
 pub enum GatewayError {
     #[error("parse int: expected {expected}, got {actual:?}")]
     ParseInt {

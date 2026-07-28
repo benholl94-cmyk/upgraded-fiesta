@@ -92,6 +92,7 @@ pub fn observe_request(path: &str, method: &str, status: u16, duration_secs: f64
 /// Beobachtet einen Plugin-Dispatch. `outcome` ist "ok", "error" oder
 /// "timeout"; fremde Werte werden in `_other` einsortiert, damit ein
 /// kaputter Plugin-Code nicht das ganze Label-Cardinality-Budget sprengt.
+#[allow(dead_code)] // geplante API fuer Plugin-Metriken, Aufrufer folgt in Welle 2
 pub fn observe_plugin_dispatch(task_type: &str, outcome: &str) {
     let outcome = match outcome {
         "ok" | "error" | "timeout" => outcome,

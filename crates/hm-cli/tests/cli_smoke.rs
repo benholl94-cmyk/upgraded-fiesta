@@ -23,10 +23,13 @@ fn hm_cli() -> Command {
 fn clap_routes_help_without_gateway_call() {
     // `--help` darf das Gateway nicht kontaktieren. Wenn doch, schlaegt
     // der Test fehl, weil die Binary 5 s auf den Connect wartet.
+    // Hinweis: `Command::timeout` ist in stable Rust noch nightly — die
+    // Bindung an `127.0.0.1:1` (unreachable) sorgt fuer sofortigen
+    // connection-refused, das schnelle Exit-Verhalten ist dadurch
+    // abgesichert, nicht durch eine harte Timeout-Schranke.
     let out = hm_cli()
         .arg("--help")
         .env("HM_GATEWAY_URL", "http://127.0.0.1:1") // unerreichbar
-        .timeout(std::time::Duration::from_secs(3))
         .output()
         .expect("hm-cli --help muss sofort exiten, nicht connecten");
     assert!(out.status.success(), "hm-cli --help sollte exit 0");
@@ -50,7 +53,6 @@ fn status_without_token_exits_nonzero() {
         .arg("status")
         .env("HM_GATEWAY_URL", "http://127.0.0.1:1") // unerreichbar
         .env_remove("HM_OWNER_TOKEN")
-        .timeout(std::time::Duration::from_secs(3))
         .output()
         .expect("hm-cli status muss sofort terminieren");
     // Wenn die Binary unerreichbar ist, ist exit-code != 0 OK.
@@ -75,7 +77,6 @@ fn unknown_subcommand_exits_with_usage_hint() {
     let out = hm_cli()
         .arg("nonexistent-subcommand")
         .env("HM_GATEWAY_URL", "http://127.0.0.1:1")
-        .timeout(std::time::Duration::from_secs(3))
         .output()
         .expect("hm-cli unbekanntes Subcommand muss terminieren");
     assert!(
