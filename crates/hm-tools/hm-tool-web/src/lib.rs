@@ -242,7 +242,7 @@ pub fn run_plugin() {
             let value = serde_json::to_value(&result).unwrap_or(Value::Null);
             write_response((200..300).contains(&status), value, "ok");
         }
-        Err(e) => write_response(false, Value::Null, &e),
+        Err(e) => write_response(false, Value::Null, &e.to_string()),
     }
 }
 

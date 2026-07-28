@@ -417,8 +417,8 @@ mod tests {
             async fn get(&self, _key: &str) -> anyhow::Result<Vec<u8>> {
                 anyhow::bail!("storage host unreachable")
             }
-            async fn delete(&self, _key: &str) -> anyhow::Result<()> {
-                Ok(())
+            async fn delete(&self, _key: &str) -> anyhow::Result<bool> {
+                Ok(true)
             }
             async fn exists(&self, _key: &str) -> anyhow::Result<bool> {
                 anyhow::bail!("storage host unreachable")
