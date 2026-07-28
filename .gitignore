@@ -117,3 +117,7 @@ vendor/
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# SourceFiles.app leftover binary blobs (commit c38cdba)
+*.bin
+verify-backup-*.bin
