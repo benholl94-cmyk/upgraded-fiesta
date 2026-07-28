@@ -108,3 +108,9 @@ data/storage/
 #   python3 scripts/hugin_local_model.py setup
 models/
 vendor/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
