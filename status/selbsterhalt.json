@@ -1,6 +1,6 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-07-31T09:28:53+00:00",
+  "ts": "2026-07-31T14:56:08+00:00",
   "offen": [
     {
       "id": "supervisor",
@@ -10,11 +10,18 @@
       "braucht_master": "Diese Befunde verlangen eine Entscheidung — der Supervisor loest nie selbst auf."
     },
     {
+      "id": "tests",
+      "was": "Testsuite",
+      "stand": "eskaliert",
+      "detail": "1 failed, 985 passed, 6 skipped in 21.42s",
+      "braucht_master": "Ein roter Test ist keine mechanische Reparatur — welcher Code richtig ist, entscheidet kein Automat."
+    },
+    {
       "id": "clarity",
       "was": "Einsatzbereitschaft",
       "stand": "eskaliert",
-      "detail": "stufe-T1b: models/model.gguf fehlt — python3 scripts/hugin_local_model.py setup | stufe-T1: 0 von 10 keylosen Providern erreichbar | rollback-unknown: unknown wird nicht als HOLD behandelt",
-      "braucht_master": "  stufe-T1b: gh workflow run hugin-kern.yml -f frage='...'   # holt und prueft beides auf Repo-Hardware\n  stufe-T1: ollama serve   # oder: export HUGIN_<PROVIDER>_KEY=...\n  rollback-unknown: —"
+      "detail": "stufe-T1b: models/model.gguf fehlt — python3 scripts/hugin_local_model.py setup | stufe-T1: 0 von 10 keylosen Providern erreichbar",
+      "braucht_master": "  stufe-T1b: gh workflow run hugin-kern.yml -f frage='...'   # holt und prueft beides auf Repo-Hardware\n  stufe-T1: ollama serve   # oder: export HUGIN_<PROVIDER>_KEY=..."
     },
     {
       "id": "anker",
@@ -24,13 +31,6 @@
       "braucht_master": "Ein verrotteter Anker zeigt auf etwas, das es nicht mehr gibt — was an seine Stelle gehoert, weiss nur ein Mensch."
     }
   ],
-  "getan": [
-    {
-      "id": "workflow-yaml",
-      "was": "ci.yml und auto-rollback.yml wiederherstellen",
-      "stand": "getan",
-      "detail": "ci.yml gepatcht, auto-rollback.yml angelegt"
-    }
-  ],
+  "getan": [],
   "zurueckgenommen": false
 }

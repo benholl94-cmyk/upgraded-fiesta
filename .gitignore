@@ -121,3 +121,6 @@ vendor/
 # SourceFiles.app leftover binary blobs (commit c38cdba)
 *.bin
 verify-backup-*.bin
+
+# Laufzeitprotokoll von `codeam_cli.py up`. Zustand eines Laufs, nicht Inhalt.
+status/codeam-gateway.log

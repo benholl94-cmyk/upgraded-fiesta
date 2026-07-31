@@ -1,0 +1,68 @@
+{
+  "name": "upgraded-fiesta",
+
+  "//_dateiname": [
+    "Diese Datei hiess bis 2026-07-31 `dev-container.json` — mit Bindestrich.",
+    "Die Devcontainer-Spezifikation kennt genau drei Pfade:",
+    "  .devcontainer/devcontainer.json | .devcontainer.json | .devcontainer/<ordner>/devcontainer.json",
+    "Ein abweichender Name erzeugt KEINEN Fehler, er wird stillschweigend",
+    "ignoriert. Jeder Codespace dieses Repos bootete deshalb das Standardimage:",
+    "ohne Rust, ohne gepinntes Python, ohne Portweiterleitung, ohne postCreate.",
+    "Vollstaendig, wohlgeformt und wirkungslos. Nicht umbenennen."
+  ],
+
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/rust:1": { "version": "stable" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "//_node22": "codeam-cli verlangt Node >= 22 (package.json → engines). Mit 20 bricht `codeam deploy` im Codespace ab, nachdem er ihn schon gestartet hat.",
+  "//_gh": "`codeam deploy` nutzt die OAuth-Sitzung der GitHub-CLI und fragt bewusst nach keinem eigenen Token. Ohne `gh` gibt es keinen Deploy.",
+
+  "postCreateCommand": "python3 scripts/codeam_cli.py prepare --yes",
+  "//_postCreate": [
+    "Deterministisch und ohne Rueckfrage: Werkzeuge pruefen, eigenen",
+    "Owner-Token ausstellen, Gateway bauen, Selbsterhalt-Reparaturen fahren.",
+    "Der frueher hier stehende `bash .codex/setup.sh 2>/dev/null || true`",
+    "verschluckte jeden Fehler — ein Setup, das nicht scheitern kann, sagt",
+    "auch nie, dass es nichts getan hat."
+  ],
+
+  "postAttachCommand": "python3 scripts/codeam_cli.py verify",
+  "//_postAttach": "Bei jedem Verbinden nachrechnen, ob es traegt. Antwortet der Port nicht, nennt die Ausgabe den Befehl, der ihn startet.",
+
+  "forwardPorts": [8080, 5173, 4173, 18789],
+  "portsAttributes": {
+    "8080": {
+      "label": "hm-gateway · /chat + /health",
+      "onAutoForward": "notify"
+    },
+    "5173": { "label": "UI · Vite Dev", "onAutoForward": "silent" },
+    "4173": { "label": "UI · Vite Preview", "onAutoForward": "silent" },
+    "18789": { "label": "OpenClaw Bridge", "onAutoForward": "silent" }
+  },
+
+  "remoteEnv": {
+    "HM_GATEWAY_BIND": "0.0.0.0:8080",
+    "HM_BRAIN_REPO": "${containerWorkspaceFolder}"
+  },
+  "//_remoteEnv": [
+    "0.0.0.0 statt 127.0.0.1: sonst erreicht die Portweiterleitung des",
+    "Codespace den Dienst nicht.",
+    "HM_BRAIN_REPO ist das Arbeitsverzeichnis fuer `python3 -m agents.brain`",
+    "hinter POST /chat."
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "rust-lang.rust-analyzer",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
