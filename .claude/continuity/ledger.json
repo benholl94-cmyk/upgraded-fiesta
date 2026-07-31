@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-28T22:23:02+00:00",
+  "updated": "2026-07-31T14:56:39+00:00",
   "session": 3,
   "entries": [
     {
@@ -690,6 +690,42 @@
       "text": "Anker-Korrektur zu s3-19: gemeint war das Verzeichnis .github/workflows selbst (16 .yml-Dateien, inkl. auto-rollback.yml), nicht eine spezifische Datei. Anker war zu eng gegriffen — workflow-YAML-Edits landen im Verzeichnis, sind also weiterhin gueltige Andockstelle.",
       "anchors": [
         "path:.github/workflows/ci.yml"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-23",
+      "session": 3,
+      "ts": "2026-07-31T14:56:39+00:00",
+      "kind": "sackgasse",
+      "text": "Metatests in tests/test_meta_guards.py mutieren echte Quelldateien im Arbeitsbaum und stellen sie im finally wieder her. Wird der Lauf abgebrochen (Timeout, Kill), laeuft das finally NIE — ci.yml blieb mit kaputtem YAML und icon-192.png veraendert liegen. Gemessene Folge: Metatests + eine beliebige zweite Testdatei sind in 3 von 6 Laeufen rot, weil die naechste Mutation ihre Vorlage nicht mehr findet. Kein Wackeltest, sondern stille Beschaedigung getrackter Dateien.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-24",
+      "session": 3,
+      "ts": "2026-07-31T14:56:39+00:00",
+      "kind": "invariante",
+      "text": "Ein Deploy aus der App darf keine Stelle haben, an der ein Mensch eine Variable exportiert. Der Owner-Token wird aus dem projekteigenen Keyring abgeleitet (eigene_umgebung), nicht aus der aufrufenden Shell gelesen. Ein von aussen gesetzter Wert gewinnt, weil ein laufender Dienst ihn schon kennt.",
+      "anchors": [
+        "path:scripts/codeam_cli.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-25",
+      "session": 3,
+      "ts": "2026-07-31T14:56:39+00:00",
+      "kind": "entscheidung",
+      "text": "codeam_cli.py ist die repo-interne Gegenseite von codeam-cli (npm), kein Ersatz und kein Client des dortigen Backends. Verworfen: das npm-Paket nachbauen — es loest ein anderes Problem (Codespace anlegen, Agent installieren, Telefon paaren) und kennt das Repo bewusst nicht. Diese Datei sorgt dafuer, dass der Agent eine laufende Umgebung vorfindet.",
+      "anchors": [
+        "path:config/codeam.json"
       ],
       "state": "offen",
       "weight": 2
