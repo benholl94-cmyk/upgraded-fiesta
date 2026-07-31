@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-31T09:22:42+00:00",
+  "updated": "2026-07-31T09:27:04+00:00",
   "session": 3,
   "entries": [
     {
@@ -60,7 +60,7 @@
         "sha:4b9c078",
         "path:HANDOFF.md"
       ],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 3
     },
     {
@@ -85,7 +85,7 @@
       "anchors": [
         "sha:7d812c4"
       ],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 1
     },
     {
@@ -306,6 +306,31 @@
       "text": "Ungelöste Kollision (nicht selbst auflösbar, Master-Entscheidung nötig): Verfassung verlangt Committer-Mail 274793931+benholl94-cmyk@users.noreply.github.com, der Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com. Beide Anforderungen schliessen sich aus. hook-drift diese Sitzung behoben (install_hooks.py --yes), identity-collision bleibt offen.",
       "anchors": [
         "path:.claude/persona/constitution.json"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-3",
+      "session": 3,
+      "ts": "2026-07-31T09:26:21+00:00",
+      "kind": "entscheidung",
+      "text": "Auto-Rollback (#77) wiederhergestellt (git revert 7d812c4) und den unknown-Bug behoben: Sperre 2 war Blockliste (== 'failure'), jetzt Allowlist (!= 'success'). previous_conclusion-Default in Context/from_dict von 'success' auf 'unknown' geändert. Ursache des Selbst-Reverts war exakt dieser Bug: erster Lauf hatte previous_conclusion='unknown', Blockliste liess es durch, Workflow revertierte seinen eigenen Einführungs-Commit. 7 neue parametrisierte Testfälle (unknown/cancelled/timed_out/neutral/action_required/stale/leer) ersetzen den alten Platzhaltertest, der beide Ausgänge akzeptierte. Workflow reaktiviert (nicht mehr disabled) — Sperre 3 (Circuit Breaker, max 2 Reverts/6h) bleibt als zusätzliche Absicherung bestehen, falls der Fix selbst fehlerhaft ist.",
+      "anchors": [
+        "sha:b724047",
+        "path:scripts/auto_rollback.py:125"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-4",
+      "session": 3,
+      "ts": "2026-07-31T09:27:04+00:00",
+      "kind": "offen",
+      "text": "PR #106 (fix(ci): auto-rollback Sperre 2 als Allowlist) offen, subscribed. Drive-to-green: CI-Fehler selbst fixen, Review-Kommentare beantworten, Subscription endet erst mit Merge/Close.",
+      "anchors": [
+        "sha:b724047"
       ],
       "state": "offen",
       "weight": 1
