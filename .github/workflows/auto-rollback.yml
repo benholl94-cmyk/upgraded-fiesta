@@ -13,6 +13,14 @@ on:
     workflows: ["ci"]
     types: [completed]
     branches: [main]
+  # Manueller Nachvollzug: dieselbe Entscheidungslogik ohne auf einen echten
+  # CI-Fehlschlag warten zu muessen -- z.B. um decide() nach einer Aenderung
+  # an der Allowlist an einem konkreten historischen SHA gegenzupruefen.
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit-SHA, der bewertet werden soll"
+        required: true
 
 permissions:
   contents: write
@@ -20,8 +28,11 @@ permissions:
 
 jobs:
   decide:
-    # Nur bei Fehlschlag ueberhaupt anlaufen.
-    if: github.event.workflow_run.conclusion == 'failure'
+    # Automatisch nur bei Fehlschlag; manueller Dispatch laeuft immer --
+    # der Aufrufer hat die konkrete SHA absichtlich zur Pruefung angegeben.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +43,10 @@ jobs:
       - name: Kontext einsammeln
         id: ctx
         env:
-          SHA: ${{ github.event.workflow_run.head_sha }}
-          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
+          # Bei Dispatch unbekannt, bis unten aus der Actions-API ermittelt --
+          # niemals als 'success' annehmen, nur weil kein workflow_run vorliegt.
+          DISPATCH_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -48,6 +61,18 @@ jobs:
               "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${PREV}&per_page=20" \
               > prev.json || echo '{}' > prev.json
             PREV_CONCLUSION="$(python3 scripts/auto_rollback_ctx.py prev-conclusion prev.json)"
+          fi
+
+          # CONCLUSION kommt bei workflow_run direkt aus dem Event. Bei
+          # workflow_dispatch gibt es keins -- dann dasselbe Verfahren wie
+          # fuer den Vorgaenger, nur auf $SHA selbst statt $SHA^ angewandt.
+          if [ -n "$DISPATCH_CONCLUSION" ]; then
+            CONCLUSION="$DISPATCH_CONCLUSION"
+          else
+            curl -sf -H "Authorization: Bearer $GH_TOKEN" \
+              "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=20" \
+              > self.json || echo '{}' > self.json
+            CONCLUSION="$(python3 scripts/auto_rollback_ctx.py prev-conclusion self.json)"
           fi
 
           git log --since='6 hours ago' --grep='^Revert ' --format='%cI' main > reverts.txt || true
@@ -71,7 +96,7 @@ jobs:
       - name: Ruecknahme
         if: steps.decide.outputs.action == 'REVERT'
         env:
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
         run: |
           set -euo pipefail
           git config user.email "noreply@anthropic.com"
@@ -89,10 +114,10 @@ jobs:
         if: always() && steps.decide.outputs.action != 'NOOP'
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
           DECISION: ${{ steps.decide.outputs.decision }}
           ACTION: ${{ steps.decide.outputs.action }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_URL: ${{ github.event.workflow_run.html_url || github.event.repository.html_url }}
         run: |
           set -euo pipefail
           python3 scripts/auto_rollback_ctx.py issue-body > issue.json

@@ -1,3 +1,7 @@
+mod chat;
+mod error;
+mod metrics;
+
 use hm_agent::{Agent, TaskOutcome};
 use hm_auth::{tokens_match, ALLOW_NO_AUTH_VAR};
 use hm_cron::{load_jobs, run as run_cron};
@@ -21,6 +25,8 @@ use tokio::{
     sync::Mutex,
     task::JoinSet,
 };
+use tracing::{error, info, warn};
+use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
 /// How long shutdown waits for in-flight connections to finish after a
@@ -186,6 +192,10 @@ struct HttpRequest {
     method: String,
     path: String,
     authorization: Option<String>,
+    /// The request's `Origin` header, verbatim. Needed because the CORS
+    /// allowlist can only answer "is this origin allowed" if it is given the
+    /// origin -- see `apply_cors`.
+    origin: Option<String>,
     body: Vec<u8>,
 }
 
@@ -199,18 +209,28 @@ struct TaskRecord {
     remote_addr: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct TaskInput {
-    #[serde(default, rename = "taskType")]
-    task_type: String,
-    #[serde(default)]
-    objective: String,
-    #[serde(default)]
-    payload: Value,
-}
+/// The request side of `POST /tasks` is `hm_sdk::TaskSubmission`, shared with
+/// every producer (`hm-cli`, `hm-cron`, the channel crates) instead of being
+/// re-declared here. It used to be a private struct in this file that bound
+/// only `taskType` while all of those senders wrote `task_type` -- one
+/// declaration per side, agreeing by coincidence until they stopped.
+use hm_sdk::TaskSubmission;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Subscriber-Init: EnvFilter liest RUST_LOG (Default "info,hm_gateway=debug").
+    // Idempotent — `try_init()` schluckt nur den zweiten Aufruf im selben
+    // Prozess (z.B. wenn ein Test die main-Funktion zweimal ruft), failt
+    // aber NICHT lautlos. Ohne Subscriber waeren alle tracing-Macros
+    // stillschweigende No-Ops — das war genau der alte eprintln-Pfad.
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info,hm_gateway=debug")),
+        )
+        .with_target(true)
+        .try_init();
+
     let bind = env::var("HM_GATEWAY_BIND")
         .ok()
         .unwrap_or_else(resolve_configured_bind);
@@ -226,13 +246,20 @@ async fn main() -> anyhow::Result<()> {
     let plugin_manifest =
         env::var("HM_PLUGIN_MANIFEST").unwrap_or_else(|_| "config/plugins.json".to_string());
     let plugins = PluginRegistry::from_manifest_file(&plugin_manifest).unwrap_or_else(|error| {
-        eprintln!("hm-gateway: ignoring unreadable plugin manifest {plugin_manifest}: {error}");
+        warn!(
+            plugin_manifest = %plugin_manifest,
+            error = %error,
+            "ignoring unreadable plugin manifest, continuing with empty registry"
+        );
         PluginRegistry::empty()
     });
 
     let storage: Arc<dyn FileStorage> = build_storage_backend()?;
     let memory_key = env::var("HM_MEMORY_KEY").unwrap_or_else(|_| "memory/index.json".to_string());
-    let memory = MemoryStore::load(storage.clone(), memory_key).await;
+    // Fail-closed, like the owner token and the storage backend: a memory
+    // state that exists but cannot be read is an operator-visible problem,
+    // not a reason to start with an empty memory and overwrite it.
+    let memory = MemoryStore::load(storage.clone(), memory_key).await?;
 
     // Optional: ingest the structural knowledge-graph seed produced by
     // scripts/generate_knowledge_graph_seed.py. A missing/malformed seed
@@ -242,14 +269,18 @@ async fn main() -> anyhow::Result<()> {
         match std::fs::read(&graph_seed_path) {
             Ok(bytes) => {
                 if let Err(error) = memory.ingest_graph_seed(&bytes).await {
-                    eprintln!(
-                        "hm-gateway: ignoring invalid graph seed at {graph_seed_path}: {error}"
+                    warn!(
+                        graph_seed_path = %graph_seed_path,
+                        error = %error,
+                        "ignoring invalid graph seed, continuing without graph memory"
                     );
                 }
             }
             Err(error) => {
-                eprintln!(
-                    "hm-gateway: could not read HM_MEMORY_GRAPH_SEED_PATH={graph_seed_path}: {error}"
+                warn!(
+                    graph_seed_path = %graph_seed_path,
+                    error = %error,
+                    "could not read HM_MEMORY_GRAPH_SEED_PATH, continuing without graph memory"
                 );
             }
         }
@@ -271,12 +302,11 @@ async fn main() -> anyhow::Result<()> {
                 .map(|v| v == "true")
                 .unwrap_or(false);
             if !allow_no_auth {
-                eprintln!(
-                    "hm-gateway: refusing to start without owner authentication ({error}). \
-                     Set {} to a real secret, or explicitly set {}=true to run without auth \
-                     (local development only -- never in a reachable deployment).",
-                    hm_auth::OWNER_TOKEN_VAR,
-                    ALLOW_NO_AUTH_VAR
+                error!(
+                    error = %error,
+                    owner_token_var = %hm_auth::OWNER_TOKEN_VAR,
+                    allow_no_auth_var = %ALLOW_NO_AUTH_VAR,
+                    "refusing to start without owner authentication; set the owner token or set HM_GATEWAY_ALLOW_NO_AUTH=true for local development only"
                 );
                 std::process::exit(1);
             }
@@ -288,19 +318,18 @@ async fn main() -> anyhow::Result<()> {
                 || bind.starts_with("localhost:")
                 || bind.starts_with("[::1]");
             if !loopback {
-                eprintln!(
-                    "hm-gateway: refusing to start. {}=true is only honoured on a \
-                     loopback bind, but HM_GATEWAY_BIND is {bind:?}. Either bind to \
-                     127.0.0.1 or set a real {}.",
-                    ALLOW_NO_AUTH_VAR,
-                    hm_auth::OWNER_TOKEN_VAR
+                error!(
+                    allow_no_auth_var = %ALLOW_NO_AUTH_VAR,
+                    owner_token_var = %hm_auth::OWNER_TOKEN_VAR,
+                    bind = %bind,
+                    "refusing to start: HM_GATEWAY_ALLOW_NO_AUTH=true is only honoured on a loopback bind"
                 );
                 std::process::exit(1);
             }
-            eprintln!(
-                "hm-gateway: WARNING -- running with no owner authentication ({} is set) \
-                 on loopback {bind:?}. Every route is unauthenticated.",
-                ALLOW_NO_AUTH_VAR
+            warn!(
+                allow_no_auth_var = %ALLOW_NO_AUTH_VAR,
+                bind = %bind,
+                "running with no owner authentication on loopback; every route is unauthenticated"
             );
             None
         }
@@ -338,10 +367,14 @@ async fn main() -> anyhow::Result<()> {
                 Ok(jobs) => {
                     run_cron(jobs, cron_gateway_url, cron_token, cron_shutdown_rx).await;
                 }
-                Err(e) => eprintln!("hm-cron: could not load {cron_config_clone}: {e}"),
+                Err(e) => error!(
+                    cron_config = %cron_config_clone,
+                    error = %e,
+                    "hm-cron could not load cron config, scheduler disabled"
+                ),
             }
         });
-        println!("hm-gateway: cron scheduler started from {cron_config}");
+        info!(cron_config = %cron_config, "cron scheduler started");
     }
 
     let state = AppState {
@@ -359,7 +392,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let listener = TcpListener::bind(&bind).await?;
-    println!("hm-gateway listening on {bind}");
+    info!(bind = %bind, "hm-gateway listening");
 
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut connections = JoinSet::new();
@@ -370,25 +403,25 @@ async fn main() -> anyhow::Result<()> {
                 let (stream, remote_addr) = match accepted {
                     Ok(pair) => pair,
                     Err(error) => {
-                        eprintln!("hm-gateway: accept() failed, continuing: {error}");
+                        warn!(error = %error, "accept() failed, continuing");
                         continue;
                     }
                 };
                 let state = state.clone();
                 connections.spawn(async move {
                     if let Err(error) = handle_connection(stream, remote_addr, state).await {
-                        eprintln!("hm-gateway request failed: {error}");
+                        warn!(error = %error, "request handler returned error");
                     }
                 });
                 while connections.try_join_next().is_some() {}
             }
             _ = tokio::signal::ctrl_c() => {
-                println!("hm-gateway received SIGINT, shutting down gracefully");
+                info!("received SIGINT, shutting down gracefully");
                 let _ = cron_shutdown_tx.send(true);
                 break;
             }
             _ = sigterm.recv() => {
-                println!("hm-gateway received SIGTERM, shutting down gracefully");
+                info!("received SIGTERM, shutting down gracefully");
                 let _ = cron_shutdown_tx.send(true);
                 break;
             }
@@ -396,18 +429,18 @@ async fn main() -> anyhow::Result<()> {
     }
 
     drop(listener);
-    println!(
-        "hm-gateway draining {} in-flight connection(s)",
-        connections.len()
+    info!(
+        in_flight = connections.len(),
+        "hm-gateway draining in-flight connection(s)"
     );
     let drain_deadline = tokio::time::sleep(SHUTDOWN_DRAIN);
     tokio::pin!(drain_deadline);
     loop {
         tokio::select! {
             _ = &mut drain_deadline => {
-                eprintln!(
-                    "hm-gateway drain timed out with {} connection(s) still running; exiting anyway",
-                    connections.len()
+                warn!(
+                    in_flight = connections.len(),
+                    "drain timed out, exiting anyway with connections still running"
                 );
                 break;
             }
@@ -418,7 +451,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
-    println!("hm-gateway stopped");
+    info!("hm-gateway stopped");
     Ok(())
 }
 
@@ -441,6 +474,14 @@ async fn handle_connection(
     }
 
     let response = match read_request(&mut stream).await {
+        Ok(request) if is_chat_route(&request) => {
+            // Streaming needs the socket itself, so this branch takes it
+            // instead of returning a buffer. Auth and the rate limiter above
+            // still apply -- the same gate, not a parallel one.
+            let (status, path) = (chat_turn(&mut stream, request, &state).await, "/chat");
+            audit_log(remote_addr, "POST", path, status, started.elapsed());
+            return Ok(());
+        }
         Ok(request) => {
             let method = request.method.clone();
             let path = request.path.clone();
@@ -474,6 +515,77 @@ async fn handle_connection(
     stream.write_all(&response).await?;
     stream.shutdown().await?;
     Ok(())
+}
+
+fn is_chat_route(request: &HttpRequest) -> bool {
+    request.method == "POST"
+        && matches!(
+            request.path.as_str(),
+            "/chat" | "/api/chat" | "/gateway/chat"
+        )
+}
+
+/// Repository root for the brain subprocess. Configurable because the
+/// container image and a checkout put it in different places, and a wrong
+/// default here would fail at the first chat turn rather than at startup.
+fn brain_repo() -> std::path::PathBuf {
+    env::var("HM_BRAIN_REPO")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+}
+
+/// Runs one chat turn on the socket. Returns the status code for the audit
+/// line -- once the stream has started that is always 200, which is why every
+/// rejection has to happen before the first byte of body goes out.
+async fn chat_turn(stream: &mut TcpStream, request: HttpRequest, state: &AppState) -> u16 {
+    // Rejections here are written straight to the socket, so they bypass
+    // route_request's CORS pass and need it applied explicitly. Without it a
+    // browser sees an opaque network error where the gateway actually said
+    // "401" -- and the operator debugs the wrong thing.
+    let origin = request.origin.clone();
+    let cors = |r: Vec<u8>| apply_cors(r, origin.as_deref());
+
+    if !authorized(state, request.authorization.as_deref()) {
+        let body = cors(json_response(
+            401,
+            json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
+        ));
+        let _ = stream.write_all(&body).await;
+        let _ = stream.shutdown().await;
+        return 401;
+    }
+
+    let input: chat::ChatInput = match serde_json::from_slice(&request.body) {
+        Ok(v) => v,
+        Err(e) => {
+            let body = cors(json_response(
+                400,
+                json!({ "status": "invalid_request", "reason": e.to_string() }),
+            ));
+            let _ = stream.write_all(&body).await;
+            let _ = stream.shutdown().await;
+            return 400;
+        }
+    };
+    if let Err(reason) = chat::validate(&input) {
+        let body = json_response(
+            400,
+            json!({ "status": "invalid_request", "reason": reason.to_string() }),
+        );
+        let _ = stream.write_all(&body).await;
+        let _ = stream.shutdown().await;
+        return 400;
+    }
+
+    let origin_header = match allowed_origin(request.origin.as_deref()) {
+        Some(o) if o == "*" => "Access-Control-Allow-Origin: *\r\n".to_string(),
+        Some(o) => format!("Access-Control-Allow-Origin: {o}\r\nVary: Origin\r\n"),
+        None => String::new(),
+    };
+    let python = env::var("HM_BRAIN_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let _ = chat::stream_chat(stream, input, origin_header, &brain_repo(), &python).await;
+    let _ = stream.shutdown().await;
+    200
 }
 
 async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
@@ -520,6 +632,7 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
     let raw_path = parts.next().unwrap_or("/");
     let path = raw_path.split('?').next().unwrap_or("/").to_string();
     let authorization = parse_authorization(&header_text);
+    let origin = parse_header(&header_text, "origin");
     let body_start = header_end + 4;
     let body_end = body_start.saturating_add(content_length).min(buffer.len());
 
@@ -527,7 +640,19 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<HttpRequest> {
         method,
         path,
         authorization,
+        origin,
         body: buffer[body_start..body_end].to_vec(),
+    })
+}
+
+fn parse_header(headers: &str, want: &str) -> Option<String> {
+    headers.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.eq_ignore_ascii_case(want) {
+            Some(value.trim().to_string())
+        } else {
+            None
+        }
     })
 }
 
@@ -561,21 +686,45 @@ fn parse_content_length(headers: &str) -> usize {
 }
 
 async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
+    // The origin is captured before `request` is consumed by a handler, and
+    // applied to whatever comes back -- including the 401 and the 404, which
+    // a browser must be able to read to show a useful error instead of an
+    // opaque CORS failure.
+    let origin = request.origin.clone();
+    apply_cors(
+        route_inner(request, remote_addr, state).await,
+        origin.as_deref(),
+    )
+}
+
+async fn route_inner(request: HttpRequest, remote_addr: SocketAddr, state: AppState) -> Vec<u8> {
     if request.method == "OPTIONS" {
         return empty_response(204);
     }
 
-    if let Some(owner_token) = &state.owner_token {
-        if !bearer_matches(request.authorization.as_deref(), owner_token) {
-            return json_response(
-                401,
-                json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
-            );
-        }
+    if !authorized(&state, request.authorization.as_deref()) {
+        return json_response(
+            401,
+            json!({ "status": "unauthorized", "reason": "missing or invalid bearer token" }),
+        );
     }
 
     match (request.method.as_str(), request.path.as_str()) {
         ("GET", "/") => json_response(200, gateway_info(&state).await),
+        // Prometheus-Scraper. Authenticated wie alle anderen Routes — ein
+        // offener Metrics-Endpoint verraet Pfadnamen, Status-Code-Verteilung
+        // und Latenzen an jeden, der ihn kennt. Wer das oeffentlich will,
+        // setzt einen Reverse-Proxy mit eigener Auth-Schicht davor.
+        ("GET", "/metrics") => {
+            let body = metrics::render();
+            let mut response = Vec::with_capacity(body.len() + 64);
+            response.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+            response.extend_from_slice(b"Content-Type: text/plain; version=0.0.4\r\n");
+            response.extend_from_slice(format!("Content-Length: {}\r\n", body.len()).as_bytes());
+            response.extend_from_slice(b"Connection: close\r\n\r\n");
+            response.extend_from_slice(&body);
+            response
+        }
         ("GET", "/health") | ("GET", "/api/health") | ("GET", "/gateway/health") => {
             json_response(200, health_payload(&state).await)
         }
@@ -623,6 +772,18 @@ async fn route_request(request: HttpRequest, remote_addr: SocketAddr, state: App
     }
 }
 
+/// The single auth decision. The streaming chat path cannot go through
+/// `route_request` (it needs the socket, not a finished buffer), and a second
+/// hand-written token check next to this one is exactly how a route ends up
+/// unprotected after a later edit touches only one of them.
+fn authorized(state: &AppState, authorization: Option<&str>) -> bool {
+    match &state.owner_token {
+        Some(expected) => bearer_matches(authorization, expected),
+        // `None` only exists when HM_GATEWAY_ALLOW_NO_AUTH was set explicitly.
+        None => true,
+    }
+}
+
 fn bearer_matches(header: Option<&str>, expected: &str) -> bool {
     match header.and_then(|value| value.strip_prefix("Bearer ")) {
         Some(provided) => tokens_match(provided, expected),
@@ -656,7 +817,14 @@ async fn storage_get(state: &AppState, key: &str) -> Vec<u8> {
 
 async fn storage_delete(state: &AppState, key: &str) -> Vec<u8> {
     match state.storage.delete(key).await {
-        Ok(()) => json_response(200, json!({ "status": "deleted", "key": key })),
+        Ok(true) => json_response(
+            200,
+            json!({ "status": "deleted", "existed": true, "key": key }),
+        ),
+        Ok(false) => json_response(
+            404,
+            json!({ "status": "not_found", "existed": false, "key": key }),
+        ),
         Err(error) => json_response(
             400,
             json!({ "status": "storage_error", "key": key, "reason": error.to_string() }),
@@ -672,7 +840,11 @@ struct RememberInput {
 #[derive(Debug, Deserialize)]
 struct SearchInput {
     query: String,
-    #[serde(default = "default_top_k", rename = "topK")]
+    /// Same alias, same reason as `TaskInput::task_type`: `hm-cli memory
+    /// recall --top-k N` sent `top_k`, which bound to nothing and fell back
+    /// to the default. The flag was accepted, echoed nowhere, and ignored --
+    /// a request for 2 results returned 5.
+    #[serde(default = "default_top_k", rename = "topK", alias = "top_k")]
     top_k: usize,
 }
 
@@ -831,7 +1003,7 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         );
     }
 
-    let input = match serde_json::from_slice::<TaskInput>(&body) {
+    let input = match serde_json::from_slice::<TaskSubmission>(&body) {
         Ok(input) => input,
         Err(error) => {
             return json_response(
@@ -845,14 +1017,28 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         }
     };
 
+    // A task with no type can never reach a plugin, so accepting it means
+    // promising work that provably will not happen. It used to be recorded as
+    // "unspecified" and answered `202 accepted: true`, which is precisely how
+    // the `task_type`/`taskType` mismatch stayed invisible: the caller was
+    // told yes, and nothing ran. Rejecting is the honest answer, and it names
+    // the likely cause instead of leaving the caller to guess.
+    if !input.is_dispatchable() {
+        return json_response(
+            400,
+            json!({
+                "status": "invalid_request",
+                "accepted": false,
+                "reason": "taskType is required and must not be empty; \
+                           a task without a type matches no plugin and would run nothing"
+            }),
+        );
+    }
+
     let accepted_at_unix = unix_now();
     let task = TaskRecord {
         task_id: format!("task-{}", Uuid::new_v4()),
-        task_type: if input.task_type.trim().is_empty() {
-            "unspecified".to_string()
-        } else {
-            input.task_type
-        },
+        task_type: input.task_type,
         objective: input.objective,
         payload: input.payload,
         accepted_at_unix,
@@ -869,17 +1055,27 @@ async fn accept_task(body: Vec<u8>, remote_addr: SocketAddr, state: AppState) ->
         "agent_managed": true
     });
 
+    // `dispatch` is always present, both when a plugin ran and when none did.
+    // Previously "no plugin was registered" was expressed only by the absence
+    // of `plugin_result` -- a caller had to know to look for a field that
+    // isn't there, and every caller that didn't read it as "nothing happened".
     let outcome = state
         .agent
         .dispatch(&task.task_type, &task.objective, task.payload.clone())
         .await;
-    if let TaskOutcome::PluginDispatched {
-        ok,
-        result,
-        message,
-    } = outcome
-    {
-        response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
+    match outcome {
+        TaskOutcome::PluginDispatched {
+            ok,
+            result,
+            message,
+        } => {
+            response["dispatch"] = json!("plugin_dispatched");
+            response["plugin_result"] = json!({ "ok": ok, "result": result, "message": message });
+        }
+        TaskOutcome::Unhandled { reason } => {
+            response["dispatch"] = json!("unhandled");
+            response["dispatch_reason"] = json!(reason);
+        }
     }
 
     json_response(202, response)
@@ -1011,6 +1207,71 @@ fn common_headers(content_type: &str) -> String {
     common_headers_for(content_type, None)
 }
 
+/// Attaches the CORS origin header to a finished response.
+///
+/// # Why this exists at all
+///
+/// `allowed_origin_from` was correct and unit-tested, and it was also **dead
+/// for every value except `*`**: nothing ever read the request's `Origin`
+/// header, so every call site passed `None`, and `None` can only ever match
+/// the explicit wildcard. Configuring
+/// `HM_ALLOWED_ORIGINS=https://example.github.io` therefore did exactly
+/// nothing -- the browser blocked the response, and the only setting that
+/// *worked* was the least safe one. The tests did not catch it because they
+/// exercised the pure function, never the wiring.
+///
+/// # Why post-processing instead of threading the origin through
+///
+/// `json_response` and friends are called from ~30 places and return finished
+/// byte buffers. Threading an extra parameter through all of them is 30
+/// chances to forget one, and a forgotten one fails silently in a browser.
+/// Doing it once, here, means the answer cannot differ per route. The header
+/// block ends at the first blank line and this server writes it itself, so
+/// inserting after the status line is exact, not a guess.
+fn apply_cors(response: Vec<u8>, request_origin: Option<&str>) -> Vec<u8> {
+    apply_cors_from(
+        &env::var("HM_ALLOWED_ORIGINS").unwrap_or_default(),
+        response,
+        request_origin,
+    )
+}
+
+/// Pure variant: the allowlist arrives as a parameter, not from the process
+/// environment. Tests that set `HM_ALLOWED_ORIGINS` interfere with each other
+/// under Rust's parallel test runner -- that happened here once already and
+/// is why `allowed_origin_from` exists in this shape. Writing the first
+/// version of this function against the env var reproduced the same flake
+/// immediately.
+fn apply_cors_from(configured: &str, response: Vec<u8>, request_origin: Option<&str>) -> Vec<u8> {
+    let Some(origin) = allowed_origin_from(configured, request_origin) else {
+        return response;
+    };
+    // Already present (the `*` path in common_headers_for): leave it alone
+    // rather than emitting the header twice -- duplicate ACAO headers make
+    // browsers reject the response outright.
+    let head_end = find_header_end(&response).unwrap_or(response.len());
+    if String::from_utf8_lossy(&response[..head_end])
+        .to_lowercase()
+        .contains("access-control-allow-origin")
+    {
+        return response;
+    }
+    let Some(pos) = response.windows(2).position(|w| w == b"\r\n") else {
+        return response;
+    };
+    let mut extra = format!("\r\nAccess-Control-Allow-Origin: {origin}");
+    if origin != "*" {
+        // Without Vary, a shared cache can hand one origin's response to
+        // another origin.
+        extra.push_str("\r\nVary: Origin");
+    }
+    let mut out = Vec::with_capacity(response.len() + extra.len());
+    out.extend_from_slice(&response[..pos]);
+    out.extend_from_slice(extra.as_bytes());
+    out.extend_from_slice(&response[pos..]);
+    out
+}
+
 fn common_headers_for(content_type: &str, request_origin: Option<&str>) -> String {
     let mut headers = format!(
         "Content-Type: {content_type}\r\nAccess-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\nAccess-Control-Allow-Headers: content-type, accept, authorization\r\n"
@@ -1063,6 +1324,10 @@ fn extract_status_code(response: &[u8]) -> u16 {
 /// this repo ships (`deploy/hm-gateway.service`), stdout goes straight to
 /// journald, so this is a real, queryable audit trail with no extra
 /// plumbing required, not a logging framework that still needs wiring up.
+///
+/// Spiegelung: dieselben Felder gehen parallel in `tracing::info!` rein, damit
+/// Operatoren, die nur die tracing-Sicht sehen (Container-Stderr, JSON-Subscriber),
+/// nicht den Audit-Trail verlieren. Die journald-Zeile bleibt das Source-of-Truth.
 fn audit_log(remote_addr: SocketAddr, method: &str, path: &str, status: u16, latency: Duration) {
     println!(
         "{}",
@@ -1076,6 +1341,17 @@ fn audit_log(remote_addr: SocketAddr, method: &str, path: &str, status: u16, lat
             "latency_ms": latency.as_millis(),
         })
     );
+    info!(
+        remote_addr = %remote_addr,
+        method = %method,
+        path = %path,
+        status = status,
+        latency_ms = latency.as_millis() as u64,
+        "request"
+    );
+    // Prometheus-Counter + Histogram befuellen. `metrics` ist global und
+    // threadsicher (once_cell::Lazy + prometheus::Registry mit Mutex innen).
+    metrics::observe_request(path, method, status, latency.as_secs_f64());
 }
 
 // ── Sessions routes ──────────────────────────────────────────────────────────
@@ -1143,6 +1419,107 @@ async fn sessions_delete(state: &AppState, id: &str) -> Vec<u8> {
 #[cfg(test)]
 mod audit_tests {
     use super::*;
+
+    /// The gap that made the allowlist dead code: the header was never read,
+    /// so a configured origin could never match. These tests go through
+    /// `apply_cors` on a *finished response*, which is what actually reaches
+    /// the client -- testing `allowed_origin_from` alone is what let this
+    /// survive.
+    /// Der Bruch, der die ganze Task-Kette durchtrennte: jeder interne
+    /// Aufrufer sendet `task_type`, das Gateway nahm nur `taskType`. serde
+    /// verwarf das unbekannte Feld, der Typ wurde leer, das Gateway machte
+    /// daraus "unspecified" und antwortete trotzdem 202. Sechs Cron-Jobs
+    /// liefen so bei jedem Lauf ins Leere, und beide Seiten meldeten Erfolg.
+    #[test]
+    fn both_spellings_of_the_task_type_are_accepted() {
+        for koerper in [
+            r#"{"taskType":"echo","payload":{}}"#,
+            r#"{"task_type":"echo","payload":{}}"#,
+        ] {
+            let input: TaskSubmission = serde_json::from_str(koerper).expect(koerper);
+            assert_eq!(input.task_type, "echo", "verschluckt: {koerper}");
+        }
+    }
+
+    #[test]
+    fn a_missing_task_type_stays_empty_instead_of_being_invented() {
+        // Der Ersatzwert "unspecified" machte aus einem Fehler des Aufrufers
+        // eine angenommene Aufgabe, die nie dispatchen konnte.
+        let input: TaskSubmission = serde_json::from_str(r#"{"payload":{}}"#).unwrap();
+        assert_eq!(input.task_type, "");
+        // Und genau deshalb wird sie abgewiesen statt umbenannt.
+        assert!(!input.is_dispatchable());
+    }
+
+    #[test]
+    fn a_configured_origin_actually_reaches_the_response() {
+        let out = apply_cors_from(
+            "https://benholl94-cmyk.github.io",
+            json_response(200, json!({"ok": true})),
+            Some("https://benholl94-cmyk.github.io"),
+        );
+        let text = String::from_utf8_lossy(&out);
+        assert!(
+            text.contains("Access-Control-Allow-Origin: https://benholl94-cmyk.github.io"),
+            "allowlist configured but header absent: {text}"
+        );
+        assert!(
+            text.contains("Vary: Origin"),
+            "cache would leak across origins"
+        );
+    }
+
+    #[test]
+    fn an_unlisted_origin_gets_no_header() {
+        let out = apply_cors_from(
+            "https://allowed.example",
+            json_response(200, json!({})),
+            Some("https://evil.example"),
+        );
+        assert!(!String::from_utf8_lossy(&out).contains("Access-Control-Allow-Origin"));
+    }
+
+    #[test]
+    fn no_origin_header_means_no_cors_header() {
+        // A curl request sends no Origin. Emitting one anyway would be a
+        // claim about a browser context that does not exist.
+        let out = apply_cors_from("https://a.example", json_response(200, json!({})), None);
+        assert!(!String::from_utf8_lossy(&out).contains("Access-Control-Allow-Origin"));
+    }
+
+    #[test]
+    fn the_header_is_never_emitted_twice() {
+        // Two ACAO headers make browsers reject the response outright, which
+        // looks identical to having none -- so the wildcard path (which adds
+        // its own via common_headers) must not be doubled here.
+        let with_star = apply_cors_from(
+            "*",
+            json_response(200, json!({})),
+            Some("https://any.example"),
+        );
+        let text = String::from_utf8_lossy(&with_star).to_lowercase();
+        assert_eq!(text.matches("access-control-allow-origin").count(), 1);
+    }
+
+    #[test]
+    fn the_response_body_survives_header_insertion() {
+        let out = apply_cors_from(
+            "https://a.example",
+            json_response(201, json!({"status": "stored"})),
+            Some("https://a.example"),
+        );
+        let text = String::from_utf8_lossy(&out);
+        assert!(
+            text.starts_with("HTTP/1.1 201 "),
+            "status line damaged: {text}"
+        );
+        // json_response schreibt pretty-printed -- deshalb ohne Annahme
+        // ueber Leerzeichen pruefen, sonst testet die Zusicherung das
+        // Ausgabeformat statt der Frage, ob der Body die Einfuegung ueberlebt.
+        assert!(text.contains("stored"), "body lost: {text}");
+        assert!(text.trim_end().ends_with('}'), "body truncated: {text}");
+        assert_eq!(extract_status_code(&out), 201);
+    }
 
     #[test]
     fn extracts_status_from_a_real_response() {

@@ -1,0 +1,45 @@
+{
+  "schema": "hugin.model.v1",
+  "_zweck": "Gepinnte Referenz auf das lokale Modell. Die GGUF-Datei selbst gehoert NICHT ins Repo — 6,6 GB laegen in jedem Clone fuer immer, auch nach dem Loeschen. Der Workflow zieht sie zur Laufzeit und prueft den Hash.",
+
+  "upstream": {
+    "repo": "JetBrains/Mellum2-12B-A2.5B-Instruct-GGUF-MXFP4_MOE",
+    "file": "Mellum2-12B-A2.5B-Instruct-MXFP4_MOE.gguf",
+    "revision": "main",
+    "sha256": "d34481305eaa60341f2976ae99cf1d2a8a188d71e3c31c940dd7fbc9ab4e2085",
+    "bytes": 7031000000,
+    "license": "Apache-2.0",
+    "attribution": "Mellum2-12B-A2.5B-Instruct © JetBrains, Apache-2.0. Weitergabe und Aenderung erlaubt, Urheberangabe muss erhalten bleiben."
+  },
+
+  "auswahl": {
+    "gemessen_am": "2026-07-26",
+    "begruendung": "MoE mit 2,5B aktiven von 12B Parametern — auf CPU rechnet nur der aktive Teil. MXFP4 ist ein echtes 4-Bit-Format, keine Notquantisierung.",
+    "verworfen": [
+      {
+        "modell": "Qwen/Qwen3-30B-A3B-Instruct-2507 Q4_K_M",
+        "groesse_gb": 18.56,
+        "grund": "passt nicht auf 14 GB Runner-Disk"
+      },
+      {
+        "modell": "Qwen3-30B-A3B Q3_K_XL",
+        "groesse_gb": 13.83,
+        "grund": "passt nur knapp, laesst keinen Platz fuer llama.cpp und Arbeitsverzeichnis; Q3 kostet auf einem MoE spuerbar Qualitaet"
+      }
+    ]
+  },
+
+  "laufzeit": {
+    "threads": 4,
+    "context": 8192,
+    "batch": 256,
+    "temp": 0.2,
+    "_hinweis": "temp niedrig: das Modell soll belegen, nicht erfinden."
+  },
+
+  "identitaet": {
+    "name": "HUGIN-Kern",
+    "basis": "Mellum2-12B-A2.5B-Instruct",
+    "_unterschied": "Der Rebrand ist nicht der Name. Einzigartig wird das Modell durch die Schicht darueber: jede Antwort wird gegen agents/kernel.py geerdet, der aus der nachverifizierten Repo-Historie schliesst. Ein umbenanntes Modell waere dasselbe Modell."
+  }
+}

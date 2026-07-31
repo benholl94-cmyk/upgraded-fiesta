@@ -5,6 +5,7 @@ edition.workspace=true
 license.workspace=true
 [dependencies]
 hm-core={path="../hm-core"}
+hm-sdk={path="../hm-sdk"}
 tokio.workspace=true
 serde.workspace=true
 serde_json.workspace=true

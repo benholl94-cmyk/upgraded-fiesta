@@ -114,7 +114,7 @@ mod tests {
         let plugins = Arc::new(PluginRegistry::from_manifest_file(&manifest_path).unwrap());
 
         let storage: Arc<dyn FileStorage> = Arc::new(LocalFsStorage::new(dir.0.clone()));
-        let memory = Arc::new(MemoryStore::load(storage, "memory.json").await);
+        let memory = Arc::new(MemoryStore::load(storage, "memory.json").await.unwrap());
 
         Agent::new(plugins, memory)
     }
@@ -127,7 +127,7 @@ mod tests {
         let outcome = agent.dispatch("nonexistent", "do a thing", json!({})).await;
         match outcome {
             TaskOutcome::Unhandled { reason } => assert!(reason.contains("nonexistent")),
-            other => panic!("expected Unhandled, got {other:?}"),
+            other => panic!("expected Unhandled, got {other:?}"), // test-only assertion
         }
 
         let records = agent.memory.list().await;

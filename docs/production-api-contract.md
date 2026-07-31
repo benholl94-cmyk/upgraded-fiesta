@@ -53,6 +53,39 @@ Every request produces one structured JSON line on stdout (`{"audit": true, "ts_
 
 Requests are additionally rate-limited per source IP (`HM_RATE_LIMIT_PER_MINUTE`, default 120/minute, fixed window) *before* the request is even read off the socket -- an abusive client is rejected with `429` before it can make the gateway parse a body, run auth, or dispatch a task. This is in-process and per-instance (not shared across multiple gateway replicas); a shared/distributed limiter is a Phase 5/scaling concern, not something this single-instance gateway claims to solve.
 
+### Prometheus metrics endpoint
+
+```
+GET /metrics
+```
+
+Authenticated like every other route. Returns the Prometheus text exposition
+format (`Content-Type: text/plain; version=0.0.4`). Three metric families ship
+by default:
+
+- `gateway_requests_total{path,method,status}` — counter, incremented per
+  served request from `audit_log`.
+- `gateway_request_duration_seconds{path,method}` — histogram, observed per
+  request from `audit_log`.
+- `gateway_plugin_dispatch_total{task_type,outcome}` — counter, incremented
+  per plugin dispatch with `outcome ∈ {ok, error, timeout, _other}`. The
+  `_other` bucket catches unknown outcomes so a buggy plugin cannot blow up
+  label cardinality.
+
+```console
+$ curl -H "Authorization: Bearer $HM_OWNER_TOKEN" http://localhost:8080/metrics
+HTTP/1.1 200 OK
+Content-Type: text/plain; version=0.0.4
+
+# HELP gateway_requests_total Total HTTP requests served, partitioned by path/method/status
+# TYPE gateway_requests_total counter
+gateway_requests_total{path="/health",method="GET",status="200"} 42
+...
+```
+
+Scrape target for Prometheus: `http://<gateway>:8080/metrics` with the owner
+bearer token in the scrape config's `authorization.credentials`.
+
 ```console
 # client side:
 $ curl http://localhost:8080/health
@@ -140,6 +173,15 @@ Request:
 }
 ```
 
+`taskType` is the documented field name. `task_type` is accepted as an alias,
+because it is what several clients sent for a long time while the gateway bound
+only the camelCase spelling -- see "The `taskType` contract" below.
+
+**`taskType` is required.** A request without it, or with a blank one, is
+rejected with HTTP 400 and `accepted: false`. It used to be accepted and
+recorded as `"unspecified"`, which meant the gateway promised work it could
+never perform: no plugin matches `"unspecified"`, so nothing ran.
+
 Accepted response:
 
 ```json
@@ -148,20 +190,66 @@ Accepted response:
   "accepted": true,
   "task_id": "task-...",
   "task_type": "analyze",
-  "agent_managed": true
+  "agent_managed": true,
+  "dispatch": "plugin_dispatched",
+  "plugin_result": { "ok": true, "result": {}, "message": "..." }
 }
 ```
+
+`dispatch` is always present and is either `plugin_dispatched` or `unhandled`.
+For `unhandled` there is no `plugin_result`; instead `dispatch_reason` names
+the task type that matched nothing:
+
+```json
+{
+  "status": "online",
+  "accepted": true,
+  "task_id": "task-...",
+  "task_type": "no-such-plugin",
+  "agent_managed": true,
+  "dispatch": "unhandled",
+  "dispatch_reason": "no plugin registered for task_type 'no-such-plugin'"
+}
+```
+
+Previously "nothing ran" was expressed only by the *absence* of
+`plugin_result` -- a caller had to know to look for a field that isn't there.
 
 When the gateway is in zero-staked mode, task dispatch returns HTTP 503 with status `zero_staked`; the UI rotates to the next configured endpoint.
 
 Every accepted task is routed through `hm-agent`'s `Agent::dispatch` (not
 invoked directly against `hm-plugins`): if a plugin is registered for
 `taskType` in `config/plugins.json`, it runs and the response gains a
-`plugin_result` field (`{"ok", "result", "message"}`), exactly as before.
-If no plugin matches, the response shape is unchanged (no extra field) --
-but either way, `Agent::dispatch` also records a one-line summary of the
-outcome into `hm-memory`, so `GET /memory` shows a durable history of what
-every task actually did, not just what was explicitly `POST`ed to `/memory`.
+`plugin_result` field (`{"ok", "result", "message"}`). Either way,
+`Agent::dispatch` also records a one-line summary of the outcome into
+`hm-memory`, so `GET /memory` shows a durable history of what every task
+actually did, not just what was explicitly `POST`ed to `/memory`.
+
+### The `taskType` contract
+
+The request type is `hm_sdk::TaskSubmission`, shared by the gateway and every
+producer rather than re-declared per crate. That is not tidiness; it is the
+fix for a defect that survived a fully green test suite.
+
+The gateway bound the field as `taskType`. `hm-cli`, `hm-cron` and all four
+channel crates sent `task_type`. Because the field carries
+`#[serde(default)]`, the mismatch produced an empty string instead of a
+parse error, so the gateway answered `202 accepted: true` and dispatched to
+no plugin at all. Measured on a live gateway: **every one of the six
+scheduled cron jobs, and every task submitted through the CLI, ran nothing** --
+without a single error anywhere.
+
+Three things now hold, and each covers a different way the failure could
+return:
+
+| Guard | Where | Covers |
+|---|---|---|
+| One shared type | `hm_sdk::TaskSubmission` | Producer and consumer are the same declaration, so they cannot drift apart |
+| `alias = "task_type"` | same type | Clients *outside* this repository, which a rename cannot reach |
+| End-to-end contract test | `crates/hm-gateway/tests/wire_contract.rs` | Spawns the real binary and asserts the plugin received the task type |
+
+The test imports nothing from the gateway on purpose: the defect lived exactly
+in the gap between components that were each tested against themselves.
 
 ## Task registry endpoint
 
@@ -306,6 +394,77 @@ $ curl -X POST http://localhost:8080/memory/search -d '{"query":"storage api on 
 $ curl http://localhost:8080/memory
 {"status":"online","records":[...]}
 ```
+
+`topK` also accepts `top_k`, for the same reason `taskType` accepts
+`task_type`: `hm-cli memory recall --top-k N` sent the snake_case spelling,
+which bound to nothing and silently fell back to the default. The flag was
+accepted, reported nowhere, and ignored -- a request for 2 results returned 5.
+
+`POST /memory` takes `{"text": "..."}`. It is a free-text memory with semantic
+recall, **not** a key/value store -- that is `/storage/{key}`. `hm-cli memory
+store` used to send `{"key", "value"}` and was answered with HTTP 400 on every
+invocation; its signature is now `hm-cli memory store <text>`.
+
+## Chat / command stream (`POST /chat`)
+
+```http
+POST /chat          (also /api/chat, /gateway/chat)
+Authorization: Bearer $HM_OWNER_TOKEN
+Content-Type: application/json
+
+{"line": "/tiers", "files": ["crates/hm-gateway/src/main.rs"]}
+```
+
+The single surface through which the system is commanded. It is the only route
+that streams: the response has **no `Content-Length`**, uses
+`Content-Type: text/event-stream` with `Connection: close`, and each line the
+brain emits is flushed to the socket before the next is computed.
+
+Behind it is `agents/brain.py`, not a model. A line starting with `/` selects a
+command from a fixed table (`/help` lists it); anything else is a question,
+answered on the best tier that is actually available -- local GGUF, then a
+keyless provider through the oracle gate, then a no-model answer that cites
+repository evidence instead of inventing prose. **No tier requires Anthropic**;
+`tests/test_brain.py` proves it by running with every `ANTHROPIC*` variable
+stripped from the environment.
+
+Each SSE event carries one NDJSON object from the brain, passed through
+verbatim: `{"typ": "info"|"token"|"fehler"|"ende", "text": ..., "meta": {...}}`.
+The stream ends with `data: [DONE]`. The gateway does not parse the payload --
+the event vocabulary belongs to the brain, and a gateway that understood it
+would need changing every time an event type is added.
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `HM_BRAIN_REPO` | `.` | Working directory for the brain subprocess |
+| `HM_BRAIN_PYTHON` | `python3` | Interpreter used to run it |
+
+Input limits, enforced before the first byte of body: line non-empty and
+≤ 32 KiB, at most 16 context files, and every file a plain relative path --
+an entry starting with `-` is rejected because it would reach the brain as an
+option rather than as an argument. The body *chooses*; it never constructs a
+command line, and no shell is involved anywhere in the path.
+
+Clients must use `fetch()` + `ReadableStream`, not `EventSource`: `EventSource`
+cannot set an `Authorization` header, and this route is bearer-gated like every
+other.
+
+```console
+$ curl -N -X POST http://localhost:8080/chat \
+    -H "Authorization: Bearer $HM_OWNER_TOKEN" -d '{"line":"/tiers"}'
+data: {"typ": "token", "text": "[x] T0   Befehle, Pruefungen, Belege — braucht kein Modell"}
+
+data: {"typ": "token", "text": "[ ] T1b  fehlt: models/model.gguf ..."}
+
+data: {"typ": "ende", "text": "", "meta": {"tier": "T0"}}
+
+data: [DONE]
+```
+
+**Verified live**: run against a real `hm-gateway` process on a real socket --
+401 without the token, `400` with `{"files":["--json"]}`, and a `/tests` turn
+whose first event arrived after 0.11 s while the run itself took 10.7 s,
+confirming the stream is incremental rather than buffered.
 
 ## UI integration
 
@@ -460,13 +619,10 @@ non-root-user or read-only-rootfs hardening for the container path yet,
 since that needs an actual container build+run pass to confirm volume
 permissions don't break on first boot).
 
-**Known drift, not yet reconciled**: `deploy/fullstack-compose.yml` runs a
-completely different, trivial placeholder (`deploy/gateway_service.py`, a
-stdlib `BaseHTTPRequestHandler` with no auth/plugins/memory/storage) under
-the name "gateway" -- it is unrelated to `crates/hm-gateway` and does not
-read any of the `HM_*` variables `.env.production.example` sets up for the
-real gateway. Don't assume `deploy/fullstack-compose.yml` deploys the real
-gateway; it currently doesn't.
+**Reconciled (Wave 1, 2026-07-28)**: `deploy/fullstack-compose.yml` builds the
+real Rust gateway via `build: { context: ., dockerfile: Dockerfile }`; the
+old `deploy/gateway_service.py` stdlib placeholder has been deleted and
+is no longer referenced by any compose file, install script, or doc.
 
 ## Operational guarantees
 

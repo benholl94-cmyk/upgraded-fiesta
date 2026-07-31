@@ -61,6 +61,8 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+import logging
+log = logging.getLogger(__name__)
 
 REPO = Path(__file__).resolve().parent.parent
 # Bewusst ausserhalb des Repos: was im Arbeitsverzeichnis liegt, landet
@@ -381,8 +383,8 @@ def cmd_audit(a) -> int:
     try:
         HOME_DIR.resolve().relative_to(REPO.resolve())
         findings.append(f"VIOLATION  Keyring liegt IM Repo: {HOME_DIR}")
-    except ValueError:
-        pass
+    except ValueError as exc:
+        log.warning("swallowed in hugin_keyring: %s", exc)
 
     # 2. Dateirechte
     for f in (SEED_FILE, STATE_FILE, AUDIT_FILE):

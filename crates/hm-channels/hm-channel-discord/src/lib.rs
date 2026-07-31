@@ -84,13 +84,49 @@ impl DiscordClient {
     }
 
     /// Sendet eine Nachricht an einen Discord-Channel via REST API.
-    /// Erfordert HTTPS — gibt klare Fehlermeldung wenn TLS-Bibliothek fehlt.
-    pub fn send_message(&self, channel_id: &str, content: &str) -> Result<(), anyhow::Error> {
-        anyhow::bail!(
-            "Discord REST API requires HTTPS. \
-             Add rustls to this crate. channel_id={channel_id}, content_len={}",
-            content.len()
-        )
+    /// Erfordert HTTPS (siehe `Cargo.toml` Feature `tls`).
+    pub async fn send_message(&self, channel_id: &str, content: &str) -> Result<(), anyhow::Error> {
+        #[cfg(not(feature = "tls"))]
+        {
+            let _ = (channel_id, content);
+            anyhow::bail!(
+                "Discord REST API requires HTTPS. \
+                 Build this crate with --features tls (e.g. \
+                 `cargo build -p hm-channel-discord --features tls`). \
+                 channel_id={channel_id}, content_len={}",
+                content.len()
+            )
+        }
+
+        #[cfg(feature = "tls")]
+        {
+            use anyhow::Context;
+            let url = format!("https://discord.com/api/v10/channels/{channel_id}/messages");
+            let body = json!({ "content": content });
+            let body_bytes = serde_json::to_vec(&body).context("discord: serialize body")?;
+            let raw = hm_sdk::tls::post(
+                &url,
+                &[
+                    ("Authorization", &format!("Bot {}", self.token)),
+                    ("Content-Type", "application/json"),
+                ],
+                &body_bytes,
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("discord: TLS POST failed: {e}"))?;
+            // Auf 2xx achten, sonst Fehler liefern. Discord liefert bei
+            // 4xx/5xx ein JSON `{ "message": "...", "code": ... }` im Body.
+            let text = String::from_utf8_lossy(&raw);
+            let status_line = text.lines().next().unwrap_or("");
+            if !status_line.contains(" 2") {
+                let body_only = text.split_once("\r\n\r\n").map(|(_, b)| b).unwrap_or("");
+                anyhow::bail!(
+                    "discord: send_message failed: {status_line} body={}",
+                    body_only.chars().take(200).collect::<String>()
+                );
+            }
+            Ok(())
+        }
     }
 
     /// Erstellt das IDENTIFY-Payload für den Discord Gateway-Handshake.
@@ -136,16 +172,20 @@ impl DiscordClient {
         use std::io::{Read, Write};
         use std::net::TcpStream;
 
-        let task_payload = json!({
-            "task_type": "discord-message",
-            "payload": {
+        // Der Feldname stammt aus dem geteilten `TaskSubmission`, nicht aus
+        // einem hier ausgeschriebenen JSON-Literal: ausgeschrieben hiess er
+        // `task_type`, band am Gateway an nichts, und jede weitergeleitete
+        // Nachricht wurde mit 202 quittiert, ohne je ein Plugin zu erreichen.
+        let task_payload = serde_json::to_string(&hm_sdk::TaskSubmission::new(
+            "discord-message",
+            String::new(),
+            json!({
                 "channel_id": msg.channel_id,
                 "content": msg.content,
                 "author": msg.author.username,
                 "guild_id": msg.guild_id,
-            }
-        })
-        .to_string();
+            }),
+        ))?;
 
         let url = self.gateway_url.trim_start_matches("http://");
         let (host, port_str) = url.rsplit_once(':').unwrap_or((url, "8080"));

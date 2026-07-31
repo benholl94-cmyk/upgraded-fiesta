@@ -16,12 +16,15 @@ kann, nicht in Shell-Zeilen eines Workflows, die man nur im Ernstfall sieht.
 
 1. **Kein Revert eines Reverts.** Sonst entsteht eine Endlosschleife aus
    Rücknahme und Rücknahme der Rücknahme.
-2. **Kein Revert, wenn der Vorgänger nicht nachweislich grün war.** Allowlist,
-   keine Blockliste: nur ein explizites `success` zählt als sicher. `unknown`,
-   `cancelled` und jeder andere unbestimmte Status werden nie wie `success`
+2. **Kein Revert, wenn der Vorgänger nicht nachweislich unbedenklich war.**
+   Wiederverwendet die Conclusio-Allowlist aus `auto_rollback_ctx.py` (dort
+   die einzige Quelle für „was heißt dieser CI-Status"): nur ein Vorgänger,
+   den die Allowlist als `NOOP` einstuft (`success`/`skipped`/`neutral`),
+   gilt als sicher. `unknown`, `cancelled`, `timed_out` und jeder andere
+   nicht als `NOOP` eingestufte Status werden nie wie ein sicherer Vorgänger
    behandelt — sonst liegt der Bruch womöglich nicht an diesem Commit, oder
-   es ist schlicht nicht feststellbar, und die Rücknahme verwirft Arbeit statt
-   zu heilen.
+   es ist schlicht nicht feststellbar, und die Rücknahme verwirft Arbeit
+   statt zu heilen.
 3. **Sicherung (Circuit Breaker).** Mehr als `MAX_REVERTS_PER_WINDOW`
    Rücknahmen im Zeitfenster heisst: etwas Grundsätzlicheres ist kaputt.
    Dann hält das System an und meldet, statt weiter zu revertieren.
@@ -39,11 +42,22 @@ Nichtstun.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
+import pathlib
 import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+
+# Dynamisch geladen statt `import auto_rollback_ctx`, damit dieses Skript
+# unveraendert laeuft, egal von wo es aufgerufen wird (der Workflow ruft es
+# als `python3 scripts/auto_rollback.py ...` vom Repo-Root, nicht als
+# Paket) -- gleiche Technik wie in tests/test_auto_rollback.py.
+_CTX_PATH = pathlib.Path(__file__).resolve().parent / "auto_rollback_ctx.py"
+_CTX_SPEC = importlib.util.spec_from_file_location("auto_rollback_ctx", _CTX_PATH)
+_ctx = importlib.util.module_from_spec(_CTX_SPEC)
+_CTX_SPEC.loader.exec_module(_ctx)
 
 REVERT = "REVERT"
 HOLD = "HOLD"
@@ -125,23 +139,26 @@ def decide(ctx: Context) -> Decision:
             "Revert erzeugt eine Endlosschleife; hier muss ein Mensch schauen.",
             ctx.sha)
 
-    # Sperre 2 -- war der Vorgaenger nachweislich gruen?
+    # Sperre 2 -- war der Vorgaenger nachweislich unbedenklich?
     #
-    # Allowlist statt Blockliste: nur ein explizites 'success' gilt als
-    # sicherer Vorgaenger. Eine Blockliste auf '== "failure"' laesst jeden
-    # anderen Wert durch — 'unknown', 'cancelled', 'timed_out', 'neutral',
-    # 'action_required', 'stale' und die leere Zeichenkette eingeschlossen.
-    # Genau das hat den einfuehrenden Merge-Commit dieses Moduls selbst
-    # revertiert: der Vorgaenger-Status war nicht ermittelbar ('unknown'),
-    # die Blockliste hat das durchgewinkt, und Sperre 2 griff nicht.
-    if ctx.previous_conclusion != "success":
+    # Wiederverwendet auto_rollback_ctx.ALLOWLIST statt eine eigene,
+    # zwangslaeufig abweichende Liste zu fuehren: previous_conclusion gilt
+    # nur dann als sicher, wenn die geteilte Allowlist ihn als NOOP einstuft
+    # (success/skipped/neutral). Alles, was die Allowlist als REVERT
+    # (failure) oder HOLD (cancelled/timed_out/action_required/
+    # startup_failure/stale/unbekannt) einstuft, blockiert auch hier. Eine
+    # eigene Blockliste auf '== "failure"' liess 'unknown' durchrutschen und
+    # hat den einfuehrenden Merge-Commit dieses Moduls selbst revertiert.
+    prev_action = _ctx.decide(ctx.previous_conclusion)
+    if prev_action != NOOP:
         return Decision(
             HOLD,
-            f"Vorgaengercommit-Status ist {ctx.previous_conclusion!r}, nicht "
-            "nachweislich 'success'. Ein unbestimmter oder roter Vorgaenger "
-            "darf nie wie ein gruener behandelt werden — der Bruch koennte am "
-            "Vorgaenger liegen, oder es ist schlicht nicht feststellbar, ob "
-            "die Ruecknahme heilt statt Arbeit zu verwerfen.",
+            f"Vorgaengercommit-Status ist {ctx.previous_conclusion!r} "
+            f"(Allowlist-Einstufung {prev_action!r}, nicht NOOP). Ein "
+            "unbestimmter oder nicht nachweislich unbedenklicher Vorgaenger "
+            "darf nie wie ein sicherer behandelt werden — der Bruch koennte "
+            "am Vorgaenger liegen, oder es ist schlicht nicht feststellbar, "
+            "ob die Ruecknahme heilt statt Arbeit zu verwerfen.",
             ctx.sha)
 
     # Sperre 3 -- Sicherung

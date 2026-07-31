@@ -15,8 +15,24 @@ jobs:
         with:
           ref: main
 
+      # Block-Skalar, nicht einzeilig. Vorher stand hier
+      #   run: python3 ... broadcast "CI-Scheduler: stündlicher Status-Check"
+      # und das ist ungueltiges YAML: der Wert ist ein *plain scalar*, die
+      # Anfuehrungszeichen stehen darin statt ihn zu begrenzen, und ein ": "
+      # innerhalb eines plain scalar liest YAML als Mapping-Trenner.
+      #
+      # Folge: GitHub konnte die Datei nicht parsen und hat den Workflow nie
+      # gestartet — total_jobs 0, conclusion failure, und weil ungueltige
+      # Workflow-Dateien auch bei push validiert werden, bei JEDEM Push auf
+      # jeden Branch erneut. Der Fehler lag auf main, war stundenlang
+      # sichtbar und tauchte in keiner PR-Checkliste auf, weil dieser
+      # Workflow an keinem PR haengt.
+      #
+      # `run: |` beendet die Klasse: im Block-Skalar ist ein Doppelpunkt
+      # gewoehnlicher Text.
       - name: MUNIN Status Broadcast
-        run: python3 .claude/skills/munin-link/scripts/munin_link.py broadcast "CI-Scheduler: stündlicher Status-Check"
+        run: |
+          python3 .claude/skills/munin-link/scripts/munin_link.py broadcast "CI-Scheduler: stündlicher Status-Check"
 
       - name: Commit status file if changed
         run: |

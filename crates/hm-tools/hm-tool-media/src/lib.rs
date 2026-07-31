@@ -212,8 +212,11 @@ pub fn run_plugin() {
 
 #[cfg(test)]
 mod tests {
+    // `use super::*` bringt bereits `std::io::Write` mit (Zeile 14) -- ein
+    // zweiter Import derselben Eigenschaft ist redundant und faellt unter
+    // `cargo clippy --all-targets` als unbenutzt auf. Die CI prueft ohne
+    // --all-targets und sah ihn deshalb nie.
     use super::*;
-    use std::io::Write as _;
 
     #[test]
     fn detect_png_by_magic_bytes() {

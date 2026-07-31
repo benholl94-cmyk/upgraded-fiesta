@@ -39,7 +39,21 @@ if [[ -f ui/package.json ]]; then
 fi
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  docker compose config >/dev/null
+  # `docker compose config` prueft die SYNTAX der Compose-Datei. Weil
+  # docker-compose.yml HM_OWNER_TOKEN als Pflichtvariable interpoliert,
+  # scheiterte dieser Schritt auf jedem frischen Checkout ohne exportiertes
+  # Token -- und damit die gesamte Pruefung, mit Exit 1, obwohl fmt, check,
+  # test und der UI-Build alle durchgelaufen waren.
+  #
+  # Ein fehlendes Token ist hier keine Aussage ueber das Repo: es ist eine
+  # Startsperre fuer den BETRIEB, nicht fuer die Syntaxpruefung. Eine
+  # Vorabpruefung, die an etwas scheitert, das die Sache gar nicht betrifft,
+  # wird beim zweiten Mal umgangen -- dieselbe Lehre wie beim
+  # Vorschalt-Check von hugin_clarity.py.
+  #
+  # Der Platzhalter wird ausschliesslich hier gesetzt und nie exportiert;
+  # ein tatsaechlich gesetztes Token gewinnt.
+  HM_OWNER_TOKEN="${HM_OWNER_TOKEN:-compose-syntax-check-only}" docker compose config >/dev/null
 else
   echo "docker compose not available; skipping Compose syntax check" >&2
 fi

@@ -187,7 +187,7 @@ impl VectorIndex {
             let best_pos = candidates
                 .iter()
                 .enumerate()
-                .max_by(|a, b| a.1 .1.partial_cmp(&b.1 .1).unwrap())
+                .max_by(|a, b| a.1 .1.total_cmp(&b.1 .1))
                 .map(|(i, _)| i)
                 .unwrap();
             let (best_idx, best_sim) = candidates.swap_remove(best_pos);
@@ -210,18 +210,27 @@ impl VectorIndex {
             }
 
             if result.len() > ef * 3 {
-                result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+                result.sort_by(|a, b| b.1.total_cmp(&a.1));
                 result.truncate(ef);
             }
         }
 
-        result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        result.sort_by(|a, b| b.1.total_cmp(&a.1));
         result.truncate(ef);
         result
     }
 
     /// Fügt einen Vektor ein oder ersetzt einen bestehenden Eintrag gleicher ID
     /// (Upsert). `vector` muss L2-normiert sein — vorzugsweise via `embed()`.
+    ///
+    /// Diese Vorbedingung ist eine Bitte an den Aufrufer, keine Garantie:
+    /// `insert` nimmt rohe `f32` entgegen. Deshalb vergleichen alle
+    /// Sortierungen im Index mit `total_cmp` statt `partial_cmp().unwrap()`.
+    /// `partial_cmp` liefert bei NaN `None`, und das `unwrap()` darauf hätte
+    /// die Anfrage mit einer Panik beendet — im Request-Pfad von
+    /// `/memory/search`, wo der Aufrufer nur eine abgebrochene Verbindung
+    /// sieht. `total_cmp` ist eine totale Ordnung über alle `f32` und für
+    /// endliche Werte identisch; die Härtung kostet also nichts.
     /// Nach einem Upsert wird der NSW-Einstiegspunkt auf den Knoten mit der
     /// höchsten Ähnlichkeit zum gelöschten Vektor gesetzt, um die Suchqualität
     /// zu erhalten.
@@ -250,8 +259,7 @@ impl VectorIndex {
                         .enumerate()
                         .max_by(|a, b| {
                             cosine_similarity(&old_vec, &a.1.vector)
-                                .partial_cmp(&cosine_similarity(&old_vec, &b.1.vector))
-                                .unwrap()
+                                .total_cmp(&cosine_similarity(&old_vec, &b.1.vector))
                         })
                         .map(|(i, _)| i)
                         .unwrap_or(0),
@@ -278,7 +286,7 @@ impl VectorIndex {
                 .enumerate()
                 .map(|(i, n)| (i, cosine_similarity(&vector, &n.vector)))
                 .collect();
-            scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            scored.sort_by(|a, b| b.1.total_cmp(&a.1));
             scored.into_iter().take(NSW_M).map(|(i, _)| i).collect()
         } else {
             self.beam_search(&vector, NSW_M * 2)
@@ -305,7 +313,7 @@ impl VectorIndex {
                         (i, s)
                     })
                     .collect();
-                scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+                scored.sort_by(|a, b| b.1.total_cmp(&a.1));
                 scored.truncate(NSW_M);
                 self.nodes[nb].neighbors = scored.into_iter().map(|(i, _)| i).collect();
             }
@@ -349,7 +357,7 @@ impl VectorIndex {
                 .iter()
                 .map(|n| (n.id.clone(), cosine_similarity(&n.vector, query)))
                 .collect();
-            scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            scored.sort_by(|a, b| b.1.total_cmp(&a.1));
             scored.truncate(top_k);
             return scored;
         }
@@ -456,5 +464,61 @@ mod tests {
         assert!(v[..t].iter().any(|x| x.abs() > 1e-6));
         assert!(v[t..2 * t].iter().any(|x| x.abs() > 1e-6));
         assert!(v[2 * t..].iter().any(|x| x.abs() > 1e-6));
+    }
+
+    // ── Sortier-Härtung ──────────────────────────────────────────────────────
+    //
+    // Der Index sortierte mit `partial_cmp(...).unwrap()`. `partial_cmp`
+    // liefert bei NaN `None`, das `unwrap()` darauf paniziert — im
+    // Request-Pfad von `/memory/search`, wo der Aufrufer nur eine
+    // abgebrochene Verbindung sieht, ohne Meldung und ohne Log.
+    //
+    // Erreichbar ist NaN dort, wo keine Prüfung mehr greift: `insert` nimmt
+    // rohe `f32` entgegen (die Normierung ist ein Kommentar, keine Garantie),
+    // und ein persistierter Index wird direkt deserialisiert. Das
+    // `debug_assert!` in `cosine_similarity` fängt den Fall im Debug-Build ab
+    // — im Release-Build, also im Betrieb, ist es wegkompiliert. Genau dort
+    // trug die Sortierung die Panik.
+    //
+    // Diese beiden Tests belegen die Änderung selbst und behaupten nichts
+    // darüber hinaus: ein Test, der im Debug-Build durch das `debug_assert`
+    // fällt, würde etwas anderes prüfen als sein Name sagt.
+
+    /// Die Regression: derselbe Vergleich, der vorher panizierte.
+    #[test]
+    fn die_sortierung_paniziert_nicht_mehr_an_einem_nan() {
+        let mut scored: Vec<(usize, f32)> =
+            vec![(0, 0.8), (1, f32::NAN), (2, 0.3), (3, f32::NAN), (4, 0.95)];
+
+        // Vorher: `b.1.partial_cmp(&a.1).unwrap()` — hier hätte es paniziert.
+        scored.sort_by(|a, b| b.1.total_cmp(&a.1));
+
+        assert_eq!(scored.len(), 5);
+        let endliche: Vec<f32> = scored
+            .iter()
+            .map(|(_, s)| *s)
+            .filter(|s| s.is_finite())
+            .collect();
+        assert_eq!(
+            endliche,
+            vec![0.95, 0.8, 0.3],
+            "die endlichen Scores müssen weiterhin absteigend stehen"
+        );
+    }
+
+    /// Gegenprobe: für endliche Werte ist die Reihenfolge identisch. Wäre sie
+    /// es nicht, hätte die Härtung die Suchqualität verändert statt nur die
+    /// Panik zu entfernen — dann wäre sie keine Härtung, sondern ein Umbau.
+    #[test]
+    fn total_cmp_aendert_die_reihenfolge_endlicher_werte_nicht() {
+        let werte = vec![0.5f32, -0.25, 0.9, 0.0, -1.0, 0.75, 0.5];
+
+        let mut mit_total = werte.clone();
+        mit_total.sort_by(|a, b| b.total_cmp(a));
+
+        let mut mit_partial = werte;
+        mit_partial.sort_by(|a, b| b.partial_cmp(a).unwrap());
+
+        assert_eq!(mit_total, mit_partial);
     }
 }

@@ -21,6 +21,18 @@ Exit: 0 = sauber, 1 = DRIFT/RISK, 2 = VIOLATION (Verfassungsbruch).
 
 from __future__ import annotations
 
+# Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
+# aufgerufen waere ein No-Op, weil `_configure_once()` einen
+# Flag abfragt, bevor sie Handler anhaengt.
+import os as _os, sys as _sys
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_PARENT = _os.path.dirname(_HERE)
+_SCRIPTS = _os.path.join(_PARENT, 'scripts')
+if _SCRIPTS not in _sys.path:
+    _sys.path.insert(0, _SCRIPTS)
+from _log import get_logger
+log = get_logger(__name__)
+
 import argparse
 import json
 import re
@@ -145,27 +157,64 @@ def check_hugin_sync() -> list[Finding]:
 
 
 def check_git_identity() -> list[Finding]:
-    """gitIdentity: die Verfassung schreibt die Committer-Identität vor.
+    """gitIdentity: Author UND Committer, getrennt geprüft.
 
-    Diese Prüfung existiert wegen einer realen Kollision: die Harness verlangt
-    noreply@anthropic.com, die Verfassung verlangt die Owner-Adresse. Beide
-    gleichzeitig sind unmöglich. Die Verfassung sagt für genau diesen Fall
-    "Kollision melden, nie selbst auflösen" -- also meldet der Supervisor sie,
-    statt eine Seite zu bevorzugen.
+    Diese Regel meldete lange eine unauflösbare Kollision: die Harness verlangt
+    `noreply@anthropic.com`, die Verfassung die Owner-Adresse. Das stimmte —
+    solange man beide auf **dasselbe Feld** bezog. Tut man das nicht, ist der
+    Widerspruch keiner:
+
+        Author     wer die Änderung verfasst hat  → Master (Verfassung)
+        Committer  wer sie eingetragen hat        → Claude (Signaturgültigkeit)
+
+    Der Stop-Hook prüft `%ce`, weil der SSH-Signierschlüssel auf diese Adresse
+    läuft; die Verfassung will Urheberschaft. Zwei Anforderungen, zwei Felder.
+    Die Regel prüft deshalb beide **einzeln** und meldet genau die Seite, die
+    abweicht — eine gemeinsame Meldung hätte die Auflösung wieder verdeckt.
+
+    Der Author kommt aus `GIT_AUTHOR_EMAIL` bzw. `--author`; git hat keinen
+    `author.email`-Schalter. Geprüft wird deshalb der letzte Commit, nicht die
+    Konfiguration: was tatsächlich in der Historie steht, ist die einzige
+    belastbare Antwort — dieselbe Regel wie überall hier.
     """
-    want = (_load("munin.json").get("gitIdentity") or {}).get("email")
-    if not want:
+    ident = _load("munin.json").get("gitIdentity") or {}
+    author_want = (ident.get("author") or {}).get("email") or ident.get("email")
+    committer_want = (ident.get("committer") or {}).get("email")
+    if not author_want:
         return []
-    have = run("git", "config", "user.email").stdout.strip()
-    if have == want:
-        return []
-    return [Finding(
-        "git-identity-collision", VIOLATION,
-        f"Committer-Mail ist {have or '(leer)'}, Verfassung verlangt {want}",
-        evidence="Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com — "
-                 "die beiden Anforderungen schließen sich aus.",
-        source="constitution.json → onConflict: 'Kollision sofort melden. "
-               "Nie selbst auflösen ohne Befehl.'")]
+
+    out = []
+    committer_have = run("git", "config", "user.email").stdout.strip()
+    if committer_want and committer_have != committer_want:
+        out.append(Finding(
+            "git-committer-identity", VIOLATION,
+            f"Committer-Mail ist {committer_have or '(leer)'}, "
+            f"erwartet {committer_want}",
+            evidence="Der SSH-Signierschluessel laeuft auf diese Adresse; eine "
+                     "andere macht jeden Commit auf GitHub 'Unverified'.",
+            source="munin.json → gitIdentity.committer"))
+
+    # Nur eigene Commits. `git log -1` traf nach einem Reset auf den
+    # Default-Branch den letzten FREMDEN Commit -- z.B. den eines CI-Bots --
+    # und meldete dessen Adresse als Verstoss. Dieselbe Fehlerklasse wie der
+    # Stop-Hook, der einmal einen Rebase ueber Commits anderer Autoren
+    # verlangte: fremde Historie als eigene gelesen.
+    #
+    # Eigene Commits sind genau die, die noch nicht im Default-Branch sind.
+    # Gibt es keine, gibt es auch nichts zu pruefen -- eine Regel ohne
+    # Gegenstand darf nicht anschlagen.
+    base = run("git", "rev-parse", "--abbrev-ref", "origin/HEAD").stdout.strip() or "origin/main"
+    r = run("git", "log", "-1", "--format=%ae", f"{base}..HEAD")
+    author_have = r.stdout.strip() if r.returncode == 0 else ""
+    if author_have and author_have != author_want:
+        out.append(Finding(
+            "git-author-identity", VIOLATION,
+            f"Author des letzten Commits ist {author_have}, "
+            f"Verfassung verlangt {author_want}",
+            evidence="Urheberschaft gehoert dem Master. Setzbar ueber "
+                     "GIT_AUTHOR_NAME/GIT_AUTHOR_EMAIL oder git commit --author.",
+            source="munin.json → gitIdentity.author"))
+    return out
 
 
 def check_unpushed() -> list[Finding]:

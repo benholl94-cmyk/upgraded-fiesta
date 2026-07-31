@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# .husky/pre-commit — lokaler Pre-Commit-Hook (CI ignoriert diesen Pfad).
+#
+# Schnelle Pruefungen, die in <5 s laufen:
+# 1. cargo fmt --check         (Syntax-Stil; blockiert kaputtes Formatting)
+# 2. pytest der schnellsten Wachen (Doku-Drift, Env-Vars, Dockerignore)
+#
+# Wer den Hook global aktivieren will: `git config core.hooksPath .husky`.
+# Wer ihn nicht will: einfach `.husky/pre-commit` ueberspringen.
+#
+# Bewusst KEIN cargo clippy / cargo test: das macht CI, lokale Pre-Commit-
+# Hooks sollen in Sekunden laufen, nicht in Minuten.
+
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "[husky] cargo fmt --check"
+cargo fmt --all -- --check
+
+echo "[husky] pytest (Doku-Drift, Env-Vars, Dockerignore, CI-Workflow)"
+python3 -m pytest \
+  tests/test_docs_match_code.py \
+  tests/test_env_vars.py \
+  tests/test_dockerignore.py \
+  tests/test_workflows_parse.py \
+  -q
+
+echo "[husky] OK"

@@ -37,3 +37,22 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive", "env"] }
 anyhow = "1"
 async-trait = "0.1"
+# Strukturiertes Logging. tracing-subscriber ist der fmt-Adapter;
+# tracing selbst ist die Macro-Schicht (info!/warn!/error!/debug!).
+# Beide ziehen wir gemeinsam rein, weil ohne Subscriber die Macros
+# stillschweigend No-Ops sind — das war genau der alte eprintln-Pfad.
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+# Domain-Errors mit Source-Chain. anyhow ist gut fuer Glue, thiserror ist
+# gut fuer oeffentliche Crate-APIs und Tests, weil sich Varianten
+# downcasten lassen.
+thiserror = "1"
+# Prometheus-Client. process-Feature zieht RSS/FD-Counter automatisch.
+prometheus = { version = "0.13", features = ["process"] }
+once_cell = "1"
+# TLS-Bausteine fuer die Channel-Crates und hm-tool-web. Default-features
+# aus, weil nur Client benoetigt wird; webpki-roots liefert die
+# Mozilla-CA-Bundles, die bei Plattformen ohne System-Store zwingend sind.
+rustls = { version = "0.23", default-features = false, features = ["logging", "std"] }
+rustls-webpki = "0.103"
+webpki-roots = "0.26"

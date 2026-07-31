@@ -77,8 +77,8 @@ def _load_state() -> dict:
     if LIMITS_STATE.exists():
         try:
             return json.loads(LIMITS_STATE.read_text())
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("swallowed in hugin_limits: %s", exc)
     return {"bundle_queue": [], "push_history": [], "known_patterns": []}
 
 
@@ -220,8 +220,8 @@ class RateGuard:
                 t = float(line.strip())
                 if t > cutoff:
                     times.append(t)
-            except ValueError:
-                pass
+            except ValueError as exc:
+                log.warning("swallowed in hugin_limits: %s", exc)
         return times
 
     def pushes_trigger_heavy_ci(self, files: list[str]) -> bool:

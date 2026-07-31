@@ -3,8 +3,18 @@
 # Read the JSON input from stdin
 input=$(cat)
 
-# Check if stop hook is already active (recursion prevention)
-stop_hook_active=$(echo "$input" | jq -r '.stop_hook_active')
+# Check if stop hook is already active (recursion prevention).
+# jq ist nicht ueberall installiert; eine regex auf das boolesche Feld
+# reicht, weil der Hook nur den String "true" braucht, nicht das volle JSON.
+if command -v jq >/dev/null 2>&1; then
+  stop_hook_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // empty')
+else
+  if printf '%s' "$input" | grep -Eq '"stop_hook_active"[[:space:]]*:[[:space:]]*true'; then
+    stop_hook_active=true
+  else
+    stop_hook_active=
+  fi
+fi
 if [[ "$stop_hook_active" = "true" ]]; then
   exit 0
 fi

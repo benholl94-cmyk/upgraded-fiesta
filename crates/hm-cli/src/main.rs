@@ -15,7 +15,11 @@
 
 use clap::{Parser, Subcommand};
 use hm_core::{optional_env, HmError};
-use std::io::{Read, Write};
+use hm_sdk::TaskSubmission;
+use serde_json::{json, Value};
+// BufRead/BufReader fuer den Streaming-Pfad von `chat`, Read/Write fuer die
+// uebrigen Subcommands: beide Seiten dieses Merges brauchen ihre Haelfte.
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 
 // ── CLI-Struktur ─────────────────────────────────────────────────────────────
@@ -44,6 +48,14 @@ enum Command {
     /// Schlüssel-Wert-Speicher
     #[command(subcommand)]
     Storage(StorageCmd),
+    /// Das System befehligen: `/help` zeigt die Befehle, alles andere ist eine Frage
+    Chat {
+        /// Befehl oder Frage, z.B. "/tiers" oder "Was ist im Subroom offen?"
+        line: String,
+        /// Kontextdatei (mehrfach moeglich), relativ zum Repo
+        #[arg(long)]
+        file: Vec<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -55,6 +67,9 @@ enum TasksCmd {
         /// Task-Typ (z.B. echo, llm-chat, ops-tool)
         #[arg(long)]
         r#type: String,
+        /// Freitext-Beschreibung, wird an das Plugin durchgereicht
+        #[arg(long, default_value = "")]
+        objective: String,
         /// JSON-Payload (optional)
         #[arg(long, default_value = "{}")]
         payload: String,
@@ -72,11 +87,15 @@ enum MemoryCmd {
         top_k: usize,
     },
     /// Eintrag speichern
+    ///
+    /// `/memory` ist ein Freitext-Gedächtnis mit semantischem Recall, kein
+    /// Schlüssel-Wert-Speicher — dafür ist `hm-cli storage` da. Die frühere
+    /// Signatur `store <key> <value>` hat diesen Unterschied verwischt und
+    /// war ohnehin nie funktionsfähig: das Gateway erwartet `text` und
+    /// beantwortete jeden Aufruf mit HTTP 400.
     Store {
-        /// Schlüssel
-        key: String,
-        /// Wert
-        value: String,
+        /// Zu merkender Text
+        text: String,
     },
     /// Alle Einträge auflisten
     List,
@@ -154,6 +173,84 @@ impl GatewayClient {
         }
     }
 
+    /// Streamt `POST /chat` und gibt jede Zeile aus, sobald sie ankommt.
+    ///
+    /// Braucht einen eigenen Weg neben `request()`: dort wartet
+    /// `read_to_string` auf das Ende der Antwort. Bei einem Chat-Zug, der
+    /// Minuten dauert, saehe der Operator bis dahin nichts und koennte
+    /// "rechnet" nicht von "haengt" unterscheiden. Genau dafuer gibt es die
+    /// Route.
+    ///
+    /// Das Ereignis-Vokabular gehoert `agents/brain.py`. Die CLI uebersetzt
+    /// nur, was sie anzeigen muss, und reicht Unbekanntes unveraendert
+    /// weiter — so bricht ein neuer Ereignistyp die CLI nicht.
+    fn chat_stream(&self, line: &str, files: &[String]) -> Result<i32, HmError> {
+        let payload = serde_json_line(line, files);
+        let addr = format!("{}:{}", self.host, self.port);
+        let mut stream = TcpStream::connect(&addr)
+            .map_err(|e| HmError::Io(format!("cannot connect to {addr}: {e}")))?;
+        let request = format!(
+            "POST /chat HTTP/1.0\r\nHost: {host}\r\nAuthorization: Bearer {token}\r\n\
+             Content-Type: application/json\r\nContent-Length: {len}\r\n\r\n{payload}",
+            host = self.host,
+            token = self.token,
+            len = payload.len(),
+        );
+        stream
+            .write_all(request.as_bytes())
+            .map_err(|e| HmError::Io(e.to_string()))?;
+
+        let reader = BufReader::new(stream);
+        let mut kopf_vorbei = false;
+        let mut status = 0;
+        let mut exit = 0;
+        for zeile in reader.lines() {
+            let zeile = zeile.map_err(|e| HmError::Io(e.to_string()))?;
+            if !kopf_vorbei {
+                if status == 0 && zeile.starts_with("HTTP/") {
+                    status = zeile
+                        .split_whitespace()
+                        .nth(1)
+                        .and_then(|c| c.parse().ok())
+                        .unwrap_or(0);
+                }
+                if zeile.is_empty() {
+                    kopf_vorbei = true;
+                    if status != 200 {
+                        return Err(HmError::Io(format!("gateway antwortete {status}")));
+                    }
+                }
+                continue;
+            }
+            let Some(nutz) = zeile.strip_prefix("data: ") else {
+                continue;
+            };
+            if nutz == "[DONE]" {
+                break;
+            }
+            match feld(nutz, "typ") {
+                Some(t) if t == "token" => {
+                    println!("{}", feld(nutz, "text").unwrap_or_default())
+                }
+                Some(t) if t == "info" => {
+                    eprintln!("# {}", feld(nutz, "text").unwrap_or_default())
+                }
+                Some(t) if t == "fehler" => {
+                    eprintln!("FEHLER: {}", feld(nutz, "text").unwrap_or_default());
+                    exit = 1;
+                }
+                _ => {
+                    // "ende" und alles Unbekannte: der Exit-Code interessiert,
+                    // der Rest ist nicht Sache der CLI.
+                    if let Some(c) = feld(nutz, "exit") {
+                        exit = c.parse().unwrap_or(exit);
+                    }
+                }
+            }
+        }
+        Ok(exit)
+    }
+
     fn get(&self, path: &str) -> Result<String, HmError> {
         self.request("GET", path, None)
     }
@@ -171,6 +268,67 @@ impl GatewayClient {
     }
 }
 
+/// Baut den Anfragekoerper. Von Hand, weil dieses Crate bewusst ohne
+/// serde/serde_json auskommt — dieselbe Linie wie der Rest des Workspace.
+fn serde_json_line(line: &str, files: &[String]) -> String {
+    let dateien: Vec<String> = files.iter().map(|f| json_escape(f)).collect();
+    format!(
+        "{{\"line\":{},\"files\":[{}]}}",
+        json_escape(line),
+        dateien.join(",")
+    )
+}
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// Liest einen flachen Wert aus einer JSON-Zeile.
+///
+/// Kein Parser: die Ereigniszeilen des Gehirns sind flach und kommen aus
+/// `json.dumps`. Ein voller Parser waere hier mehr Code als die ganze
+/// Streaming-Funktion — und ein falscher Parser waere schlimmer als keiner.
+/// Deshalb wird nur gesucht, was tatsaechlich gebraucht wird.
+fn feld(json: &str, name: &str) -> Option<String> {
+    let marke = format!("\"{name}\":");
+    let start = json.find(&marke)? + marke.len();
+    let rest = json[start..].trim_start();
+    if let Some(r) = rest.strip_prefix('"') {
+        let mut out = String::new();
+        let mut chars = r.chars();
+        while let Some(c) = chars.next() {
+            match c {
+                '\\' => match chars.next() {
+                    Some('n') => out.push('\n'),
+                    Some('t') => out.push('\t'),
+                    Some('r') => out.push('\r'),
+                    Some(other) => out.push(other),
+                    None => break,
+                },
+                '"' => return Some(out),
+                c => out.push(c),
+            }
+        }
+        return Some(out);
+    }
+    let ende = rest.find([',', '}']).unwrap_or(rest.len());
+    Some(rest[..ende].trim().to_string())
+}
+
 // ── Subcommand-Handler ────────────────────────────────────────────────────────
 
 fn handle_status(client: &GatewayClient) -> Result<(), HmError> {
@@ -185,8 +343,21 @@ fn handle_tasks(client: &GatewayClient, cmd: TasksCmd) -> Result<(), HmError> {
             let body = client.get("/tasks")?;
             println!("{body}");
         }
-        TasksCmd::Submit { r#type, payload } => {
-            let json = format!(r#"{{"task_type":"{type}","payload":{payload}}}"#);
+        TasksCmd::Submit {
+            r#type,
+            objective,
+            payload,
+        } => {
+            // `payload` is user-supplied JSON: parse it rather than splicing
+            // it into a string, so a malformed value is reported here instead
+            // of arriving at the gateway as an unparseable body.
+            let payload: Value = serde_json::from_str(&payload)
+                .map_err(|e| HmError::Config(format!("--payload is not valid JSON: {e}")))?;
+            // Shared with the gateway (`hm_sdk::TaskSubmission`) rather than
+            // spelled out here: this line used to read `"task_type"`, which
+            // the gateway ignored, so every submitted task ran nothing.
+            let json = serde_json::to_string(&TaskSubmission::new(r#type, objective, payload))
+                .map_err(|e| HmError::Config(e.to_string()))?;
             let body = client.post("/tasks", &json)?;
             println!("{body}");
         }
@@ -197,12 +368,12 @@ fn handle_tasks(client: &GatewayClient, cmd: TasksCmd) -> Result<(), HmError> {
 fn handle_memory(client: &GatewayClient, cmd: MemoryCmd) -> Result<(), HmError> {
     match cmd {
         MemoryCmd::Recall { query, top_k } => {
-            let json = format!(r#"{{"query":"{query}","top_k":{top_k}}}"#);
+            let json = json!({ "query": query, "topK": top_k }).to_string();
             let body = client.post("/memory/search", &json)?;
             println!("{body}");
         }
-        MemoryCmd::Store { key, value } => {
-            let json = format!(r#"{{"key":"{key}","value":"{value}"}}"#);
+        MemoryCmd::Store { text } => {
+            let json = json!({ "text": text }).to_string();
             let body = client.post("/memory", &json)?;
             println!("{body}");
         }
@@ -255,6 +426,18 @@ fn main() {
         Command::Tasks(cmd) => handle_tasks(&client, cmd),
         Command::Memory(cmd) => handle_memory(&client, cmd),
         Command::Storage(cmd) => handle_storage(&client, cmd),
+        Command::Chat { line, file } => match client.chat_stream(&line, &file) {
+            // Der Exit-Code des Zuges wird durchgereicht: `hm chat /tests`
+            // muss in einem Skript scheitern koennen, sonst ist die CLI als
+            // Baustein wertlos.
+            Ok(code) => {
+                if code != 0 {
+                    std::process::exit(code);
+                }
+                Ok(())
+            }
+            Err(e) => Err(e),
+        },
     };
 
     if let Err(e) = result {

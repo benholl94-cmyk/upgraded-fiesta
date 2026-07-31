@@ -7,3 +7,23 @@ license.workspace=true
 hm-core={path="../hm-core"}
 serde.workspace=true
 serde_json.workspace=true
+# anyhow wird sowohl in den TLS-Funktionen als auch im Stub-Pfad verwendet.
+# Stub-Fehler ("requires the 'tls' feature") nutzen anyhow::bail!.
+anyhow.workspace=true
+# TLS-Bausteine, alle optional. Aktiviert durch das Feature `tls`, das die
+# Channel-Crates und hm-tool-web in Cargo.toml einschalten.
+rustls={workspace=true,optional=true}
+rustls-webpki={workspace=true,optional=true}
+webpki-roots={workspace=true,optional=true}
+tokio={workspace=true,optional=true,features=["net","io-util","time"]}
+
+[dev-dependencies]
+# Tests nutzen #[tokio::test] -- das Makro kommt aus dem `macros`-Feature.
+# Es ist KEIN Laufzeit-Tokio noetig (die TLS-Pfade laufen nur mit dem
+# `tls`-Feature, und dort ist tokio schon aktiv). Nur das Makro braucht
+# diese Dependency im dev-Profil.
+tokio = { workspace = true, features = ["macros"] }
+
+[features]
+tls=["dep:rustls","dep:rustls-webpki","dep:webpki-roots","dep:tokio"]
+default=[]

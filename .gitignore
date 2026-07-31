@@ -30,6 +30,19 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+
+# Coverage-Messartefakte. Die Zahlen gehoeren in den Bericht
+# (docs/completion-report.json), die Rohdaten nicht in die Historie: .coverage
+# ist eine SQLite-Datei, die sich bei jedem Lauf aendert, und ein binaerer
+# Blob, der pro Messung neu committet wird, waere genau die Sorte
+# hochfrequenter Schreibvorgang, die das Repo schon bei munin-state.json
+# getrennt hat. Reproduzierbar ueber die im Bericht notierten Kommandos.
+# Rust-Coverage landet unter target/llvm-cov-target und ist damit bereits
+# ueber target/ abgedeckt.
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 build/
 dist/
 
@@ -42,7 +55,8 @@ dist/
 target/
 ui/node_modules/
 node_modules/
-Cargo.lock
+# Cargo.lock wird getrackt (reproduzierbare Builds, cargo audit, cargo tree).
+# Siehe docs/production-api-contract.md und das CI-Tor `cargo generate-lockfile`.
 ui/package-lock.json
 
 # Daemon runtime output — written every 5s, never committed
@@ -64,10 +78,46 @@ config/knowledge-loop-state.json
 .claude/persona/console-log.json
 .claude/persona/security-report.json
 .claude/persona/security-baseline.json
-.claude/persona/munin-state.json
+# munin-state.json wird getrackt — die MUNIN-Bruecke liest sie beim Wakeup
+# und ein frischer Container ohne diese Datei wirft FileNotFoundError. Das
+# Band ueberlebt damit Container-Neustarts.
 
 # Agenten-Ledger — Laufzeitprotokoll, wird pro Lauf fortgeschrieben
 .claude/agents/ledger.jsonl
 
 # Keyring-Ablage — Master-Seed, niemals im Index
 .hugin/
+
+# Container-Spiegel, seit PR #74/Folgearbeit nicht mehr getrackt.
+# Bleibt lokal liegen; ohne diesen Eintrag meldet der Stop-Hook ihn dauerhaft.
+self_space_workspace_/
+
+# Laufzeitartefakte, die beim Betrieb des Gateways entstehen. Beide sind
+# Zustand einer Ausfuehrung, nicht Inhalt des Repos: data/storage/ ist der
+# Standard-HM_STORAGE_ROOT, .claude/relay/ der Subroom plus die von
+# agents/brain.py geschriebene Grammatik. Getrackt waeren sie genau die Art
+# toter Daten, die hier schon einmal aufgeraeumt wurde.
+data/storage/
+.claude/relay/
+
+# Lokaler Modellkern (T1b). Beides ist reproduzierbar, aber zu gross und zu
+# maschinenabhaengig fuer die Historie:
+#   models/model.gguf   7,03 GB — laege nach einem Commit in JEDEM Clone fuer
+#                       immer, auch nach dem Loeschen. Gepinnt in
+#                       config/model.json (Repo, Datei, SHA-256).
+#   vendor/llama.cpp/   selbst gebaute Binaries plus Quellbaum, gebaut mit
+#                       -DGGML_NATIVE=ON also auf die CPU dieser Maschine.
+# Wiederherstellung, ohne Rueckfrage:
+#   python3 scripts/hugin_local_model.py setup
+models/
+vendor/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+
+# SourceFiles.app leftover binary blobs (commit c38cdba)
+*.bin
+verify-backup-*.bin

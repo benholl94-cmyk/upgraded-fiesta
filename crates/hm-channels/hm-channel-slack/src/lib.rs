@@ -67,13 +67,54 @@ impl SlackClient {
     }
 
     /// Sendet eine Slack-Nachricht an einen Channel via `chat.postMessage`.
-    /// Erfordert HTTPS.
-    pub fn post_message(&self, channel: &str, text: &str) -> Result<(), anyhow::Error> {
-        anyhow::bail!(
-            "Slack API requires HTTPS. Add rustls to this crate. \
-             channel={channel}, text_len={}",
-            text.len()
-        )
+    /// Erfordert HTTPS (siehe `Cargo.toml` Feature `tls`).
+    pub async fn post_message(&self, channel: &str, text: &str) -> Result<(), anyhow::Error> {
+        #[cfg(not(feature = "tls"))]
+        {
+            let _ = (channel, text);
+            anyhow::bail!(
+                "Slack API requires HTTPS. \
+                 Build this crate with --features tls (e.g. \
+                 `cargo build -p hm-channel-slack --features tls`). \
+                 channel={channel}, text_len={}",
+                text.len()
+            )
+        }
+
+        #[cfg(feature = "tls")]
+        {
+            use anyhow::Context;
+            let url = "https://slack.com/api/chat.postMessage";
+            let body = json!({ "channel": channel, "text": text });
+            let body_bytes = serde_json::to_vec(&body).context("slack: serialize body")?;
+            let raw = hm_sdk::tls::post(
+                url,
+                &[
+                    ("Authorization", &format!("Bearer {}", self.bot_token)),
+                    ("Content-Type", "application/json; charset=utf-8"),
+                ],
+                &body_bytes,
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("slack: TLS POST failed: {e}"))?;
+            // Slack liefert immer 200, aber `{"ok": false, "error": "..."}`
+            // im Body, wenn etwas schief ging.
+            let text_resp = String::from_utf8_lossy(&raw);
+            let body_only = text_resp
+                .split_once("\r\n\r\n")
+                .map(|(_, b)| b)
+                .unwrap_or("");
+            let parsed: serde_json::Value = serde_json::from_str(body_only)
+                .map_err(|e| anyhow::anyhow!("slack: invalid JSON body: {e}"))?;
+            if parsed.get("ok").and_then(|v| v.as_bool()) != Some(true) {
+                let err = parsed
+                    .get("error")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                anyhow::bail!("slack: chat.postMessage returned ok=false error={err}");
+            }
+            Ok(())
+        }
     }
 
     /// Verarbeitet ein eingehendes Slack Event.
@@ -108,15 +149,19 @@ impl SlackClient {
         use std::io::{Read, Write};
         use std::net::TcpStream;
 
-        let task_payload = json!({
-            "task_type": "slack-message",
-            "payload": {
+        // Der Feldname stammt aus dem geteilten `TaskSubmission`, nicht aus
+        // einem hier ausgeschriebenen JSON-Literal: ausgeschrieben hiess er
+        // `task_type`, band am Gateway an nichts, und jede weitergeleitete
+        // Nachricht wurde mit 202 quittiert, ohne je ein Plugin zu erreichen.
+        let task_payload = serde_json::to_string(&hm_sdk::TaskSubmission::new(
+            "slack-message",
+            String::new(),
+            json!({
                 "channel": channel,
                 "text": text,
                 "user": user,
-            }
-        })
-        .to_string();
+            }),
+        ))?;
 
         let url = self.gateway_url.trim_start_matches("http://");
         let (host, port_str) = url.rsplit_once(':').unwrap_or((url, "8080"));

@@ -48,7 +48,12 @@ def check_endpoint(ep: dict) -> dict:
             raw = resp.read(4096)
             try:
                 body = json.loads(raw)
-            except Exception:
+            except (ValueError, UnicodeDecodeError) as exc:
+                # Bewusst schmal: json.loads wirft ValueError, decode-Fehler
+                # kommen vom raw.decode-Fallback. Andere Fehler (z.B.
+                # RecursionError bei zyklischer JSON) sollen eskalieren.
+                log.debug("health-check returned non-json body",
+                          extra={"error": str(exc), "url": url})
                 body = {"raw": raw.decode("utf-8", errors="replace")[:200]}
             # Gilt als online wenn: 2xx UND Health-Wert positiv
             _HEALTHY = {"ok", "healthy", "up", "online", "running", True}
@@ -72,7 +77,12 @@ def check_endpoint(ep: dict) -> dict:
         latency_ms = int((time.monotonic() - t0) * 1000)
         state  = "degraded"
         reason = f"HTTP {exc.code}"
-    except Exception as exc:
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
+        # Engere Auswahl als `Exception`: ein DNS-Fehler, Timeout oder
+        # kaputter Socket sind die realistischen Faelle hier. MemoryError
+        # oder KeyboardInterrupt sollen weiter eskalieren.
+        log.warning("health-check unreachable",
+                    extra={"url": url, "error_type": type(exc).__name__})
         latency_ms = int((time.monotonic() - t0) * 1000)
         state  = "offline"
         reason = type(exc).__name__

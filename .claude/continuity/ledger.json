@@ -1,7 +1,7 @@
 {
   "version": 1,
   "updated": "2026-07-31T09:27:04+00:00",
-  "session": 3,
+  "session": 4,
   "entries": [
     {
       "id": "s2-1",
@@ -10,105 +10,6 @@
       "kind": "invariante",
       "text": "Ungepusht heisst nicht vorhanden. Ein Commit lebt nur solange sein Container lebt — so ging 29b701c verloren. Jede Sitzung endet mit 'seal --push', sonst ist sie nicht beendet.",
       "anchors": [],
-      "state": "offen",
-      "weight": 3
-    },
-    {
-      "id": "s2-2",
-      "session": 2,
-      "ts": "2026-07-26T04:57:58+00:00",
-      "kind": "sackgasse",
-      "text": "munin-state.json als Sitzungsgedaechtnis zu benutzen scheitert grundsaetzlich: die Datei steht in .gitignore:67, git hat sie nie gesehen, und in einem frischen Container brach 'munin_bridge.py wakeup' mit FileNotFoundError ab. Der Ignore-Eintrag ist aber richtig (Daemon-Live-Zustand) — die Loesung ist ein getrennter Kanal, nicht das Entfernen des Eintrags.",
-      "anchors": [
-        "path:.gitignore:67",
-        "path:scripts/munin_bridge.py:46"
-      ],
-      "state": "offen",
-      "weight": 3
-    },
-    {
-      "id": "s2-3",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "entscheidung",
-      "text": "Gespeichert wird nur das Komplement von git: Entscheidungen, Sackgassen, offene Fragen, Invarianten. Alles aus der History Ableitbare faellt weg — das ist Verdichtung statt Abschneiden. Texte werden nie gekuerzt, verworfen wird immer ein ganzer Eintrag.",
-      "anchors": [
-        "path:scripts/munin_continuity.py"
-      ],
-      "state": "offen",
-      "weight": 3
-    },
-    {
-      "id": "s2-4",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "entscheidung",
-      "text": "Budget-Verdraengung ruehrt 'offen' und 'invariante' nie an. Reisst das Budget, meldet das Ledger RISK statt still zu vergessen — stilles Vergessen ist genau der Fehler, gegen den es gebaut ist.",
-      "anchors": [
-        "path:tests/test_munin_continuity.py"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s2-5",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "offen",
-      "text": "Auto-Rollback: 'unknown' muss HOLD ergeben, bevor der Workflow wieder nach main darf. Sperre 2 prueft nur == 'failure', der Sammler liefert an drei Stellen 'unknown', Context defaultet auf 'success'. Allowlist statt Blockliste, sonst wiederholt es sich bei 'cancelled'.",
-      "anchors": [
-        "sha:4b9c078",
-        "path:HANDOFF.md"
-      ],
-      "state": "erledigt",
-      "weight": 3
-    },
-    {
-      "id": "s2-6",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "offen",
-      "text": "TERMSHELL: Geraetebindung und Konsens. Beides zuerst eine Architekturentscheidung, nicht Code — agents/consensus.py ist Python, TERMSHELL ist buildlose Single-File-PWA; und ohne Server bindet localStorage an den Origin, nicht an ein Geraet.",
-      "anchors": [
-        "path:hugin/hugin.html:2233",
-        "path:agents/consensus.py"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s2-7",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "offen",
-      "text": "Auto-Rollback-Workflow ist derzeit nicht aktiv: er hat seinen eigenen Einfuehrungscommit revertiert. Schleifenschutz (Sperre 1) hat das nicht verhindert — vor Wiederinbetriebnahme pruefen.",
-      "anchors": [
-        "sha:7d812c4"
-      ],
-      "state": "erledigt",
-      "weight": 1
-    },
-    {
-      "id": "s2-8",
-      "session": 2,
-      "ts": "2026-07-26T05:02:00+00:00",
-      "kind": "invariante",
-      "text": "Die vom Routine-Trigger gestarteten Sitzungen laufen OHNE MCP-Connectors: kein mcp__github__, also keine PR-Erstellung, keine CI-Abfrage, keine Reviews. git push funktioniert (Git-Proxy), damit laeuft der Kern der Schleife resume->capture->seal. Alles PR-bezogene muss aus einer interaktiven Sitzung kommen. Trigger-ID trig_01XgF7i47UrreHKpTmexRyog, taeglich 06:00 UTC.",
-      "anchors": [
-        "path:scripts/munin_continuity.py"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s2-9",
-      "session": 2,
-      "ts": "2026-07-26T05:19:54+00:00",
-      "kind": "sackgasse",
-      "text": "Einen festen Branch in den Trigger-Prompt zu schreiben scheitert beim ersten Merge: sobald der PR gemerged ist, kann der Branch keine neue Arbeit mehr tragen — weiterstapeln versteckt sie hinter einem erledigten PR. Beobachtet an PR #78, gemerged am Tag der Einrichtung. Der Prompt muss stattdessen selbst 'git fetch origin main && git checkout -B <neu> origin/main' ausfuehren.",
-      "anchors": [
-        "sha:b9be326"
-      ],
       "state": "offen",
       "weight": 3
     },
@@ -228,6 +129,19 @@
       "weight": 3
     },
     {
+      "id": "s2-2",
+      "session": 2,
+      "ts": "2026-07-26T04:57:58+00:00",
+      "kind": "sackgasse",
+      "text": "munin-state.json als Sitzungsgedaechtnis zu benutzen scheitert grundsaetzlich: die Datei steht in .gitignore:67, git hat sie nie gesehen, und in einem frischen Container brach 'munin_bridge.py wakeup' mit FileNotFoundError ab. Der Ignore-Eintrag ist aber richtig (Daemon-Live-Zustand) — die Loesung ist ein getrennter Kanal, nicht das Entfernen des Eintrags.",
+      "anchors": [
+        "path:.gitignore:67",
+        "path:scripts/munin_bridge.py:46"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
       "id": "s2-20",
       "session": 2,
       "ts": "2026-07-26T05:48:49+00:00",
@@ -287,8 +201,502 @@
       "weight": 3
     },
     {
+      "id": "s2-25",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "entscheidung",
+      "text": "Der Chat-/Befehlskanal laeuft ueber POST /chat im bestehenden Gateway, nicht als eigener Python-Server. Verworfen: zweiter Port - das Gateway traegt Auth, Rate-Limit und Audit bereits, ein zweiter Prozess haette diese drei Grenzen dupliziert oder weggelassen. Preis: der handgeschriebene HTTP-Server brauchte einen Streaming-Pfad, der route_request umgeht; deshalb wurde die Auth-Entscheidung in authorized() herausgezogen.",
+      "anchors": [
+        "path:crates/hm-gateway/src/chat.rs"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-26",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "invariante",
+      "text": "Der Chat waehlt Befehle aus einer festen Tabelle, er baut nie eine Kommandozeile. Kein Shell-Pfad, Argumente bleiben EIN argv-Element. Dieselbe Eigenschaft wie hm-tool-exec. Wird sie aufgegeben, ist der Kanal eine Shell mit Bearer-Token davor.",
+      "anchors": [
+        "path:agents/brain.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-27",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "entscheidung",
+      "text": "git-identity-Kollision aufgeloest: Author=Master (Verfassung, Urheberschaft), Committer=Claude (Signierschluessel, sonst Unverified). Es waren immer zwei Felder; die gemeinsame Supervisor-Meldung hat die Aufloesung verdeckt. Author kommt aus GIT_AUTHOR_*, git hat keinen author.email-Schalter.",
+      "anchors": [
+        "sha:b474f5c"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-28",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "sackgasse",
+      "text": "hm-cron rief das Gateway mit synchronem std::net aus einer Tokio-Task an - das Gateway beantwortete daraufhin dauerhaft KEINE Anfrage. Symptom sah nach kaputtem Sandbox-Netz aus (curl haengt, auch auf 127.0.0.1); die Gegenprobe HM_CRON_CONFIG=/nonexistent trennte Ursache von Umgebung. Bei haengendem lokalem Port immer zuerst so gegenpruefen.",
+      "anchors": [
+        "path:crates/hm-cron/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-29",
+      "session": 2,
+      "ts": "2026-07-26T15:43:57+00:00",
+      "kind": "notiz",
+      "text": "HUGIN-Selbsttest im Browser braucht ~120s (WebGPU-Provider-Timeouts dominieren). Wer nach 15s abbricht, haelt ihn faelschlich fuer haengend. Endet mit 56 OK / 0 FEHL.",
+      "anchors": [
+        "path:hugin/hugin.html"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s2-3",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "entscheidung",
+      "text": "Gespeichert wird nur das Komplement von git: Entscheidungen, Sackgassen, offene Fragen, Invarianten. Alles aus der History Ableitbare faellt weg — das ist Verdichtung statt Abschneiden. Texte werden nie gekuerzt, verworfen wird immer ein ganzer Eintrag.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-30",
+      "session": 2,
+      "ts": "2026-07-26T16:13:08+00:00",
+      "kind": "invariante",
+      "text": "Verfuegbarkeit wird gemessen, nie gelesen. Ein Netzdienst gilt erst nach TCP-Handshake als erreichbar, eine Sperre erst nach Nachrechnen als offen. Zwei Verstoesse gab es bereits, beide in dieselbe Richtung: als tragend melden, was nicht traegt.",
+      "anchors": [
+        "path:scripts/hugin_clarity.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-31",
+      "session": 2,
+      "ts": "2026-07-26T16:13:08+00:00",
+      "kind": "sackgasse",
+      "text": "Testskripte zur Laufzeit anlegen und ausfuehren erzeugt 'Text file busy' (fork/exec-Wettlauf, ~40 Prozent rot bei parallelen Tests). Kein sleep, kein Mutex: /bin/sh ausfuehren und den Skriptkoerper als Argument uebergeben - dann gibt es das Fenster nicht.",
+      "anchors": [
+        "path:crates/hm-plugins/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-32",
+      "session": 2,
+      "ts": "2026-07-26T16:13:08+00:00",
+      "kind": "entscheidung",
+      "text": "CORS-Header werden einmal zentral auf die fertige Antwort gesetzt (apply_cors), nicht durch 30 json_response-Aufrufstellen gefaedelt. Verworfen: Parameter durchreichen - 30 Gelegenheiten, eine zu vergessen, und eine vergessene faellt im Browser lautlos aus.",
+      "anchors": [
+        "path:crates/hm-gateway/src/main.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-33",
+      "session": 2,
+      "ts": "2026-07-26T16:18:36+00:00",
+      "kind": "sackgasse",
+      "text": "Vorschalt-Check mit && vor dem Dienststart: 'clarity --offen && cargo run' startete nie, weil eine Faehigkeitsgrenze (fehlendes Modell) denselben Exit-Code hat wie eine Startsperre. Pruefungen vor einem Start duerfen nur an echten Sperren scheitern, sonst werden sie umgangen.",
+      "anchors": [
+        "path:scripts/hugin_clarity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-34",
+      "session": 2,
+      "ts": "2026-07-27T06:10:12+00:00",
+      "kind": "sackgasse",
+      "text": "Service Worker Cache-First mit handgezaehltem Schluessel: eine geaenderte hugin.html erreichte installierte iPhones NICHT, weil hugin-v7 nicht hochgezaehlt wurde. Ausgeliefert und trotzdem unerreichbar. Netz-zuerst statt Zahl-erhoehen - eine Regel, die nur greift wenn jemand an sie denkt, greift irgendwann nicht.",
+      "anchors": [
+        "path:hugin/sw.js"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-35",
+      "session": 2,
+      "ts": "2026-07-27T06:10:12+00:00",
+      "kind": "invariante",
+      "text": "Der Service Worker fasst NUR eigene GET-Anfragen an. Eine Namensliste durchzulassender Hosts veraltet zwangslaeufig und vergass genau das eigene Gateway - ein POST /chat bekam dann index.html statt eines Ereignisstroms.",
+      "anchors": [
+        "path:hugin/sw.js"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-36",
+      "session": 2,
+      "ts": "2026-07-27T06:10:12+00:00",
+      "kind": "entscheidung",
+      "text": "Kanaele senden ueber ein Python-Plugin (urllib/TLS), nicht ueber die Rust-Crates. Verworfen: rustls in die Crates - der Workspace baut HTTP absichtlich ohne externe Crates, und TLS von Hand ist keine Option. Die Crates bleiben Adapter fuer Eingehendes.",
+      "anchors": [
+        "path:plugins/channel_send_plugin.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-4",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "entscheidung",
+      "text": "Budget-Verdraengung ruehrt 'offen' und 'invariante' nie an. Reisst das Budget, meldet das Ledger RISK statt still zu vergessen — stilles Vergessen ist genau der Fehler, gegen den es gebaut ist.",
+      "anchors": [
+        "path:tests/test_munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-5",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "Auto-Rollback: 'unknown' muss HOLD ergeben, bevor der Workflow wieder nach main darf. Sperre 2 prueft nur == 'failure', der Sammler liefert an drei Stellen 'unknown', Context defaultet auf 'success'. Allowlist statt Blockliste, sonst wiederholt es sich bei 'cancelled'.",
+      "anchors": [
+        "sha:4b9c078",
+        "path:HANDOFF.md"
+      ],
+      "state": "erledigt",
+      "weight": 3
+    },
+    {
+      "id": "s2-6",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "TERMSHELL: Geraetebindung und Konsens. Beides zuerst eine Architekturentscheidung, nicht Code — agents/consensus.py ist Python, TERMSHELL ist buildlose Single-File-PWA; und ohne Server bindet localStorage an den Origin, nicht an ein Geraet.",
+      "anchors": [
+        "path:hugin/hugin.html:2233",
+        "path:agents/consensus.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-7",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "Auto-Rollback-Workflow ist derzeit nicht aktiv: er hat seinen eigenen Einfuehrungscommit revertiert. Schleifenschutz (Sperre 1) hat das nicht verhindert — vor Wiederinbetriebnahme pruefen.",
+      "anchors": [
+        "sha:7d812c4"
+      ],
+      "state": "erledigt",
+      "weight": 1
+    },
+    {
+      "id": "s2-8",
+      "session": 2,
+      "ts": "2026-07-26T05:02:00+00:00",
+      "kind": "invariante",
+      "text": "Die vom Routine-Trigger gestarteten Sitzungen laufen OHNE MCP-Connectors: kein mcp__github__, also keine PR-Erstellung, keine CI-Abfrage, keine Reviews. git push funktioniert (Git-Proxy), damit laeuft der Kern der Schleife resume->capture->seal. Alles PR-bezogene muss aus einer interaktiven Sitzung kommen. Trigger-ID trig_01XgF7i47UrreHKpTmexRyog, taeglich 06:00 UTC.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-9",
+      "session": 2,
+      "ts": "2026-07-26T05:19:54+00:00",
+      "kind": "sackgasse",
+      "text": "Einen festen Branch in den Trigger-Prompt zu schreiben scheitert beim ersten Merge: sobald der PR gemerged ist, kann der Branch keine neue Arbeit mehr tragen — weiterstapeln versteckt sie hinter einem erledigten PR. Beobachtet an PR #78, gemerged am Tag der Einrichtung. Der Prompt muss stattdessen selbst 'git fetch origin main && git checkout -B <neu> origin/main' ausfuehren.",
+      "anchors": [
+        "sha:b9be326"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
       "id": "s3-1",
       "session": 3,
+      "ts": "2026-07-26T20:45:35+00:00",
+      "kind": "sackgasse",
+      "text": "Jede Komponente gegen sich selbst zu testen laesst Vertragsbrueche an der Grenze ueberleben: das Gateway band 'taskType', hm-cli/hm-cron/alle vier Kanalcrates sendeten 'task_type'. serde(default) macht daraus einen Leerstring statt eines Fehlers, also HTTP 202 'accepted: true' und KEIN Plugin. Live gemessen: alle sechs Cron-Jobs und jede CLI-Einreichung liefen ins Leere, 511 Tests gruen. Ein Unit-Test kann das nie sehen. Nur ein Test, der die echte Binary ueber einen echten Socket anspricht, faengt es.",
+      "anchors": [
+        "path:crates/hm-sdk/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-10",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "sackgasse",
+      "text": "Einen Befehl im Container einfach laufen zu lassen, dem seine Dateien fehlen, erzeugt keine Fehlermeldung sondern eine falsche Antwort. Im Image-Layout gemessen: /struktur roher Traceback, /supervisor 'VIOLATION — 4 Befunde' (reine Artefakte, von echten Verstoessen nicht zu unterscheiden), /tests 'no tests ran' (leere, gruen wirkende Suite). Die letzten beiden sind die gefaehrlicheren, weil sie nach einem Ergebnis aussehen. Command.braucht prueft die Voraussetzung vorher.",
+      "anchors": [
+        "path:agents/brain.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-11",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "entscheidung",
+      "text": "Float-Sortierungen im Vektorindex nutzen total_cmp statt partial_cmp().unwrap(). Verworfen: NaN am Eingang abfangen — insert() nimmt rohe f32 und ein persistierter Index wird direkt deserialisiert, es gibt also mehr als einen Eingang. Das debug_assert in cosine_similarity faengt es nur im Debug-Build; im Release, also im Betrieb, trug die Sortierung die Panik. Deshalb testet der Gegentest die Sortierung selbst, nicht den Weg durch insert().",
+      "anchors": [
+        "path:crates/hm-vector/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-12",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "sackgasse",
+      "text": "Nur die am PR haengenden Checks abzufragen und daraus 'alles gruen' zu melden ist keine Pruefung, sondern eine Auswahl. munin-link-hourly.yml haengt an keinem PR (schedule + workflow_dispatch), scheiterte seit Stunden auf main UND auf jedem Feature-Branch, und tauchte in get_check_runs nie auf. Der Master hat es in seinem GitHub-Posteingang gesehen, ich nicht. Workflow-Laeufe immer ueber list_workflow_runs pruefen, nicht nur ueber die PR-Checkliste.",
+      "anchors": [
+        "path:.github/workflows/munin-link-hourly.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-13",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "invariante",
+      "text": "Ein ': ' in einem unquotierten YAML-Wert bricht die Datei. 'run: cmd \"Text: mit Doppelpunkt\"' ist ungueltig — die Anfuehrungszeichen stehen IM plain scalar statt ihn zu begrenzen. GitHub startet eine unparsebare Workflow-Datei gar nicht: total_jobs 0, conclusion failure, und das bei jedem Push auf jeden Branch, weil Workflow-Dateien beim Push validiert werden. Immer 'run: |' als Block-Skalar verwenden.",
+      "anchors": [
+        "path:tests/test_workflows_parse.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-2",
+      "session": 3,
+      "ts": "2026-07-26T20:45:35+00:00",
+      "kind": "entscheidung",
+      "text": "Wire-Typ TaskSubmission wandert nach hm-sdk und wird von Erzeuger UND Verbraucher geteilt, statt pro Crate neu deklariert. Verworfen: nur die Aufrufer umbenennen — das haette Clients ausserhalb des Repos weiter still scheitern lassen; deshalb zusaetzlich alias='task_type'. Verworfen: nur den Alias setzen — dann bleiben zwei Deklarationen, die sich zufaellig einig sind. hm-sdk war der einzige echte Stub; das zweite Drahtprotokoll zu besitzen ist genau sein Zweck.",
+      "anchors": [
+        "path:crates/hm-sdk/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-3",
+      "session": 3,
+      "ts": "2026-07-26T20:45:35+00:00",
+      "kind": "invariante",
+      "text": "stdout gehoert dem Zeilenprotokoll, nie dem Logging. autonomy_core._log() schreibt mit print(); hm-plugins liest genau die erste stdout-Zeile. Aus '[20:23:20] heal: ...' macht serde eine Sequenz, deren erstes Element 20 gegen ok:bool laeuft — daher die Meldung 'invalid type: integer'. Der Fehler feuert genau dann, wenn die Selbstheilung wirklich heilt. Loesung ist Kanaltrennung (redirect_stdout nach stderr), nicht Logging entfernen.",
+      "anchors": [
+        "path:plugins/autonomy_pulse_plugin.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-4",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "sackgasse",
+      "text": "SVG als apple-touch-icon funktioniert auf iOS nicht — Safari wertet fuer diesen Link nur Raster aus und ignoriert SVG vollstaendig. Der Link war vorhanden, wohlgeformt und wirkungslos; 'Zum Home-Bildschirm' ergab kein App-Symbol. Gleiches gilt fuer Manifest-Icons. Nicht erneut mit SVG versuchen.",
+      "anchors": [
+        "path:hugin/hugin.html"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-5",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "invariante",
+      "text": "Ein Sperrbildschirm, der document.documentElement.innerHTML ersetzt, wirft die PWA-Kopfzeilen mit weg (manifest, apple-touch-icon, apple-mobile-web-app-*) — und genau der gesperrte Zustand ist der, in dem installiert wird. Sperren heisst Inhalt verbergen, nicht Metadaten loeschen. Das Markup stand viermal wortgleich da: wer eine Stelle ergaenzt, baut drei stille Rueckfaelle.",
+      "anchors": [
+        "path:hugin/hugin.html"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-6",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "invariante",
+      "text": "Eine Pruefung darf nur an dem scheitern, was sie prueft. codex_fullstack_check.sh endete mit Exit 1 auf sauberem Checkout, weil 'docker compose config' (Syntaxpruefung) HM_OWNER_TOKEN interpoliert — nach vier bestandenen Schritten. Dieselbe Klasse wie s2-33: was an einem Nicht-Hindernis scheitert, wird beim zweiten Mal umgangen.",
+      "anchors": [
+        "path:scripts/codex_fullstack_check.sh"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-7",
+      "session": 3,
+      "ts": "2026-07-26T20:45:53+00:00",
+      "kind": "entscheidung",
+      "text": "PNG-Icons kommen aus einem stdlib-Generator statt als eingecheckte Binaerdateien. Verworfen: PNGs einfach committen — dann ist es eine Behauptung, die niemand nachrechnen kann, und sie veraltet stumm, sobald sich icon-512.svg aendert. Der Test prueft Datei gegen Generator, gleiche Regel wie hugin_index_sync. Nebenbefund: der Test hat den Kommentar des Generators widerlegt (Strichbreite vergessen), daher GLYPH_INSET.",
+      "anchors": [
+        "path:scripts/generate_hugin_icons.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-8",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "invariante",
+      "text": "'Noch nichts gespeichert' und 'gespeichert, aber unlesbar' duerfen nie in dieselbe Antwort fallen. MemoryStore::load tat das per unwrap_or_default() plus Err(_) => default(). Gemessen: 3 Records, Datei auf 4000 von 7348 Bytes gekuerzt, Neustart -> Gateway startet normal, protokolliert nichts, GET /memory liefert 0, naechster Schreibvorgang vernichtet die Records. Auch ein fehlgeschlagener exists()-Aufruf ist kein 'nicht vorhanden' — bei RemoteHttpStorage heisst er 'Host nicht erreichbar'.",
+      "anchors": [
+        "path:crates/hm-memory/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-9",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "invariante",
+      "text": "Zustand, der einen Neustart ueberleben soll, wird atomar geschrieben: Temp-Datei im selben Verzeichnis, sync_all, rename. fs::write kuerzt zuerst und schreibt danach — ein Absturz dazwischen hinterlaesst eine halb geschriebene Datei. Hier kein Randfall: MemoryStore persistiert bei jedem remember(), hm-agent schreibt pro Task einen Eintrag. Temp-Name braucht einen Zaehler, sonst teilen sich zwei gleichzeitige Puts dieselbe Datei.",
+      "anchors": [
+        "path:crates/hm-storage/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-14",
+      "session": 3,
+      "ts": "2026-07-27T06:30:16+00:00",
+      "kind": "invariante",
+      "text": "Eine Wache gilt erst als wirksam, wenn ein Test sie durch die echte Mutation zum Fallen bringt. tests/test_meta_guards.py bricht fuenf Invarianten absichtlich und verlangt jeweils den zustaendigen roten Test. Die Invariante 'jede Wache braucht einen Gegentest' stand vorher nur als Satz in CLAUDE.md und wurde von nichts nachgerechnet.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-15",
+      "session": 3,
+      "ts": "2026-07-27T06:30:16+00:00",
+      "kind": "sackgasse",
+      "text": "Ein Test im tests/-Verzeichnis ist kein Beleg, dass er laeuft. Zwei .sh-Tests lagen dort, prueften Skripte die NIE in der main-Historie existierten, wurden von pytest nie eingesammelt (es sammelt keine .sh-Dateien) und meldeten Exit 0, waehrend sie FAIL: druckten. Ein volles Testverzeichnis sieht wie Abdeckung aus. Pruefe Subjekt, Exit-Code und ob ueberhaupt jemand den Test aufruft.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-16",
+      "session": 3,
+      "ts": "2026-07-27T14:14:08+00:00",
+      "kind": "sackgasse",
+      "text": "Exakter Mengenschnitt als Belegsuche scheitert an deutscher Flexion: die Frage sagt 'atomarer', der Ledgereintrag 'atomar', Aehnlichkeit 0,000 — und zwar ueber ALLE 133 Faelle der Historie. Der Kern antwortete darum auf jede Frage 'nicht belegt' und das 7-GB-Modell war unbenutzbar. Ein gemeinsamer Wortanfang ab 5 Zeichen, wobei eines Praefix des anderen sein muss, loest es ohne Stemmer-Abhaengigkeit.",
+      "anchors": [
+        "path:agents/kernel.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-17",
+      "session": 3,
+      "ts": "2026-07-27T14:14:08+00:00",
+      "kind": "sackgasse",
+      "text": "Eine Schranke an Situation.kind zu haengen schaltet sie ab: das Feld setzt in der Praxis niemand, agents/brain.py uebergibt es nie. Mein erster Fix gegen 'Frage wurde verboten' machte damit die Invarianten-Schranke wirkungslos — aufgefallen nur, weil test_kernel.py sie einfordert. Unterschieden wird jetzt an der Satzform (Fragezeichen oder Fragewort am Anfang), die immer vorhanden ist.",
+      "anchors": [
+        "path:agents/kernel.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-18",
+      "session": 3,
+      "ts": "2026-07-27T14:14:08+00:00",
+      "kind": "invariante",
+      "text": "T1b gilt erst als verfuegbar, wenn llama-server auf /health mit ok antwortet. Datei-Anwesenheit reicht nicht: models/model.gguf und llama-cli lagen beide vor, tiers() meldete [x], und der erste echte Aufruf brach mit SIGABRT in cli_server::wait_ready ab. llama-cli laed ausserdem 7 GB pro Frage neu; der Server haelt sie im Speicher und antwortet in 2,9 s.",
+      "anchors": [
+        "path:scripts/hugin_local_model.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-19",
+      "session": 3,
+      "ts": "2026-07-28T22:22:07+00:00",
+      "kind": "sackgasse",
+      "text": "Codespace-OAuth-Token hat KEINEN workflow-Scope. Folge: jede Anpassung an .github/workflows/*.yml kann vom Codespace nicht gepusht werden — kein PR-Push, kein Force-Push, kein direkter main-Push. Workaround: 1) Branch lokal vorbereiten + force-push, 2) Patch-Inhalt als heredoc/komplettes File in Issue-Kommentar posten, 3) Master pusht manuell mit vollwertigem Token. Erkennbar an der Push-Fehlermeldung 'refusing to allow an OAuth App to create or update workflow ... without workflow scope'.",
+      "anchors": [
+        "path:.github/workflows"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-20",
+      "session": 3,
+      "ts": "2026-07-28T22:22:10+00:00",
+      "kind": "entscheidung",
+      "text": "Wave1-Tests (test_auto_rollback_workflow_exists, test_ci_yml_generates_lockfile, test_ci_hugin_sync_is_warning_not_failure) bleiben rot bis Master ci.yml + auto-rollback.yml nach main pusht. PR #93 (Rust) ist gemerged, der CI-Rot kommt ausschliesslich aus diesen zwei fehlenden Workflow-Files. PRs #94 (P0/blocker, Patch liegt im Kommentar #5110098437 bereit) und #90 (Duplikat) sind offen.",
+      "anchors": [
+        "path:tests/test_wave1_smoke.py"
+      ],
+      "state": "offen",
+      "weight": 4
+    },
+    {
+      "id": "s3-21",
+      "session": 3,
+      "ts": "2026-07-28T22:22:13+00:00",
+      "kind": "invariante",
+      "text": "Master-Ping erreicht Master via Issue-Kommentar + Label-Tag 'bug' auf issue #94. Versand-Kanäle: gh CLI issue comment (vom Codespace aus), Email-Notification (GitHub → Master), Mentions via @benholl94-cmyk. Reaktionszeit: ~45 Min Master-Push von monitoring-bot-Updates sichtbar — Workflow-Push bleibt aus.",
+      "anchors": [
+        "path:scripts/munin_bridge.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-22",
+      "session": 3,
+      "ts": "2026-07-28T22:23:02+00:00",
+      "kind": "notiz",
+      "text": "Anker-Korrektur zu s3-19: gemeint war das Verzeichnis .github/workflows selbst (16 .yml-Dateien, inkl. auto-rollback.yml), nicht eine spezifische Datei. Anker war zu eng gegriffen — workflow-YAML-Edits landen im Verzeichnis, sind also weiterhin gueltige Andockstelle.",
+      "anchors": [
+        "path:.github/workflows/ci.yml"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s4-1",
+      "session": 4,
       "ts": "2026-07-31T09:21:45+00:00",
       "kind": "entscheidung",
       "text": "trig_01XgF7i47UrreHKpTmexRyog (tägliche Kontinuität) auf branchfreien Prompt korrigiert: prüft jetzt selbst git branch/status und setzt bei gemergtem/erledigtem Branch via git checkout -B claude/kontinuitaet-$(date +%Y%m%d) origin/main neu an, statt einen festen Branchnamen zu tragen (Invariante s2-10). Obsoleter PR-Watch-Trigger trig_01DM9E7i9BGBnFVSbFhWri35 (bereits run_once_fired) gelöscht.",
@@ -299,8 +707,8 @@
       "weight": 1
     },
     {
-      "id": "s3-2",
-      "session": 3,
+      "id": "s4-2",
+      "session": 4,
       "ts": "2026-07-31T09:22:36+00:00",
       "kind": "offen",
       "text": "Ungelöste Kollision (nicht selbst auflösbar, Master-Entscheidung nötig): Verfassung verlangt Committer-Mail 274793931+benholl94-cmyk@users.noreply.github.com, der Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com. Beide Anforderungen schliessen sich aus. hook-drift diese Sitzung behoben (install_hooks.py --yes), identity-collision bleibt offen.",
@@ -311,8 +719,8 @@
       "weight": 1
     },
     {
-      "id": "s3-3",
-      "session": 3,
+      "id": "s4-3",
+      "session": 4,
       "ts": "2026-07-31T09:26:21+00:00",
       "kind": "entscheidung",
       "text": "Auto-Rollback (#77) wiederhergestellt (git revert 7d812c4) und den unknown-Bug behoben: Sperre 2 war Blockliste (== 'failure'), jetzt Allowlist (!= 'success'). previous_conclusion-Default in Context/from_dict von 'success' auf 'unknown' geändert. Ursache des Selbst-Reverts war exakt dieser Bug: erster Lauf hatte previous_conclusion='unknown', Blockliste liess es durch, Workflow revertierte seinen eigenen Einführungs-Commit. 7 neue parametrisierte Testfälle (unknown/cancelled/timed_out/neutral/action_required/stale/leer) ersetzen den alten Platzhaltertest, der beide Ausgänge akzeptierte. Workflow reaktiviert (nicht mehr disabled) — Sperre 3 (Circuit Breaker, max 2 Reverts/6h) bleibt als zusätzliche Absicherung bestehen, falls der Fix selbst fehlerhaft ist.",
@@ -324,8 +732,8 @@
       "weight": 1
     },
     {
-      "id": "s3-4",
-      "session": 3,
+      "id": "s4-4",
+      "session": 4,
       "ts": "2026-07-31T09:27:04+00:00",
       "kind": "offen",
       "text": "PR #106 (fix(ci): auto-rollback Sperre 2 als Allowlist) offen, subscribed. Drive-to-green: CI-Fehler selbst fixen, Review-Kommentare beantworten, Subscription endet erst mit Merge/Close.",

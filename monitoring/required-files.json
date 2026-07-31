@@ -1,5 +1,5 @@
 {
-  "platform": "Production-Master_Grade-Plattform-Fullstack-API_Agent_managed",
+  "platform": "Production-Master_Grade-Platform-Fullstack-API_Agent_managed",
   "required_files": [
     ".codex/setup.sh",
     ".codex/run-trigger.txt",
@@ -14,7 +14,7 @@
     "ui/src/main.ts",
     "ui/src/styles.css",
     "ui/index.html",
-    "ui/Dockerfile",
+    "Dockerfile.ui",
     "crates/hm-gateway/src/main.rs",
     "docker-compose.yml",
     "Cargo.toml",

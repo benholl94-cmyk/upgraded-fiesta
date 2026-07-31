@@ -15,6 +15,18 @@ Commands:
 """
 from __future__ import annotations
 
+# Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
+# aufgerufen waere ein No-Op, weil `_configure_once()` einen
+# Flag abfragt, bevor sie Handler anhaengt.
+import os as _os, sys as _sys
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_PARENT = _os.path.dirname(_HERE)
+_SCRIPTS = _os.path.join(_PARENT, 'scripts')
+if _SCRIPTS not in _sys.path:
+    _sys.path.insert(0, _SCRIPTS)
+from _log import get_logger
+log = get_logger(__name__)
+
 import argparse
 import hashlib
 import json
@@ -26,6 +38,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import logging
+log = logging.getLogger(__name__)
 
 # ── Pfade ─────────────────────────────────────────────────────────────────────
 REPO_ROOT   = Path(__file__).resolve().parent.parent
@@ -147,6 +161,7 @@ def _rule_graph_seed_exists() -> dict:
                 "issues": [] if nodes > 0 else ["Seed hat 0 Nodes"],
                 "note": f"{nodes} Nodes, {edges} Edges"}
     except Exception as e:
+        log.warning("swallowed in repo_tracker: %s", exc)
         return {"rule": "graph_seed_exists", "ok": False,
                 "issues": [f"Ungültiges JSON: {e}"], "note": ""}
 
@@ -225,7 +240,8 @@ def _git_blob(path: Path) -> str:
         )
         parts = r.stdout.strip().split()
         return parts[1] if len(parts) >= 2 else "untracked"
-    except Exception:
+    except Exception as exc:
+        log.warning("swallowed in repo_tracker: %s", exc)
         return "unknown"
 
 def _collect_paths() -> list[Path]:
@@ -351,6 +367,7 @@ def cmd_audit() -> None:
         try:
             r = rule_fn()
         except Exception as e:
+            log.warning("swallowed in repo_tracker: %s", exc)
             r = {"rule": rule_fn.__name__, "ok": False,
                  "issues": [f"Ausnahme: {e}"], "note": ""}
         results.append(r)

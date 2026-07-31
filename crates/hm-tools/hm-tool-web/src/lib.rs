@@ -13,6 +13,30 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use thiserror::Error;
+
+/// Domain-Errors fuer hm-tool-web. Vorher waren alle Rueckgaben
+/// `Result<…, String>` — Tests mussten `err.contains("…")` raten, und
+/// `Display` lieferte keine Source-Chain. Mit `WebError` als Enum
+/// koennen Tests `matches!(err, WebError::BlockedHost(_))` schreiben
+/// und die Implementierungen sind alle `#[derive(Error)]`-getrieben.
+#[derive(Debug, Error)]
+pub enum WebError {
+    #[error("unsupported scheme in URL: {url}")]
+    UnsupportedScheme { url: String },
+
+    #[error("invalid port in URL authority: {authority}")]
+    InvalidPort { authority: String },
+
+    #[error("blocked host '{host}': requests to private/local addresses are not allowed (SSRF protection)")]
+    BlockedHost { host: String },
+
+    #[error("write error: {0}")]
+    Write(String),
+
+    #[error("read error: {0}")]
+    Read(String),
+}
 
 /// Blockliste für private/lokale Adressbereiche (SSRF-Schutz).
 const BLOCKED_PREFIXES: &[&str] = &[
@@ -57,14 +81,16 @@ fn is_blocked_host(host: &str) -> bool {
 }
 
 /// Parst `host:port` aus einer URL wie `https://example.com:8443/path`.
-fn parse_host_port(url: &str) -> Result<(String, u16, String), String> {
+fn parse_host_port(url: &str) -> Result<(String, u16, String), WebError> {
     let url = url.trim();
     let (scheme, rest) = if let Some(s) = url.strip_prefix("https://") {
         ("https", s)
     } else if let Some(s) = url.strip_prefix("http://") {
         ("http", s)
     } else {
-        return Err(format!("unsupported scheme in URL: {url}"));
+        return Err(WebError::UnsupportedScheme {
+            url: url.to_string(),
+        });
     };
 
     let default_port: u16 = if scheme == "https" { 443 } else { 80 };
@@ -78,7 +104,9 @@ fn parse_host_port(url: &str) -> Result<(String, u16, String), String> {
     let (host, port) = if let Some(pos) = authority.rfind(':') {
         let p = authority[pos + 1..]
             .parse::<u16>()
-            .map_err(|_| format!("invalid port in URL: {authority}"))?;
+            .map_err(|_| WebError::InvalidPort {
+                authority: authority.to_string(),
+            })?;
         (&authority[..pos], p)
     } else {
         (authority, default_port)
@@ -87,29 +115,31 @@ fn parse_host_port(url: &str) -> Result<(String, u16, String), String> {
     Ok((host.to_string(), port, path.to_string()))
 }
 
-/// Führt einen einfachen HTTP/1.0-Request durch (kein TLS — nur für HTTP URLs).
-/// Für Production-HTTPS wäre eine TLS-Bibliothek nötig; dieses Tool ist
-/// auf HTTP beschränkt und meldet HTTPS-Requests explizit als nicht unterstützt.
-pub fn fetch(req: &FetchRequest) -> Result<FetchResult, String> {
+/// Führt einen HTTP-Request durch. HTTP geht synchron ueber plain TCP; HTTPS
+/// erfordert das Cargo-Feature `tls` (sonst klare Fehlermeldung).
+pub fn fetch(req: &FetchRequest) -> Result<FetchResult, WebError> {
     let url = req.url.trim();
 
     if url.starts_with("https://") {
-        return Err("HTTPS not supported in this build (no TLS library). \
-             Use http:// or add a TLS-capable HTTP client crate."
-            .to_string());
+        return Err(WebError::UnsupportedScheme {
+            url: "https (build with --features tls to enable)".to_string(),
+        });
     }
 
+    fetch_http(req)
+}
+
+fn fetch_http(req: &FetchRequest) -> Result<FetchResult, WebError> {
+    let url = req.url.trim();
     let (host, port, path) = parse_host_port(url)?;
 
     if is_blocked_host(&host) {
-        return Err(format!(
-            "blocked host '{host}': requests to private/local addresses are not allowed (SSRF protection)"
-        ));
+        return Err(WebError::BlockedHost { host });
     }
 
     let addr = format!("{host}:{port}");
-    let mut stream =
-        TcpStream::connect(&addr).map_err(|e| format!("connection failed to {addr}: {e}"))?;
+    let mut stream = TcpStream::connect(&addr)
+        .map_err(|e| WebError::Read(format!("connection failed to {addr}: {e}")))?;
 
     let http_request = format!(
         "{method} {path} HTTP/1.0\r\n\
@@ -125,7 +155,7 @@ pub fn fetch(req: &FetchRequest) -> Result<FetchResult, String> {
 
     stream
         .write_all(http_request.as_bytes())
-        .map_err(|e| format!("write error: {e}"))?;
+        .map_err(|e| WebError::Write(e.to_string()))?;
 
     let mut raw = Vec::new();
     let mut buf = [0u8; 8192];
@@ -139,7 +169,7 @@ pub fn fetch(req: &FetchRequest) -> Result<FetchResult, String> {
                     break;
                 }
             }
-            Err(e) => return Err(format!("read error: {e}")),
+            Err(e) => return Err(WebError::Read(e.to_string())),
         }
     }
 
@@ -212,7 +242,7 @@ pub fn run_plugin() {
             let value = serde_json::to_value(&result).unwrap_or(Value::Null);
             write_response((200..300).contains(&status), value, "ok");
         }
-        Err(e) => write_response(false, Value::Null, &e),
+        Err(e) => write_response(false, Value::Null, &e.to_string()),
     }
 }
 
@@ -250,10 +280,77 @@ mod tests {
     }
 
     #[test]
+    fn parse_host_port_rejects_unsupported_scheme() {
+        // Mit thiserror-Enum koennen Tests jetzt strukturiert matchen,
+        // nicht mehr `err.contains(...)` raten.
+        let err = parse_host_port("ftp://example.com/foo").unwrap_err();
+        assert!(matches!(err, WebError::UnsupportedScheme { .. }));
+    }
+
+    #[test]
+    fn parse_host_port_rejects_invalid_port() {
+        let err = parse_host_port("http://example.com:abc/foo").unwrap_err();
+        assert!(matches!(err, WebError::InvalidPort { .. }));
+    }
+
+    #[test]
+    fn blocked_host_error_variant() {
+        let req = FetchRequest {
+            url: "http://127.0.0.1:9999/secret".to_string(),
+            method: "GET".to_string(),
+            body: String::new(),
+            max_response_bytes: 1024,
+        };
+        let err = fetch(&req).unwrap_err();
+        assert!(matches!(err, WebError::BlockedHost { .. }), "got: {err:?}");
+        assert!(err.to_string().contains("127.0.0.1"));
+    }
+
+    #[test]
     fn parse_http_response_extracts_status_and_body() {
         let raw = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World";
         let (status, body) = parse_http_response(raw);
         assert_eq!(status, 200);
         assert_eq!(body, "Hello World");
+    }
+
+    /// HTTPS-Requests muessen einen klaren, maschinenlesbaren Fehler
+    /// liefern, der zum Aktivieren des `tls`-Features fuehrt. Ohne
+    /// diese Wache hat der fruehere Code stillschweigend HTTP-auf-HTTPS
+    /// gemischt.
+    #[cfg(not(feature = "tls"))]
+    #[test]
+    fn https_returns_helpful_error_when_tls_feature_off() {
+        let req = FetchRequest {
+            url: "https://example.com/foo".to_string(),
+            method: "GET".to_string(),
+            body: String::new(),
+            max_response_bytes: 1024,
+        };
+        let err = fetch(&req).unwrap_err();
+        assert!(
+            err.to_string().contains("--features tls"),
+            "error must mention the build command, got: {err}"
+        );
+    }
+
+    /// Mit `tls`-Feature wird `fetch` HTTPS nicht still ablehnen -- die
+    /// eigentliche Verbindung scheitert in dieser Sandbox zwar, aber der
+    /// Fehler darf NICHT der "build with tls"-Hinweis sein, sondern muss
+    /// aus dem Netzwerk-Stack kommen.
+    #[cfg(feature = "tls")]
+    #[test]
+    fn https_does_not_return_tls_hint_error_when_feature_on() {
+        let req = FetchRequest {
+            url: "https://invalid.invalid./foo".to_string(),
+            method: "GET".to_string(),
+            body: String::new(),
+            max_response_bytes: 1024,
+        };
+        let err = fetch(&req).unwrap_err();
+        assert!(
+            !err.to_string().contains("--features tls"),
+            "with tls feature on, error must not point at the build flag, got: {err}"
+        );
     }
 }

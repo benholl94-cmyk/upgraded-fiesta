@@ -1,0 +1,91 @@
+# monitoring/prometheus-rules.yml — Prometheus Alert Rules.
+#
+# HINWEIS: Prometheus ist EXTERN (siehe BACKLOG im Plan). Diese Datei
+# ist deklarativ: sie definiert Alerts, die das Monitoring-System
+# feuern wuerde, wenn es laufen wuerde. Wer Prometheus tatsaechlich
+# deployed, mounted diese Datei unter
+# /etc/prometheus/rules.d/hm-gateway.yml.
+#
+# `gateway_requests_total{status="5xx"}` ist das hauptsaechliche
+# Signal; `plugin_dispatch_total{outcome="error"}` ist der zweite.
+# Beide Counter existieren in `crates/hm-gateway/src/metrics.rs`.
+
+groups:
+  - name: hm-gateway.rules
+    interval: 30s
+    rules:
+      - alert: HmGatewayDown
+        expr: up{job="hm-gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: hm-gateway
+        annotations:
+          summary: "hm-gateway nicht erreichbar"
+          description: |
+            Der hm-gateway ist seit >2 min nicht per `up`-Probe erreichbar.
+            Pruefe `systemctl status hm-gateway` und `journalctl -u hm-gateway -n 100`.
+
+      - alert: PluginDispatchErrorRate
+        expr: |
+          sum(rate(plugin_dispatch_total{outcome="error"}[5m]))
+          /
+          sum(rate(plugin_dispatch_total[5m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: hm-gateway
+        annotations:
+          summary: "Plugin-Dispatch-Fehlerrate > 5% (5m Mittel)"
+          description: |
+            Mehr als 5% aller Plugin-Aufrufe schlugen in den letzten 5
+            Minuten fehl. Pruefe `data/storage/diagnostics/reports.json`
+            auf den letzten `error`-Block.
+
+      - alert: TokenValidationFailureRate
+        expr: |
+          sum(rate(token_validation_total{outcome="reject"}[5m]))
+          /
+          sum(rate(token_validation_total[5m]))
+          > 0.01
+        for: 1m
+        labels:
+          severity: warning
+          component: hm-gateway
+        annotations:
+          summary: "Token-Validation-Reject-Rate > 1%"
+          description: |
+            Mehr als 1% der eingehenden Requests wurden wegen ungueltigem
+            Bearer-Token abgelehnt. Das kann ein Brute-Force-Versuch sein
+            oder ein rotiertes Token, das nicht an alle Clients verteilt wurde.
+
+      - alert: RateLimitedClients
+        expr: |
+            sum(rate(gateway_requests_total{status="429"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: info
+          component: hm-gateway
+        annotations:
+          summary: "Mehr als 10 req/s werden mit HTTP 429 abgelehnt"
+          description: |
+            Viele Clients ueberschreiten HM_RATE_LIMIT_PER_MINUTE. Das
+            ist normal unter Last, kann aber auf einen Bug in der
+            Client-Retry-Logik hinweisen.
+
+      - alert: StorageWriteLatency
+        expr: |
+            histogram_quantile(0.99,
+              sum(rate(gateway_storage_write_seconds_bucket[5m])) by (le)
+            ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          component: hm-storage
+        annotations:
+          summary: "Storage-Schreib-Latenz p99 > 1s (10m)"
+          description: |
+            99. Perzentil der Schreib-Latenz ins Backend
+            (local disk oder remote HTTP) ist seit 10 min > 1 s.
+            Pruefe Disk-I/O oder die Verbindung zum Remote-Storage.

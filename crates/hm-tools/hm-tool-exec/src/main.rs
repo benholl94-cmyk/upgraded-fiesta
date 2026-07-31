@@ -132,12 +132,18 @@ mod tests {
         // way of reporting "not found" -- and that's a non-zero exit even
         // though the command ran and produced output, which is exactly the
         // case this field exists to distinguish from a real success.
-        let (exit_ok, _stdout, _stderr) =
-            run_operation("gateway_status").expect("systemctl is always available");
-        // In this sandboxed test environment there's no live hm-gateway.service,
-        // and no systemd PID 1 either, so systemctl itself fails -- either way
-        // exit_ok must be false, never silently true.
-        assert!(!exit_ok);
+        //
+        // In einer Sandbox ohne systemctl (z.B. devcontainer, macOS, Windows)
+        // ist `run_operation` selbst `Err` -- und genau das beweist, dass
+        // die Operation "nicht stillschweigend erfolgreich" war: weder
+        // `Ok((true, …))` noch ein verschluckter Spawn-Fehler.
+        match run_operation("gateway_status") {
+            Ok((true, _, _)) => panic!(
+                "systemctl status on a missing unit must not report exit_ok=true; \
+                 the whole point of the field is to surface non-zero exits"
+            ),
+            Ok((false, _, _)) | Err(_) => { /* korrekt: kein stiller Erfolg */ }
+        }
     }
 
     #[test]
