@@ -19,15 +19,34 @@ Der Nutzen ist unmittelbar und nicht theoretisch: schlägt ein Fall hier fehl,
 ist die zugehörige Wache **wirkungslos geworden** — und das erfährt man hier,
 statt beim nächsten Ausfall im Betrieb.
 
-Die Mutationen werden im Arbeitsbaum vorgenommen und in `finally` aus dem
-gehaltenen Original zurückgeschrieben. Ein Kopieren des Repos wäre sauberer,
-aber langsam genug, dass der Test in CI übersprungen würde — und eine Wache,
-die aus Zeitgründen nicht läuft, ist keine.
+## Warum die Mutationen in einer Kopie stattfinden
+
+Bis 2026-07-31 wurde der **Arbeitsbaum** mutiert und in `finally`
+zurückgeschrieben. `finally` läuft aber nicht, wenn der Prozess stirbt — und
+genau das passierte: ein abgebrochener Lauf hinterließ `.github/workflows/ci.yml`
+mit kaputtem YAML und ein verändertes `hugin/icon-192.png` im Baum. Ein Commit
+in diesem Moment hätte den Schaden nach git getragen.
+
+Die Folgeschäden waren messbar: Metatests plus **irgendeine** zweite Testdatei
+waren in 3 von 6 Läufen rot, weil die nächste Mutation ihre Vorlage in der
+bereits veränderten Datei nicht mehr fand.
+
+Der alte Docstring begründete das Vorgehen damit, ein Kopieren sei „langsam
+genug, dass der Test in CI übersprungen würde". Das war eine Annahme, keine
+Messung: **378 getrackte Dateien, 3,3 MB, 0,06 s.** Die Kopie entsteht einmal
+je Sitzung.
+
+Damit ist das Fenster nicht verkleinert, sondern weg — dieselbe Auflösung wie
+beim `Text file busy`-Wettlauf in `hm-plugins`, wo `/bin/sh` mit dem Skript als
+*Argument* die Ursache beseitigte, statt auf sie zu warten.
 """
 from __future__ import annotations
 
+import atexit
 import contextlib
 import pathlib
+import shutil
+import tempfile
 import subprocess
 import sys
 
@@ -40,15 +59,53 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 # Werkzeug
 # ─────────────────────────────────────────────────────────────────────────────
 
+_SANDKASTEN: pathlib.Path | None = None
+
+
+def sandkasten() -> pathlib.Path:
+    """Eine Kopie aller getrackten Dateien, einmal je Sitzung.
+
+    Alles, was hier mutiert wird, ist eine Kopie. Stirbt der Prozess mitten
+    im Lauf, bleibt der echte Arbeitsbaum unberührt — das ist der ganze
+    Zweck. Gemessen: 378 Dateien, 3,3 MB, 0,06 s.
+
+    Kopiert wird der **Arbeitsbaum**, nicht `HEAD`: die Wachen sollen den
+    Stand prüfen, an dem gerade gearbeitet wird, nicht den zuletzt
+    committeten.
+    """
+    global _SANDKASTEN
+    if _SANDKASTEN is not None and _SANDKASTEN.is_dir():
+        return _SANDKASTEN
+
+    ziel = pathlib.Path(tempfile.mkdtemp(prefix="meta-guards-"))
+    roh = subprocess.run(["git", "ls-files", "-z"], cwd=REPO,
+                         capture_output=True, text=True, timeout=120)
+    dateien = [r for r in roh.stdout.split("\0") if r]
+    if not dateien:
+        pytest.fail("git ls-files lieferte nichts — ohne Kopie keine Mutation")
+    for rel in dateien:
+        quelle = REPO / rel
+        if not quelle.is_file():
+            continue
+        z = ziel / rel
+        z.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(quelle, z)
+    _SANDKASTEN = ziel
+    atexit.register(shutil.rmtree, ziel, True)
+    return ziel
+
+
 @contextlib.contextmanager
 def mutiert(pfad: str, alt: str, neu: str):
-    """Ersetzt `alt` durch `neu` und stellt die Datei danach sicher wieder her.
+    """Ersetzt `alt` durch `neu` **in der Kopie** und stellt sie danach her.
 
     Schlägt fehl, wenn `alt` nicht vorkommt — sonst würde die Mutation
     wirkungslos bleiben und der Metatest genau das prüfen, was er widerlegen
     soll: dass eine Wache auch ohne Defekt fällt.
     """
-    p = REPO / pfad
+    p = sandkasten() / pfad
+    if not p.is_file():
+        pytest.fail(f"{pfad} liegt nicht in der Kopie — ist es getrackt?")
     original = p.read_bytes()
     text = original.decode("utf-8")
     if alt not in text:
@@ -62,14 +119,61 @@ def mutiert(pfad: str, alt: str, neu: str):
         p.write_bytes(text.replace(alt, neu, 1).encode("utf-8"))
         yield
     finally:
+        # Auch hier zurückschreiben: sonst sähe die nächste Mutation in
+        # derselben Sitzung eine bereits veränderte Vorlage. Anders als früher
+        # ist ein ausgefallenes `finally` jetzt aber folgenlos.
         p.write_bytes(original)
 
 
 def wache(*pytest_args: str) -> subprocess.CompletedProcess:
+    """Führt die zuständige Wache **in der Kopie** aus."""
     return subprocess.run(
-        [sys.executable, "-m", "pytest", *pytest_args, "-q", "--no-header", "-p", "no:cacheprovider"],
-        cwd=REPO, capture_output=True, text=True, timeout=600,
+        [sys.executable, "-m", "pytest", *pytest_args, "-q", "--no-header",
+         "-p", "no:cacheprovider"],
+        cwd=sandkasten(), capture_output=True, text=True, timeout=600,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Die Metatests selbst: sie duerfen den Arbeitsbaum nicht beschaedigen
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_no_mutation_ever_touches_the_working_tree():
+    """Der Vorfall, der die Kopie erzwang: ein abgebrochener Lauf hinterliess
+    `.github/workflows/ci.yml` mit kaputtem YAML und ein veraendertes
+    `hugin/icon-192.png` im Baum. `finally` laeuft nicht, wenn der Prozess
+    stirbt.
+
+    Geprueft wird die Eigenschaft, nicht der Vorsatz: nach einer echten
+    Mutation muss der Arbeitsbaum unveraendert sein — waehrend die Kopie
+    veraendert ist.
+    """
+    ziel = ".github/workflows/ci.yml"
+    vorher = (REPO / ziel).read_bytes()
+    with mutiert(ziel, "jobs:", "jobs:\n  # mutiert\n"):
+        assert (REPO / ziel).read_bytes() == vorher, \
+            "der Arbeitsbaum wurde veraendert — genau das soll die Kopie verhindern"
+        assert (sandkasten() / ziel).read_bytes() != vorher, \
+            "die Kopie wurde NICHT veraendert — dann mutiert der Test nichts"
+    assert (REPO / ziel).read_bytes() == vorher
+
+
+def test_the_sandbox_is_a_real_copy_of_the_working_tree():
+    """Kopiert wird der Arbeitsbaum, nicht `HEAD`: die Wachen sollen den
+    Stand pruefen, an dem gerade gearbeitet wird."""
+    kopie = sandkasten()
+    assert (kopie / "pyproject.toml").is_file()
+    for noetig in ("agents/brain.py", "scripts/repo_tracker.py",
+                   "config/plugins.json", "tests/test_brain.py"):
+        assert (kopie / noetig).is_file(), f"{noetig} fehlt in der Kopie"
+    # Bytegleich mit dem Arbeitsbaum, sonst prueften die Wachen etwas anderes.
+    assert (kopie / "agents/brain.py").read_bytes() == (REPO / "agents/brain.py").read_bytes()
+
+
+def test_the_sandbox_lives_outside_the_repository():
+    """Laege sie im Repo, taeuchte sie in `git status` auf und koennte
+    versehentlich committet werden."""
+    assert REPO not in sandkasten().parents, "Kopie liegt innerhalb des Repos"
 
 
 def verlangt_rot(ergebnis: subprocess.CompletedProcess, wache_name: str, defekt: str):
@@ -130,7 +234,10 @@ def test_guard_catches_icons_drifting_from_their_generator():
     Ein eingechecktes Binärartefakt ohne Generator veraltet stumm — genau
     deshalb prüft die Wache Datei gegen Generator statt gegen ein Abbild.
     """
-    p = REPO / "hugin" / "icon-192.png"
+    # In die Kopie, wie jede andere Mutation. `mutiert()` arbeitet auf Text;
+    # ein PNG wird byteweise verstuemmelt, deshalb hier von Hand — aber am
+    # selben Ort.
+    p = sandkasten() / "hugin" / "icon-192.png"
     original = p.read_bytes()
     try:
         p.write_bytes(original[:-40] + b"\x00" * 40)
@@ -168,13 +275,16 @@ def test_guard_catches_a_desynced_index_html():
     Die ausgelieferte Datei auf GitHub Pages ist `index.html`; weicht sie ab,
     ist die geprüfte Fassung nicht die betriebene.
     """
-    p = REPO / "hugin" / "index.html"
+    p = sandkasten() / "hugin" / "index.html"
     original = p.read_bytes()
     try:
         p.write_bytes(original + b"\n<!-- Drift -->\n")
+        # Der Audit muss dort laufen, wo die Mutation liegt. Mit `cwd=REPO`
+        # pruefte er den unveraenderten Baum und blieb zwangslaeufig gruen —
+        # der Metatest haette dann seine eigene Wirkungslosigkeit gemeldet.
         ergebnis = subprocess.run(
             [sys.executable, "scripts/repo_tracker.py", "audit"],
-            cwd=REPO, capture_output=True, text=True, timeout=300,
+            cwd=sandkasten(), capture_output=True, text=True, timeout=300,
         )
         assert "hugin_index_sync" in ergebnis.stdout
         assert "✗ hugin_index_sync" in ergebnis.stdout or ergebnis.returncode != 0, (

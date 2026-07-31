@@ -284,6 +284,19 @@ genau die zustaendige Wache faellt:
 | `Command.braucht` geleert | `tests/test_brain.py` |
 | `index.html` von `hugin.html` entkoppelt | Synergie-Regel `hugin_index_sync` |
 
+**Die Mutationen finden in einer Kopie statt, nie im Arbeitsbaum.** Bis
+2026-07-31 wurde die echte Datei veraendert und in `finally` zurueckgeschrieben
+— `finally` laeuft aber nicht, wenn der Prozess stirbt. Ein abgebrochener Lauf
+hinterliess `.github/workflows/ci.yml` mit kaputtem YAML und ein veraendertes
+`hugin/icon-192.png`; ein Commit in diesem Moment haette den Schaden nach git
+getragen. Messbare Folge: Metatests plus **irgendeine** zweite Testdatei waren
+in 3 von 6 Laeufen rot, weil die naechste Mutation ihre Vorlage in der bereits
+veraenderten Datei nicht mehr fand. Der alte Docstring begruendete das
+Vorgehen damit, Kopieren sei "langsam genug, dass der Test in CI uebersprungen
+wuerde" — eine Annahme, keine Messung: **378 getrackte Dateien, 3,3 MB,
+0,06 s**. Nachher 6 von 6 gruen, und drei harte `SIGKILL` mitten in der
+Mutation lassen den Baum unberuehrt.
+
 Schlaegt einer dieser Faelle fehl, ist die zugehoerige Wache **wirkungslos
 geworden** — und das erfaehrt man hier statt beim naechsten Ausfall im Betrieb.
 Die Mutation wird im Arbeitsbaum vorgenommen und in `finally` aus dem
