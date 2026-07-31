@@ -106,14 +106,35 @@ def test_setup_runs_and_can_fail():
 # Kein Schritt darf einen Menschen verlangen
 # ---------------------------------------------------------------------------
 
-def test_the_owner_token_comes_from_the_project_not_from_a_shell(monkeypatch):
+def test_the_owner_token_comes_from_the_project_not_from_a_shell(monkeypatch, tmp_path):
     """Der eigentliche Punkt: das Projekt stellt seinen Owner-Token selbst
     aus. Verlangte `verify` eine exportierte Variable, waere der Deploy nicht
-    automatisiert, sondern nur dokumentiert."""
+    automatisiert, sondern nur dokumentiert.
+
+    Geprueft wird in einem LEEREN HOME — also genau die Lage eines frisch
+    gebooteten Codespace. Die erste Fassung dieses Tests behauptete, der
+    Token sei immer ableitbar, und war auf dieser Maschine gruen, weil hier
+    laengst ein Seed lag. Auf dem CI-Runner fiel er sofort: ohne Seed gibt es
+    nichts abzuleiten. Der Test hatte damit die eigene Umgebung geprueft
+    statt die Zusicherung.
+
+    Die Zusicherung lautet nicht "immer ableitbar", sondern: **kein Mensch
+    noetig**. Genau diesen Weg geht der Devcontainer im postCreate.
+    """
     monkeypatch.delenv("HM_OWNER_TOKEN", raising=False)
-    umgebung = cc.eigene_umgebung()
-    assert umgebung.get("HM_OWNER_TOKEN"), \
-        "Token nicht ableitbar — dann braucht der Deploy einen Menschen"
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    # Vorher: leeres HOME, kein Seed, also auch kein Token.
+    assert not cc.eigene_umgebung().get("HM_OWNER_TOKEN"), \
+        "ohne Seed darf kein Token erscheinen — sonst kommt er von woanders"
+
+    # Der automatisierte Schritt, den postCreate faehrt. Kein Mensch beteiligt.
+    schritt = cc.s_schluessel(apply=True)
+    assert schritt.stand == cc.OK, schritt.detail
+
+    # Danach traegt es — ohne dass jemand etwas exportiert hat.
+    assert cc.eigene_umgebung().get("HM_OWNER_TOKEN"), \
+        "nach prepare immer noch kein Token — dann braucht der Deploy einen Menschen"
 
 
 def test_an_already_set_token_is_never_overwritten(monkeypatch):

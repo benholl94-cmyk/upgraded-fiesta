@@ -1,6 +1,6 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-07-31T14:56:08+00:00",
+  "ts": "2026-07-31T14:58:05+00:00",
   "offen": [
     {
       "id": "supervisor",
@@ -8,13 +8,6 @@
       "stand": "eskaliert",
       "detail": "[DRIFT    ] continuity: 1 Anker im Gedächtnis zeigen ins Leere",
       "braucht_master": "Diese Befunde verlangen eine Entscheidung — der Supervisor loest nie selbst auf."
-    },
-    {
-      "id": "tests",
-      "was": "Testsuite",
-      "stand": "eskaliert",
-      "detail": "1 failed, 985 passed, 6 skipped in 21.42s",
-      "braucht_master": "Ein roter Test ist keine mechanische Reparatur — welcher Code richtig ist, entscheidet kein Automat."
     },
     {
       "id": "clarity",
