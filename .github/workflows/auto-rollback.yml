@@ -1,0 +1,128 @@
+name: Auto-Rollback
+
+# Haelt main lauffaehig, ohne dass jemand nachts eingreift: bricht ein
+# Merge-Commit die CI, wird er zurueckgenommen.
+#
+# Die Entscheidung faellt NICHT hier, sondern in scripts/auto_rollback.py --
+# eine reine Funktion mit Tests. Dieser Workflow sammelt nur den Kontext ein
+# und fuehrt aus. Ein Rollback, das falsch ausloest, verwirft gute Arbeit;
+# die Logik dafuer gehoert an eine Stelle, die man testen kann.
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+    branches: [main]
+  # Manueller Nachvollzug: dieselbe Entscheidungslogik ohne auf einen echten
+  # CI-Fehlschlag warten zu muessen -- z.B. um decide() nach einer Aenderung
+  # an der Allowlist an einem konkreten historischen SHA gegenzupruefen.
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit-SHA, der bewertet werden soll"
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  decide:
+    # Automatisch nur bei Fehlschlag; manueller Dispatch laeuft immer --
+    # der Aufrufer hat die konkrete SHA absichtlich zur Pruefung angegeben.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 20        # genug fuer Vorgaenger und Revert-Historie
+
+      - name: Kontext einsammeln
+        id: ctx
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
+          # Bei Dispatch unbekannt, bis unten aus der Actions-API ermittelt --
+          # niemals als 'success' annehmen, nur weil kein workflow_run vorliegt.
+          DISPATCH_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SUBJECT="$(git log -1 --format=%s "$SHA")"
+          PREV="$(git rev-parse "${SHA}^" 2>/dev/null || echo '')"
+
+          # CI-Ergebnis des Vorgaengers. Nicht ermittelbar -> 'unknown',
+          # niemals stillschweigend als 'success' behandeln.
+          PREV_CONCLUSION=unknown
+          if [ -n "$PREV" ]; then
+            curl -sf -H "Authorization: Bearer $GH_TOKEN" \
+              "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${PREV}&per_page=20" \
+              > prev.json || echo '{}' > prev.json
+            PREV_CONCLUSION="$(python3 scripts/auto_rollback_ctx.py prev-conclusion prev.json)"
+          fi
+
+          # CONCLUSION kommt bei workflow_run direkt aus dem Event. Bei
+          # workflow_dispatch gibt es keins -- dann dasselbe Verfahren wie
+          # fuer den Vorgaenger, nur auf $SHA selbst statt $SHA^ angewandt.
+          if [ -n "$DISPATCH_CONCLUSION" ]; then
+            CONCLUSION="$DISPATCH_CONCLUSION"
+          else
+            curl -sf -H "Authorization: Bearer $GH_TOKEN" \
+              "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SHA}&per_page=20" \
+              > self.json || echo '{}' > self.json
+            CONCLUSION="$(python3 scripts/auto_rollback_ctx.py prev-conclusion self.json)"
+          fi
+
+          git log --since='6 hours ago' --grep='^Revert ' --format='%cI' main > reverts.txt || true
+
+          SHA="$SHA" SUBJECT="$SUBJECT" CONCLUSION="$CONCLUSION" \
+          PREV_CONCLUSION="$PREV_CONCLUSION" \
+            python3 scripts/auto_rollback_ctx.py build reverts.txt > ctx.json
+          cat ctx.json
+
+      - name: Entscheiden
+        id: decide
+        run: |
+          set +e
+          OUT="$(python3 scripts/auto_rollback.py decide --json "$(cat ctx.json)" --machine)"
+          echo "$OUT"
+          echo "decision<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$OUT" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "action=$(echo "$OUT" | python3 -c 'import json,sys;print(json.load(sys.stdin)["action"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Ruecknahme
+        if: steps.decide.outputs.action == 'REVERT'
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
+        run: |
+          set -euo pipefail
+          git config user.email "noreply@anthropic.com"
+          git config user.name "Auto-Rollback"
+          # -m 1 nur wenn es ein echter Merge-Commit ist; Squash-Commits haben
+          # keinen zweiten Elternteil.
+          if [ "$(git rev-list --parents -n1 "$SHA" | wc -w)" -gt 2 ]; then
+            git revert --no-edit -m 1 "$SHA"
+          else
+            git revert --no-edit "$SHA"
+          fi
+          git push origin main
+
+      - name: Befund als Issue festhalten
+        if: always() && steps.decide.outputs.action != 'NOOP'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
+          DECISION: ${{ steps.decide.outputs.decision }}
+          ACTION: ${{ steps.decide.outputs.action }}
+          RUN_URL: ${{ github.event.workflow_run.html_url || github.event.repository.html_url }}
+        run: |
+          set -euo pipefail
+          python3 scripts/auto_rollback_ctx.py issue-body > issue.json
+          curl -sf -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues" \
+            -d @issue.json > /dev/null

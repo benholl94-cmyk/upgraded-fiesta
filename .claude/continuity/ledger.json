@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated": "2026-07-28T22:23:02+00:00",
-  "session": 3,
+  "updated": "2026-07-31T09:27:04+00:00",
+  "session": 4,
   "entries": [
     {
       "id": "s2-1",
@@ -100,7 +100,7 @@
       "kind": "offen",
       "text": "Trigger trig_01XgF7i47UrreHKpTmexRyog traegt weiterhin den alten, branch-gebundenen Prompt; der korrigierte branchfreie Prompt konnte nicht eingespielt werden (MCP-Approval). Ebenso offen: delete_trigger fuer den obsoleten PR-Watch trig_01DM9E7i9BGBnFVSbFhWri35. Beides muss der Master ausloesen oder freigeben.",
       "anchors": [],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 3
     },
     {
@@ -378,7 +378,7 @@
         "sha:4b9c078",
         "path:HANDOFF.md"
       ],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 3
     },
     {
@@ -403,7 +403,7 @@
       "anchors": [
         "sha:7d812c4"
       ],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 1
     },
     {
@@ -693,6 +693,55 @@
       ],
       "state": "offen",
       "weight": 2
+    },
+    {
+      "id": "s4-1",
+      "session": 4,
+      "ts": "2026-07-31T09:21:45+00:00",
+      "kind": "entscheidung",
+      "text": "trig_01XgF7i47UrreHKpTmexRyog (tägliche Kontinuität) auf branchfreien Prompt korrigiert: prüft jetzt selbst git branch/status und setzt bei gemergtem/erledigtem Branch via git checkout -B claude/kontinuitaet-$(date +%Y%m%d) origin/main neu an, statt einen festen Branchnamen zu tragen (Invariante s2-10). Obsoleter PR-Watch-Trigger trig_01DM9E7i9BGBnFVSbFhWri35 (bereits run_once_fired) gelöscht.",
+      "anchors": [
+        "sha:dcf9c71"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-2",
+      "session": 4,
+      "ts": "2026-07-31T09:22:36+00:00",
+      "kind": "offen",
+      "text": "Ungelöste Kollision (nicht selbst auflösbar, Master-Entscheidung nötig): Verfassung verlangt Committer-Mail 274793931+benholl94-cmyk@users.noreply.github.com, der Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com. Beide Anforderungen schliessen sich aus. hook-drift diese Sitzung behoben (install_hooks.py --yes), identity-collision bleibt offen.",
+      "anchors": [
+        "path:.claude/persona/constitution.json"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-3",
+      "session": 4,
+      "ts": "2026-07-31T09:26:21+00:00",
+      "kind": "entscheidung",
+      "text": "Auto-Rollback (#77) wiederhergestellt (git revert 7d812c4) und den unknown-Bug behoben: Sperre 2 war Blockliste (== 'failure'), jetzt Allowlist (!= 'success'). previous_conclusion-Default in Context/from_dict von 'success' auf 'unknown' geändert. Ursache des Selbst-Reverts war exakt dieser Bug: erster Lauf hatte previous_conclusion='unknown', Blockliste liess es durch, Workflow revertierte seinen eigenen Einführungs-Commit. 7 neue parametrisierte Testfälle (unknown/cancelled/timed_out/neutral/action_required/stale/leer) ersetzen den alten Platzhaltertest, der beide Ausgänge akzeptierte. Workflow reaktiviert (nicht mehr disabled) — Sperre 3 (Circuit Breaker, max 2 Reverts/6h) bleibt als zusätzliche Absicherung bestehen, falls der Fix selbst fehlerhaft ist.",
+      "anchors": [
+        "sha:b724047",
+        "path:scripts/auto_rollback.py:125"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-4",
+      "session": 4,
+      "ts": "2026-07-31T09:27:04+00:00",
+      "kind": "offen",
+      "text": "PR #106 (fix(ci): auto-rollback Sperre 2 als Allowlist) offen, subscribed. Drive-to-green: CI-Fehler selbst fixen, Review-Kommentare beantworten, Subscription endet erst mit Merge/Close.",
+      "anchors": [
+        "sha:b724047"
+      ],
+      "state": "offen",
+      "weight": 1
     }
   ]
 }
