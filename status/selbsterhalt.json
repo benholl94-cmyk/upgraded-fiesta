@@ -1,13 +1,20 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-07-31T14:58:05+00:00",
+  "ts": "2026-07-31T14:31:41+00:00",
   "offen": [
     {
       "id": "supervisor",
       "was": "Verfassungs-Audit",
       "stand": "eskaliert",
-      "detail": "[DRIFT    ] continuity: 1 Anker im Gedächtnis zeigen ins Leere",
+      "detail": "[VIOLATION] git-committer-identity: Committer-Mail ist (leer), erwartet noreply@anthropic.com | [DRIFT    ] continuity: 3 Anker im Gedächtnis zeigen ins Leere | [RISK     ] hook-not-installed: stop-hook-git-check.sh liegt im Repo, ist aber nicht installiert",
       "braucht_master": "Diese Befunde verlangen eine Entscheidung — der Supervisor loest nie selbst auf."
+    },
+    {
+      "id": "tests",
+      "was": "Testsuite",
+      "stand": "eskaliert",
+      "detail": "/usr/bin/python3: No module named pytest",
+      "braucht_master": "Ein roter Test ist keine mechanische Reparatur — welcher Code richtig ist, entscheidet kein Automat."
     },
     {
       "id": "clarity",
@@ -20,10 +27,23 @@
       "id": "anker",
       "was": "Ledger-Anker",
       "stand": "eskaliert",
-      "detail": "  [rot] s3-19 → path:.github/workflows (Datei existiert nicht)",
+      "detail": "  [rot] s4-4 → sha:b724047 (Commit nicht im Repo)",
       "braucht_master": "Ein verrotteter Anker zeigt auf etwas, das es nicht mehr gibt — was an seine Stelle gehoert, weiss nur ein Mensch."
     }
   ],
-  "getan": [],
+  "getan": [
+    {
+      "id": "schluessel",
+      "was": "eigene Schluessel bereitstellen",
+      "stand": "getan",
+      "detail": "Seed erzeugt — die 6 projekteigenen Schluessel sind ableitbar"
+    },
+    {
+      "id": "workflow-yaml",
+      "was": "ci.yml und auto-rollback.yml wiederherstellen",
+      "stand": "getan",
+      "detail": "ci.yml gepatcht, auto-rollback.yml angelegt"
+    }
+  ],
   "zurueckgenommen": false
 }
