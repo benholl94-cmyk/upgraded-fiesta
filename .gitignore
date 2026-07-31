@@ -124,3 +124,9 @@ verify-backup-*.bin
 
 # Laufzeitprotokoll von `codeam_cli.py up`. Zustand eines Laufs, nicht Inhalt.
 status/codeam-gateway.log
+
+# Bau-Artefakte: entstehen im Workflow und werden dort als Artefakt
+# hochgeladen. Im Repo waeren sie ein Zustand, der beim naechsten Bau
+# veraltet — dieselbe Regel wie bei status/codeam-gateway.log.
+status/build-manifest.json
+status/deploy-contract.json
