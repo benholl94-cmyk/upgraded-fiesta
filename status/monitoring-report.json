@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-31T15:06:40.653422+00:00",
+  "generated_at": "2026-07-31T15:17:17.449746+00:00",
   "marker_failures": [],
   "missing_files": [],
   "ok": true,
@@ -51,7 +51,7 @@
       "exists": true,
       "is_file": true,
       "path": "scripts/codex_fullstack_check.sh",
-      "size_bytes": 1886
+      "size_bytes": 2449
     },
     {
       "exists": true,
