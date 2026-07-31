@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated": "2026-07-26T06:02:01+00:00",
-  "session": 2,
+  "updated": "2026-07-31T09:22:42+00:00",
+  "session": 3,
   "entries": [
     {
       "id": "s2-1",
@@ -199,7 +199,7 @@
       "kind": "offen",
       "text": "Trigger trig_01XgF7i47UrreHKpTmexRyog traegt weiterhin den alten, branch-gebundenen Prompt; der korrigierte branchfreie Prompt konnte nicht eingespielt werden (MCP-Approval). Ebenso offen: delete_trigger fuer den obsoleten PR-Watch trig_01DM9E7i9BGBnFVSbFhWri35. Beides muss der Master ausloesen oder freigeben.",
       "anchors": [],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 3
     },
     {
@@ -285,6 +285,30 @@
       ],
       "state": "offen",
       "weight": 3
+    },
+    {
+      "id": "s3-1",
+      "session": 3,
+      "ts": "2026-07-31T09:21:45+00:00",
+      "kind": "entscheidung",
+      "text": "trig_01XgF7i47UrreHKpTmexRyog (tägliche Kontinuität) auf branchfreien Prompt korrigiert: prüft jetzt selbst git branch/status und setzt bei gemergtem/erledigtem Branch via git checkout -B claude/kontinuitaet-$(date +%Y%m%d) origin/main neu an, statt einen festen Branchnamen zu tragen (Invariante s2-10). Obsoleter PR-Watch-Trigger trig_01DM9E7i9BGBnFVSbFhWri35 (bereits run_once_fired) gelöscht.",
+      "anchors": [
+        "sha:dcf9c71"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-2",
+      "session": 3,
+      "ts": "2026-07-31T09:22:36+00:00",
+      "kind": "offen",
+      "text": "Ungelöste Kollision (nicht selbst auflösbar, Master-Entscheidung nötig): Verfassung verlangt Committer-Mail 274793931+benholl94-cmyk@users.noreply.github.com, der Harness-Stop-Hook verlangt gleichzeitig noreply@anthropic.com. Beide Anforderungen schliessen sich aus. hook-drift diese Sitzung behoben (install_hooks.py --yes), identity-collision bleibt offen.",
+      "anchors": [
+        "path:.claude/persona/constitution.json"
+      ],
+      "state": "offen",
+      "weight": 1
     }
   ]
 }
