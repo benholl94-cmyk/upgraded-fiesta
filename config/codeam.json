@@ -1,0 +1,63 @@
+{
+  "schema": "codeam.repo.v1",
+
+  "_zweck": "Alles, was die CodeAgent-Mobile-App ueber DIESES Repo wissen muss, um es ohne Rueckfrage zu deployen. Vorkonfiguriert statt erfragt: wer eine Frage stellen muss, ist nicht automatisiert.",
+
+  "_quelle": "codeam-cli 2.61.76 (npm), README aus github.com/edgar-durand/codeagent-mobile-clients. `codeam deploy` legt einen GitHub-Codespace an, installiert Claude Code + codeam-cli darin und paart das Telefon. Der Codespace bootet aus .devcontainer/devcontainer.json — deshalb steht die eigentliche Einrichtung dort und nicht hier.",
+
+  "projekt": {
+    "name": "upgraded-fiesta",
+    "beschreibung": "Fullstack Heavy Metal — Rust-Gateway, HUGIN-PWA, MUNIN-Selbsterhalt",
+    "default_branch": "main",
+    "sprachen": ["rust", "python", "typescript"]
+  },
+
+  "dienst": {
+    "_hinweis": "Der Port ist die einzige Oberflaeche. Alles andere haengt daran.",
+    "port": 8080,
+    "bind_env": "HM_GATEWAY_BIND",
+    "bind_default": "0.0.0.0:8080",
+    "health": { "pfad": "/health", "methode": "GET", "erwartet_status": 200 },
+    "chat": {
+      "pfad": "/chat",
+      "methode": "POST",
+      "streamt": true,
+      "format": "text/event-stream, ein NDJSON-Ereignis je data:-Zeile",
+      "body": { "line": "<Befehl oder Frage>", "files": ["<relativer Pfad>"] },
+      "_client_hinweis": "fetch() + ReadableStream verwenden, NICHT EventSource — EventSource kann keinen Authorization-Header setzen, und diese Route ist bearer-gated."
+    },
+    "auth": {
+      "typ": "bearer",
+      "env": "HM_OWNER_TOKEN",
+      "_herkunft": "Wird vom Repo selbst ausgestellt: `python3 scripts/hugin_keyring.py init` dann `env`. Kein fremdes Konto noetig.",
+      "fail_closed": true,
+      "_fail_closed": "Ohne Token startet das Gateway absichtlich nicht. Das ist die Sperre, kein Fehler."
+    },
+    "cors": {
+      "env": "HM_ALLOWED_ORIGINS",
+      "_hinweis": "Nur noetig, wenn ein Browser den Port aufruft. Die App spricht direkt HTTP und braucht es nicht."
+    }
+  },
+
+  "befehle": {
+    "_hinweis": "Was ueber POST /chat gesendet werden kann. `/help` listet sie zur Laufzeit — diese Liste ist die vorkonfigurierte Fassung fuer die App-Oberflaeche.",
+    "vorschlaege": ["/help", "/tiers", "/status", "/tests", "/supervisor", "/struktur", "/ledger", "/persona", "/queue"]
+  },
+
+  "einrichtung": {
+    "_reihenfolge": "Genau diese Schritte, in dieser Reihenfolge. Jeder ist idempotent — ein zweiter Lauf aendert nichts.",
+    "schritte": [
+      "python3 scripts/codeam_cli.py prepare --yes",
+      "python3 scripts/codeam_cli.py verify"
+    ],
+    "start": "python3 scripts/codeam_cli.py up",
+    "dauer_sekunden_geschaetzt": 240,
+    "_dauer": "Dominiert vom Rust-Release-Build. Auf einem kalten Codespace laenger."
+  },
+
+  "grenzen": {
+    "kostenpflichtige_provider": "gesperrt (config/budget.json → development_phase). Ein Deploy darf daran nichts aendern.",
+    "lokales_modell": "nicht enthalten (6,6 GB). Ohne es antwortet der Kern auf Stufe T0 mit Belegen aus der Repo-Historie statt mit formuliertem Text.",
+    "_ehrlich": "Diese beiden Punkte sind Zustand, nicht Fehler. `python3 scripts/hugin_clarity.py --offen` zaehlt sie jederzeit nach."
+  }
+}

@@ -1,0 +1,251 @@
+name: Full Build · Deploy
+
+# Der Vollbau: aus dem Repo entstehen echte, herunterladbare Artefakte, und
+# das Containerimage wird gebaut, LIVE angesprochen und veroeffentlicht.
+#
+# WARUM DAS GEFEHLT HAT: gemessen am 2026-07-31 baute **kein einziger**
+# Workflow das Dockerfile, erzeugte kein Release-Binary, pruefte keine
+# systemd-Unit und fuhr kein `docker compose config`. Die Substanz lag
+# vollstaendig da; wer die Plattform betreiben wollte, musste sie selbst
+# bauen und hoffen, dass alles zusammenpasst.
+#
+# KEINE SECRETS. Veroeffentlicht wird nach GHCR mit dem eingebauten
+# `GITHUB_TOKEN`; ein Drittanbieter-Geheimnis kommt nirgends vor. Wo eine
+# Pflichtvariable nur fuer eine SYNTAXPRUEFUNG noetig ist, steht ein
+# ausdruecklicher Platzhalter — er wird nie exportiert und landet in keinem
+# Artefakt. `scripts/build_manifest.py` faehrt vor dem Schreiben dieselben
+# Muster wie der Secret-Scanner ueber seine eigene Ausgabe und bricht ab,
+# statt ein Geheimnis zu veroeffentlichen.
+#
+# WAS HIER NICHT LAEUFT: `cargo test --workspace`. Das tut ci.yml, und eine
+# zweite Stelle, die dasselbe prueft, driftet davon ab. Dieser Workflow
+# beantwortet eine andere Frage — laesst sich daraus etwas Betreibbares
+# herstellen.
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      veroeffentlichen:
+        description: "Image nach GHCR pushen (nur main)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: full-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/hm-gateway
+
+jobs:
+  binaries:
+    name: Rust · Release-Binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-release-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-release-
+
+      - name: Bauen
+        run: cargo build --release --workspace
+
+      - name: Artefakte einsammeln
+        run: |
+          set -euo pipefail
+          mkdir -p artefakte
+          for b in hm-gateway hm-tool-exec hm-cli; do
+            if [ -x "target/release/$b" ]; then
+              cp "target/release/$b" artefakte/
+            else
+              echo "::warning::target/release/$b wurde nicht gebaut"
+            fi
+          done
+          ls -lh artefakte/
+          # Pruefsummen ins Artefakt, damit ein Download nachrechenbar ist.
+          ( cd artefakte && sha256sum * > SHA256SUMS && cat SHA256SUMS )
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: artefakte/
+          retention-days: 30
+
+  frontend:
+    name: UI + PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: UI bauen
+        working-directory: ui
+        # `npm ci` scheitert hier: das Repo fuehrt bewusst kein Lockfile.
+        run: |
+          npm install --no-package-lock
+          npm run build
+
+      - name: PWA pruefen
+        # Die ausgelieferte Datei ist index.html; weicht sie ab, ist die
+        # gepruefte Fassung nicht die betriebene.
+        run: |
+          set -euo pipefail
+          if ! diff -q hugin/hugin.html hugin/index.html >/dev/null; then
+            echo "::error::hugin/index.html weicht von hugin.html ab"
+            exit 1
+          fi
+          echo "PWA synchron ✓"
+
+      - name: Bundle einsammeln
+        run: |
+          set -euo pipefail
+          mkdir -p artefakte
+          cp -r ui/dist artefakte/ui
+          mkdir -p artefakte/pwa && cp hugin/*.html hugin/*.json hugin/*.js hugin/*.png hugin/*.svg artefakte/pwa/ 2>/dev/null || true
+          du -sh artefakte/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: artefakte/
+          retention-days: 30
+
+  container:
+    name: Container · bauen, live pruefen, veroeffentlichen
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image bauen
+        run: docker build -t hm-gateway:ci .
+
+      - name: Live ansprechen
+        # Der eigentliche Beweis. Ein Image, das gebaut wurde, ist nicht
+        # dasselbe wie ein Image, das antwortet -- genau diese Luecke hat hier
+        # schon einmal die Plugin-Dispatch und danach den Chat gekostet, beide
+        # gruen im Checkout und tot im Container.
+        run: |
+          set -euo pipefail
+          TOKEN="ci-live-check-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+          docker run -d --name gw -p 8080:8080 \
+            -e HM_OWNER_TOKEN="$TOKEN" \
+            -e HM_GATEWAY_BIND=0.0.0.0:8080 \
+            -e HM_BRAIN_REPO=/app \
+            hm-gateway:ci
+          for i in $(seq 1 30); do
+            if curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/health >/dev/null 2>&1; then
+              echo "health nach ${i}s"; break
+            fi
+            sleep 1
+          done
+          echo "--- /health"
+          curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/health
+          echo "--- ohne Token muss 401 kommen"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health)" = "401"
+          echo "--- /chat streamt"
+          curl -fsS -N -X POST http://127.0.0.1:8080/chat \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"line":"/tiers"}' | tee /tmp/chat.txt | head -5
+          grep -q '"typ": "token"' /tmp/chat.txt
+          grep -q '\[DONE\]' /tmp/chat.txt
+          echo "--- Plugin-Dispatch im Image"
+          curl -fsS -X POST http://127.0.0.1:8080/tasks \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"task_type":"echo","payload":{"x":1}}' | tee /tmp/task.txt
+          grep -q 'plugin_dispatched' /tmp/task.txt
+
+      - name: Container-Protokoll
+        if: always()
+        run: docker logs gw 2>&1 | tail -40 || true
+
+      - name: Aufraeumen
+        if: always()
+        run: docker rm -f gw || true
+
+      - name: An GHCR anmelden
+        if: github.ref == 'refs/heads/main' || inputs.veroeffentlichen
+        # Der eingebaute Token. Kein Drittanbieter-Geheimnis im Spiel.
+        run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Veroeffentlichen
+        if: github.ref == 'refs/heads/main' || inputs.veroeffentlichen
+        run: |
+          set -euo pipefail
+          KURZ=$(git rev-parse --short HEAD)
+          docker tag hm-gateway:ci "$IMAGE:$KURZ"
+          docker tag hm-gateway:ci "$IMAGE:latest"
+          docker push "$IMAGE:$KURZ"
+          docker push "$IMAGE:latest"
+          echo "veroeffentlicht: $IMAGE:$KURZ"
+
+  manifest:
+    name: Build-Manifest · der Vertrag
+    needs: [binaries, frontend, container]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: target/release
+        continue-on-error: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: fe
+        continue-on-error: true
+
+      - name: Heruntergeladenes an seinen Platz
+        run: |
+          set -euo pipefail
+          mkdir -p ui/dist
+          [ -d fe/ui ] && cp -r fe/ui/. ui/dist/ || true
+          chmod +x target/release/* 2>/dev/null || true
+
+      - name: Manifest erzeugen
+        # Bricht selbst ab, wenn die eigene Ausgabe ein Geheimnis traegt.
+        run: python3 scripts/build_manifest.py --pruefen --out status/build-manifest.json
+
+      - name: Deploy-Vertrag erzeugen
+        # Das, was die CodeAgent-Mobile-App liest: Port, Auth-Variable,
+        # Routen, Grenzen. Namen von Variablen, nie Werte.
+        run: python3 scripts/codeam_cli.py describe > status/deploy-contract.json
+
+      - name: Beides anzeigen
+        run: |
+          echo "--- build-manifest.json"; cat status/build-manifest.json
+          echo "--- deploy-contract.json"; cat status/deploy-contract.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: platform-manifest
+          path: |
+            status/build-manifest.json
+            status/deploy-contract.json
+          retention-days: 90

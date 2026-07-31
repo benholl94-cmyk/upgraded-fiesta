@@ -289,10 +289,28 @@ def p_code() -> list[Punkt]:
     rb = REPO / ".github/workflows/auto-rollback.yml"
     ctx = REPO / "scripts/auto_rollback_ctx.py"
     vorhanden = rb.is_file() or ctx.is_file()
+    # Ausgefuehrt, nicht gelesen. Die erste Fassung suchte die Zeichenkette
+    # "unknown" in der Datei und meldete deshalb OFFEN, obwohl das Verhalten
+    # korrekt war: der Code behandelt den Fall ueber den Default von
+    # `ALLOWLIST.get(key, "HOLD")` und nennt ihn im deutschen Docstring
+    # "Unbekannte oder leere Conclusio". Ein Textvergleich ist Glauben, kein
+    # Nachrechnen — genau der Fehler, den dieses Skript sonst aufdeckt.
     hold_ok = False
     if ctx.is_file():
-        t = ctx.read_text(encoding="utf-8")
-        hold_ok = "unknown" in t and "HOLD" in t
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("_arb", ctx)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            # Jede Lage, die nicht ausdruecklich als Fehlschlag erkannt ist,
+            # muss HOLD ergeben — nie REVERT.
+            hold_ok = all(mod.decide(v) == "HOLD"
+                          for v in ("unknown", "", "voellig-neuer-zustand", None))
+        except Exception as exc:
+            # Nicht ladbar heisst nicht "in Ordnung": der Punkt bleibt OFFEN,
+            # und der Grund wird protokolliert statt verschluckt.
+            log.warning("auto_rollback_ctx nicht auswertbar: %s", exc)
+            hold_ok = False
     out.append(Punkt(
         "rollback-unknown", "Behandelt das Auto-Rollback ein unbekanntes "
                             "Vorgaenger-Ergebnis als HOLD?",

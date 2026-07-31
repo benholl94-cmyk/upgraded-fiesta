@@ -122,3 +122,25 @@ def test_only_a_genuine_startup_blocker_carries_the_flag():
     Unterscheidung wieder verloren."""
     markiert = {p.id for _, ps in hc.sammle() for p in ps if p.blockiert_start}
     assert markiert <= {"owner-token"}, f"unerwartete Startsperre: {markiert}"
+
+
+def test_the_rollback_check_executes_the_decision_instead_of_grepping():
+    """Mein eigener Fehler, festgehalten: die erste Fassung suchte die
+    Zeichenkette "unknown" in auto_rollback_ctx.py und meldete OFFEN, obwohl
+    das Verhalten korrekt war — der Code behandelt den Fall ueber den Default
+    von `ALLOWLIST.get(key, "HOLD")` und nennt ihn auf Deutsch.
+
+    Ein Textvergleich ist Glauben. Geprueft wird jetzt die Entscheidung."""
+    punkt = next(p for p in hc.p_code() if p.id == "rollback-unknown")
+    assert punkt.stand == hc.OK, punkt.gemessen
+
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "_arb", REPO / "scripts" / "auto_rollback_ctx.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    # Die Richtung, die zaehlt: ein "weiss nicht" darf nie zurueckrollen.
+    for unklar in ("unknown", "", None, "irgendwas-neues"):
+        assert mod.decide(unklar) == "HOLD", f"{unklar!r} ergab kein HOLD"
+    # Gegenprobe, damit der Test nicht durch ein pauschales HOLD besteht.
+    assert mod.decide("failure") == "REVERT"

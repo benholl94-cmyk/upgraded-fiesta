@@ -14,6 +14,105 @@
       "weight": 3
     },
     {
+      "id": "s2-2",
+      "session": 2,
+      "ts": "2026-07-26T04:57:58+00:00",
+      "kind": "sackgasse",
+      "text": "munin-state.json als Sitzungsgedaechtnis zu benutzen scheitert grundsaetzlich: die Datei steht in .gitignore:67, git hat sie nie gesehen, und in einem frischen Container brach 'munin_bridge.py wakeup' mit FileNotFoundError ab. Der Ignore-Eintrag ist aber richtig (Daemon-Live-Zustand) — die Loesung ist ein getrennter Kanal, nicht das Entfernen des Eintrags.",
+      "anchors": [
+        "path:.gitignore:67",
+        "path:scripts/munin_bridge.py:46"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-3",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "entscheidung",
+      "text": "Gespeichert wird nur das Komplement von git: Entscheidungen, Sackgassen, offene Fragen, Invarianten. Alles aus der History Ableitbare faellt weg — das ist Verdichtung statt Abschneiden. Texte werden nie gekuerzt, verworfen wird immer ein ganzer Eintrag.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-4",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "entscheidung",
+      "text": "Budget-Verdraengung ruehrt 'offen' und 'invariante' nie an. Reisst das Budget, meldet das Ledger RISK statt still zu vergessen — stilles Vergessen ist genau der Fehler, gegen den es gebaut ist.",
+      "anchors": [
+        "path:tests/test_munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-5",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "Auto-Rollback: 'unknown' muss HOLD ergeben, bevor der Workflow wieder nach main darf. Sperre 2 prueft nur == 'failure', der Sammler liefert an drei Stellen 'unknown', Context defaultet auf 'success'. Allowlist statt Blockliste, sonst wiederholt es sich bei 'cancelled'.",
+      "anchors": [
+        "sha:4b9c078",
+        "path:HANDOFF.md"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s2-6",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "TERMSHELL: Geraetebindung und Konsens. Beides zuerst eine Architekturentscheidung, nicht Code — agents/consensus.py ist Python, TERMSHELL ist buildlose Single-File-PWA; und ohne Server bindet localStorage an den Origin, nicht an ein Geraet.",
+      "anchors": [
+        "path:hugin/hugin.html:2233",
+        "path:agents/consensus.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-7",
+      "session": 2,
+      "ts": "2026-07-26T04:57:59+00:00",
+      "kind": "offen",
+      "text": "Auto-Rollback-Workflow ist derzeit nicht aktiv: er hat seinen eigenen Einfuehrungscommit revertiert. Schleifenschutz (Sperre 1) hat das nicht verhindert — vor Wiederinbetriebnahme pruefen.",
+      "anchors": [
+        "sha:7d812c4"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s2-8",
+      "session": 2,
+      "ts": "2026-07-26T05:02:00+00:00",
+      "kind": "invariante",
+      "text": "Die vom Routine-Trigger gestarteten Sitzungen laufen OHNE MCP-Connectors: kein mcp__github__, also keine PR-Erstellung, keine CI-Abfrage, keine Reviews. git push funktioniert (Git-Proxy), damit laeuft der Kern der Schleife resume->capture->seal. Alles PR-bezogene muss aus einer interaktiven Sitzung kommen. Trigger-ID trig_01XgF7i47UrreHKpTmexRyog, taeglich 06:00 UTC.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s2-9",
+      "session": 2,
+      "ts": "2026-07-26T05:19:54+00:00",
+      "kind": "sackgasse",
+      "text": "Einen festen Branch in den Trigger-Prompt zu schreiben scheitert beim ersten Merge: sobald der PR gemerged ist, kann der Branch keine neue Arbeit mehr tragen — weiterstapeln versteckt sie hinter einem erledigten PR. Beobachtet an PR #78, gemerged am Tag der Einrichtung. Der Prompt muss stattdessen selbst 'git fetch origin main && git checkout -B <neu> origin/main' ausfuehren.",
+      "anchors": [
+        "sha:b9be326"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
       "id": "s2-10",
       "session": 2,
       "ts": "2026-07-26T05:19:54+00:00",
@@ -100,7 +199,7 @@
       "kind": "offen",
       "text": "Trigger trig_01XgF7i47UrreHKpTmexRyog traegt weiterhin den alten, branch-gebundenen Prompt; der korrigierte branchfreie Prompt konnte nicht eingespielt werden (MCP-Approval). Ebenso offen: delete_trigger fuer den obsoleten PR-Watch trig_01DM9E7i9BGBnFVSbFhWri35. Beides muss der Master ausloesen oder freigeben.",
       "anchors": [],
-      "state": "erledigt",
+      "state": "offen",
       "weight": 3
     },
     {
@@ -124,19 +223,6 @@
       "anchors": [
         "path:.claude/hooks/stop-hook-git-check.sh",
         "path:tests/test_stop_hook.py"
-      ],
-      "state": "offen",
-      "weight": 3
-    },
-    {
-      "id": "s2-2",
-      "session": 2,
-      "ts": "2026-07-26T04:57:58+00:00",
-      "kind": "sackgasse",
-      "text": "munin-state.json als Sitzungsgedaechtnis zu benutzen scheitert grundsaetzlich: die Datei steht in .gitignore:67, git hat sie nie gesehen, und in einem frischen Container brach 'munin_bridge.py wakeup' mit FileNotFoundError ab. Der Ignore-Eintrag ist aber richtig (Daemon-Live-Zustand) — die Loesung ist ein getrennter Kanal, nicht das Entfernen des Eintrags.",
-      "anchors": [
-        "path:.gitignore:67",
-        "path:scripts/munin_bridge.py:46"
       ],
       "state": "offen",
       "weight": 3
@@ -261,18 +347,6 @@
       "weight": 1
     },
     {
-      "id": "s2-3",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "entscheidung",
-      "text": "Gespeichert wird nur das Komplement von git: Entscheidungen, Sackgassen, offene Fragen, Invarianten. Alles aus der History Ableitbare faellt weg — das ist Verdichtung statt Abschneiden. Texte werden nie gekuerzt, verworfen wird immer ein ganzer Eintrag.",
-      "anchors": [
-        "path:scripts/munin_continuity.py"
-      ],
-      "state": "offen",
-      "weight": 3
-    },
-    {
       "id": "s2-30",
       "session": 2,
       "ts": "2026-07-26T16:13:08+00:00",
@@ -357,80 +431,6 @@
       "weight": 2
     },
     {
-      "id": "s2-4",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "entscheidung",
-      "text": "Budget-Verdraengung ruehrt 'offen' und 'invariante' nie an. Reisst das Budget, meldet das Ledger RISK statt still zu vergessen — stilles Vergessen ist genau der Fehler, gegen den es gebaut ist.",
-      "anchors": [
-        "path:tests/test_munin_continuity.py"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s2-5",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "offen",
-      "text": "Auto-Rollback: 'unknown' muss HOLD ergeben, bevor der Workflow wieder nach main darf. Sperre 2 prueft nur == 'failure', der Sammler liefert an drei Stellen 'unknown', Context defaultet auf 'success'. Allowlist statt Blockliste, sonst wiederholt es sich bei 'cancelled'.",
-      "anchors": [
-        "sha:4b9c078",
-        "path:HANDOFF.md"
-      ],
-      "state": "erledigt",
-      "weight": 3
-    },
-    {
-      "id": "s2-6",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "offen",
-      "text": "TERMSHELL: Geraetebindung und Konsens. Beides zuerst eine Architekturentscheidung, nicht Code — agents/consensus.py ist Python, TERMSHELL ist buildlose Single-File-PWA; und ohne Server bindet localStorage an den Origin, nicht an ein Geraet.",
-      "anchors": [
-        "path:hugin/hugin.html:2233",
-        "path:agents/consensus.py"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s2-7",
-      "session": 2,
-      "ts": "2026-07-26T04:57:59+00:00",
-      "kind": "offen",
-      "text": "Auto-Rollback-Workflow ist derzeit nicht aktiv: er hat seinen eigenen Einfuehrungscommit revertiert. Schleifenschutz (Sperre 1) hat das nicht verhindert — vor Wiederinbetriebnahme pruefen.",
-      "anchors": [
-        "sha:7d812c4"
-      ],
-      "state": "erledigt",
-      "weight": 1
-    },
-    {
-      "id": "s2-8",
-      "session": 2,
-      "ts": "2026-07-26T05:02:00+00:00",
-      "kind": "invariante",
-      "text": "Die vom Routine-Trigger gestarteten Sitzungen laufen OHNE MCP-Connectors: kein mcp__github__, also keine PR-Erstellung, keine CI-Abfrage, keine Reviews. git push funktioniert (Git-Proxy), damit laeuft der Kern der Schleife resume->capture->seal. Alles PR-bezogene muss aus einer interaktiven Sitzung kommen. Trigger-ID trig_01XgF7i47UrreHKpTmexRyog, taeglich 06:00 UTC.",
-      "anchors": [
-        "path:scripts/munin_continuity.py"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s2-9",
-      "session": 2,
-      "ts": "2026-07-26T05:19:54+00:00",
-      "kind": "sackgasse",
-      "text": "Einen festen Branch in den Trigger-Prompt zu schreiben scheitert beim ersten Merge: sobald der PR gemerged ist, kann der Branch keine neue Arbeit mehr tragen — weiterstapeln versteckt sie hinter einem erledigten PR. Beobachtet an PR #78, gemerged am Tag der Einrichtung. Der Prompt muss stattdessen selbst 'git fetch origin main && git checkout -B <neu> origin/main' ausfuehren.",
-      "anchors": [
-        "sha:b9be326"
-      ],
-      "state": "offen",
-      "weight": 3
-    },
-    {
       "id": "s3-1",
       "session": 3,
       "ts": "2026-07-26T20:45:35+00:00",
@@ -438,54 +438,6 @@
       "text": "Jede Komponente gegen sich selbst zu testen laesst Vertragsbrueche an der Grenze ueberleben: das Gateway band 'taskType', hm-cli/hm-cron/alle vier Kanalcrates sendeten 'task_type'. serde(default) macht daraus einen Leerstring statt eines Fehlers, also HTTP 202 'accepted: true' und KEIN Plugin. Live gemessen: alle sechs Cron-Jobs und jede CLI-Einreichung liefen ins Leere, 511 Tests gruen. Ein Unit-Test kann das nie sehen. Nur ein Test, der die echte Binary ueber einen echten Socket anspricht, faengt es.",
       "anchors": [
         "path:crates/hm-sdk/src/lib.rs"
-      ],
-      "state": "offen",
-      "weight": 1
-    },
-    {
-      "id": "s3-10",
-      "session": 3,
-      "ts": "2026-07-26T21:13:12+00:00",
-      "kind": "sackgasse",
-      "text": "Einen Befehl im Container einfach laufen zu lassen, dem seine Dateien fehlen, erzeugt keine Fehlermeldung sondern eine falsche Antwort. Im Image-Layout gemessen: /struktur roher Traceback, /supervisor 'VIOLATION — 4 Befunde' (reine Artefakte, von echten Verstoessen nicht zu unterscheiden), /tests 'no tests ran' (leere, gruen wirkende Suite). Die letzten beiden sind die gefaehrlicheren, weil sie nach einem Ergebnis aussehen. Command.braucht prueft die Voraussetzung vorher.",
-      "anchors": [
-        "path:agents/brain.py"
-      ],
-      "state": "offen",
-      "weight": 1
-    },
-    {
-      "id": "s3-11",
-      "session": 3,
-      "ts": "2026-07-26T21:13:12+00:00",
-      "kind": "entscheidung",
-      "text": "Float-Sortierungen im Vektorindex nutzen total_cmp statt partial_cmp().unwrap(). Verworfen: NaN am Eingang abfangen — insert() nimmt rohe f32 und ein persistierter Index wird direkt deserialisiert, es gibt also mehr als einen Eingang. Das debug_assert in cosine_similarity faengt es nur im Debug-Build; im Release, also im Betrieb, trug die Sortierung die Panik. Deshalb testet der Gegentest die Sortierung selbst, nicht den Weg durch insert().",
-      "anchors": [
-        "path:crates/hm-vector/src/lib.rs"
-      ],
-      "state": "offen",
-      "weight": 2
-    },
-    {
-      "id": "s3-12",
-      "session": 3,
-      "ts": "2026-07-27T05:56:21+00:00",
-      "kind": "sackgasse",
-      "text": "Nur die am PR haengenden Checks abzufragen und daraus 'alles gruen' zu melden ist keine Pruefung, sondern eine Auswahl. munin-link-hourly.yml haengt an keinem PR (schedule + workflow_dispatch), scheiterte seit Stunden auf main UND auf jedem Feature-Branch, und tauchte in get_check_runs nie auf. Der Master hat es in seinem GitHub-Posteingang gesehen, ich nicht. Workflow-Laeufe immer ueber list_workflow_runs pruefen, nicht nur ueber die PR-Checkliste.",
-      "anchors": [
-        "path:.github/workflows/munin-link-hourly.yml"
-      ],
-      "state": "offen",
-      "weight": 1
-    },
-    {
-      "id": "s3-13",
-      "session": 3,
-      "ts": "2026-07-27T05:56:21+00:00",
-      "kind": "invariante",
-      "text": "Ein ': ' in einem unquotierten YAML-Wert bricht die Datei. 'run: cmd \"Text: mit Doppelpunkt\"' ist ungueltig — die Anfuehrungszeichen stehen IM plain scalar statt ihn zu begrenzen. GitHub startet eine unparsebare Workflow-Datei gar nicht: total_jobs 0, conclusion failure, und das bei jedem Push auf jeden Branch, weil Workflow-Dateien beim Push validiert werden. Immer 'run: |' als Block-Skalar verwenden.",
-      "anchors": [
-        "path:tests/test_workflows_parse.py"
       ],
       "state": "offen",
       "weight": 1
@@ -582,6 +534,54 @@
       "text": "Zustand, der einen Neustart ueberleben soll, wird atomar geschrieben: Temp-Datei im selben Verzeichnis, sync_all, rename. fs::write kuerzt zuerst und schreibt danach — ein Absturz dazwischen hinterlaesst eine halb geschriebene Datei. Hier kein Randfall: MemoryStore persistiert bei jedem remember(), hm-agent schreibt pro Task einen Eintrag. Temp-Name braucht einen Zaehler, sonst teilen sich zwei gleichzeitige Puts dieselbe Datei.",
       "anchors": [
         "path:crates/hm-storage/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-10",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "sackgasse",
+      "text": "Einen Befehl im Container einfach laufen zu lassen, dem seine Dateien fehlen, erzeugt keine Fehlermeldung sondern eine falsche Antwort. Im Image-Layout gemessen: /struktur roher Traceback, /supervisor 'VIOLATION — 4 Befunde' (reine Artefakte, von echten Verstoessen nicht zu unterscheiden), /tests 'no tests ran' (leere, gruen wirkende Suite). Die letzten beiden sind die gefaehrlicheren, weil sie nach einem Ergebnis aussehen. Command.braucht prueft die Voraussetzung vorher.",
+      "anchors": [
+        "path:agents/brain.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-11",
+      "session": 3,
+      "ts": "2026-07-26T21:13:12+00:00",
+      "kind": "entscheidung",
+      "text": "Float-Sortierungen im Vektorindex nutzen total_cmp statt partial_cmp().unwrap(). Verworfen: NaN am Eingang abfangen — insert() nimmt rohe f32 und ein persistierter Index wird direkt deserialisiert, es gibt also mehr als einen Eingang. Das debug_assert in cosine_similarity faengt es nur im Debug-Build; im Release, also im Betrieb, trug die Sortierung die Panik. Deshalb testet der Gegentest die Sortierung selbst, nicht den Weg durch insert().",
+      "anchors": [
+        "path:crates/hm-vector/src/lib.rs"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-12",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "sackgasse",
+      "text": "Nur die am PR haengenden Checks abzufragen und daraus 'alles gruen' zu melden ist keine Pruefung, sondern eine Auswahl. munin-link-hourly.yml haengt an keinem PR (schedule + workflow_dispatch), scheiterte seit Stunden auf main UND auf jedem Feature-Branch, und tauchte in get_check_runs nie auf. Der Master hat es in seinem GitHub-Posteingang gesehen, ich nicht. Workflow-Laeufe immer ueber list_workflow_runs pruefen, nicht nur ueber die PR-Checkliste.",
+      "anchors": [
+        "path:.github/workflows/munin-link-hourly.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s3-13",
+      "session": 3,
+      "ts": "2026-07-27T05:56:21+00:00",
+      "kind": "invariante",
+      "text": "Ein ': ' in einem unquotierten YAML-Wert bricht die Datei. 'run: cmd \"Text: mit Doppelpunkt\"' ist ungueltig — die Anfuehrungszeichen stehen IM plain scalar statt ihn zu begrenzen. GitHub startet eine unparsebare Workflow-Datei gar nicht: total_jobs 0, conclusion failure, und das bei jedem Push auf jeden Branch, weil Workflow-Dateien beim Push validiert werden. Immer 'run: |' als Block-Skalar verwenden.",
+      "anchors": [
+        "path:tests/test_workflows_parse.py"
       ],
       "state": "offen",
       "weight": 1
@@ -690,6 +690,42 @@
       "text": "Anker-Korrektur zu s3-19: gemeint war das Verzeichnis .github/workflows selbst (16 .yml-Dateien, inkl. auto-rollback.yml), nicht eine spezifische Datei. Anker war zu eng gegriffen — workflow-YAML-Edits landen im Verzeichnis, sind also weiterhin gueltige Andockstelle.",
       "anchors": [
         "path:.github/workflows/ci.yml"
+      ],
+      "state": "offen",
+      "weight": 2
+    },
+    {
+      "id": "s3-23",
+      "session": 3,
+      "ts": "2026-07-31T14:56:39+00:00",
+      "kind": "sackgasse",
+      "text": "Metatests in tests/test_meta_guards.py mutieren echte Quelldateien im Arbeitsbaum und stellen sie im finally wieder her. Wird der Lauf abgebrochen (Timeout, Kill), laeuft das finally NIE — ci.yml blieb mit kaputtem YAML und icon-192.png veraendert liegen. Gemessene Folge: Metatests + eine beliebige zweite Testdatei sind in 3 von 6 Laeufen rot, weil die naechste Mutation ihre Vorlage nicht mehr findet. Kein Wackeltest, sondern stille Beschaedigung getrackter Dateien.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-24",
+      "session": 3,
+      "ts": "2026-07-31T14:56:39+00:00",
+      "kind": "invariante",
+      "text": "Ein Deploy aus der App darf keine Stelle haben, an der ein Mensch eine Variable exportiert. Der Owner-Token wird aus dem projekteigenen Keyring abgeleitet (eigene_umgebung), nicht aus der aufrufenden Shell gelesen. Ein von aussen gesetzter Wert gewinnt, weil ein laufender Dienst ihn schon kennt.",
+      "anchors": [
+        "path:scripts/codeam_cli.py"
+      ],
+      "state": "offen",
+      "weight": 3
+    },
+    {
+      "id": "s3-25",
+      "session": 3,
+      "ts": "2026-07-31T14:56:39+00:00",
+      "kind": "entscheidung",
+      "text": "codeam_cli.py ist die repo-interne Gegenseite von codeam-cli (npm), kein Ersatz und kein Client des dortigen Backends. Verworfen: das npm-Paket nachbauen — es loest ein anderes Problem (Codespace anlegen, Agent installieren, Telefon paaren) und kennt das Repo bewusst nicht. Diese Datei sorgt dafuer, dass der Agent eine laufende Umgebung vorfindet.",
+      "anchors": [
+        "path:config/codeam.json"
       ],
       "state": "offen",
       "weight": 2

@@ -53,7 +53,17 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
   #
   # Der Platzhalter wird ausschliesslich hier gesetzt und nie exportiert;
   # ein tatsaechlich gesetztes Token gewinnt.
-  HM_OWNER_TOKEN="${HM_OWNER_TOKEN:-compose-syntax-check-only}" docker compose config >/dev/null
+  # Zwei Pflichtvariablen, nicht eine. Die erste Fassung setzte nur
+  # HM_OWNER_TOKEN -- POSTGRES_PASSWORD interpoliert docker-compose.yml
+  # ebenso mit `:?`, also scheiterte der Schritt weiterhin auf jedem frischen
+  # Checkout. Der Fix war beschrieben und wirkungslos; gemessen mit
+  # `docker compose config`, das prompt nach POSTGRES_PASSWORD verlangte.
+  #
+  # Beide Platzhalter gelten nur fuer diesen Aufruf und werden nie
+  # exportiert; tatsaechlich gesetzte Werte gewinnen.
+  HM_OWNER_TOKEN="${HM_OWNER_TOKEN:-compose-syntax-check-only}" \
+  POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-compose-syntax-check-only}" \
+    docker compose config >/dev/null
 else
   echo "docker compose not available; skipping Compose syntax check" >&2
 fi
