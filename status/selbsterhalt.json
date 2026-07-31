@@ -1,6 +1,6 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-07-31T14:31:41+00:00",
+  "ts": "2026-07-31T19:49:30+00:00",
   "offen": [
     {
       "id": "supervisor",
@@ -37,12 +37,6 @@
       "was": "eigene Schluessel bereitstellen",
       "stand": "getan",
       "detail": "Seed erzeugt — die 6 projekteigenen Schluessel sind ableitbar"
-    },
-    {
-      "id": "workflow-yaml",
-      "was": "ci.yml und auto-rollback.yml wiederherstellen",
-      "stand": "getan",
-      "detail": "ci.yml gepatcht, auto-rollback.yml angelegt"
     }
   ],
   "zurueckgenommen": false
