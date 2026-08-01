@@ -1,0 +1,190 @@
+name: Release
+
+# Ein Tag `v*` erzeugt das Release. Nicht ein Mensch, nicht ein Agent mit
+# einem API-Aufruf.
+#
+# WARUM SO: ein Release, das nur jemand mit den richtigen Rechten und dem
+# richtigen Werkzeug in der Hand herstellen kann, ist genau die Sorte
+# Abhaengigkeit, die dieses Repo loswerden soll. `git tag v1.0.0 && git push
+# --tags` genuegt — und zwar von jedem Geraet aus, auch vom Telefon ueber die
+# GitHub-Oberflaeche. Der Bau laeuft danach ohne weiteres Zutun.
+#
+# KEINE SECRETS. Veroeffentlicht wird mit dem eingebauten `GITHUB_TOKEN`:
+# nach GHCR und in die Releases desselben Repositories. Kein
+# Drittanbieter-Geheimnis kommt vor.
+#
+# DIE NOTIZ WIRD GERECHNET, NICHT GESCHRIEBEN. `scripts/release_notes.py`
+# liest ausschliesslich `status/build-manifest.json` und
+# `status/deploy-contract.json`; beide entstehen aus gelaufenen Befehlen.
+# Steht ein Wert dort nicht, steht er im Release nicht. Beide Erzeuger fahren
+# vor dem Schreiben die Muster des Secret-Scanners ueber ihre eigene Ausgabe
+# und brechen ab, statt etwas Geheimes zu veroeffentlichen.
+#
+# DAS IMAGE WIRD LIVE ANGESPROCHEN, BEVOR ES VEROEFFENTLICHT WIRD. Ein Image,
+# das gebaut wurde, ist nicht dasselbe wie ein Image, das antwortet — diese
+# Luecke hat hier schon die Plugin-Dispatch und danach den Chat gekostet,
+# beide gruen im Checkout und tot im Container. Ein Release ist der letzte
+# Ort, an dem dieser Unterschied auffallen darf.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag, der veroeffentlicht werden soll (muss existieren)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/hm-gateway
+
+jobs:
+  release:
+    name: Bauen, live pruefen, veroeffentlichen
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Tag feststellen
+        id: tag
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          [ -n "$TAG" ] || TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "kurz=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Release: $TAG"
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rust bauen
+        run: cargo build --release --workspace
+
+      - name: UI bauen
+        working-directory: ui
+        # `npm ci` scheitert hier: das Repo fuehrt bewusst kein Lockfile.
+        run: |
+          npm install --no-package-lock
+          npm run build
+
+      - name: PWA pruefen
+        # Die ausgelieferte Datei ist index.html; weicht sie ab, ist die
+        # gepruefte Fassung nicht die veroeffentlichte.
+        run: |
+          set -euo pipefail
+          diff -q hugin/hugin.html hugin/index.html
+          echo "PWA synchron ✓"
+
+      - name: Image bauen
+        run: docker build -t hm-gateway:rel .
+
+      - name: Image live ansprechen
+        run: |
+          set -euo pipefail
+          TOKEN="rel-live-check-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+          docker run -d --name gw -p 8080:8080 \
+            -e HM_OWNER_TOKEN="$TOKEN" \
+            -e HM_GATEWAY_BIND=0.0.0.0:8080 \
+            -e HM_BRAIN_REPO=/app \
+            hm-gateway:rel
+          for i in $(seq 1 30); do
+            curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          echo "--- /health"
+          curl -fsS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/health
+          echo "--- ohne Token muss 401 kommen"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health)" = "401"
+          echo "--- /chat streamt"
+          curl -fsS -N -X POST http://127.0.0.1:8080/chat \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"line":"/tiers"}' | tee /tmp/chat.txt | head -5
+          grep -q '"typ": "token"' /tmp/chat.txt
+          grep -q '\[DONE\]' /tmp/chat.txt
+          echo "--- Plugin-Dispatch im Image"
+          curl -fsS -X POST http://127.0.0.1:8080/tasks \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"task_type":"echo","payload":{"x":1}}' | tee /tmp/task.txt
+          grep -q 'plugin_dispatched' /tmp/task.txt
+
+      - name: Container-Protokoll
+        if: always()
+        run: docker logs gw 2>&1 | tail -40 || true
+
+      - name: Aufraeumen
+        if: always()
+        run: docker rm -f gw || true
+
+      - name: Manifest und Vertrag erzeugen
+        # Erst NACH der Live-Pruefung: das Manifest soll den Stand
+        # beschreiben, der tatsaechlich geantwortet hat.
+        run: |
+          set -euo pipefail
+          python3 scripts/build_manifest.py --pruefen --out status/build-manifest.json
+          python3 scripts/codeam_cli.py describe > status/deploy-contract.json
+
+      - name: Release-Notiz rechnen
+        run: |
+          set -euo pipefail
+          python3 scripts/release_notes.py \
+            --tag "${{ steps.tag.outputs.tag }}" \
+            --manifest status/build-manifest.json \
+            --vertrag status/deploy-contract.json \
+            --image "$IMAGE" \
+            --out status/release-notes.md
+          cat status/release-notes.md
+
+      - name: Artefakte einsammeln
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          for b in hm-gateway hm-tool-exec hm-cli; do
+            [ -x "target/release/$b" ] && cp "target/release/$b" release/ \
+              || echo "::warning::target/release/$b wurde nicht gebaut"
+          done
+          tar -czf release/hugin-pwa.tar.gz -C hugin .
+          tar -czf release/ui-dist.tar.gz -C ui/dist .
+          cp status/build-manifest.json status/deploy-contract.json release/
+          ( cd release && sha256sum * > SHA256SUMS && cat SHA256SUMS )
+
+      - name: An GHCR anmelden
+        run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Image veroeffentlichen
+        run: |
+          set -euo pipefail
+          docker tag hm-gateway:rel "$IMAGE:${{ steps.tag.outputs.tag }}"
+          docker tag hm-gateway:rel "$IMAGE:${{ steps.tag.outputs.kurz }}"
+          docker push "$IMAGE:${{ steps.tag.outputs.tag }}"
+          docker push "$IMAGE:${{ steps.tag.outputs.kurz }}"
+
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.tag.outputs.tag }}" \
+            --title "${{ steps.tag.outputs.tag }}" \
+            --notes-file status/release-notes.md \
+            release/*

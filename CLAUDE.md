@@ -152,6 +152,43 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+### Ein Release entsteht aus einem Tag, nicht aus einer Hand
+
+`.github/workflows/release.yml` haengt an `push: tags: ["v*"]`. Damit genuegt
+`git tag v1.0.0 && git push --tags` — von jedem Geraet, auch vom Telefon ueber
+die GitHub-Oberflaeche. Der Bau laeuft danach ohne weiteres Zutun: Rust-Release,
+UI, PWA-Synchronitaetspruefung, Containerimage, **Live-Ansprache des Images**
+(`/health`, 401 ohne Token, `/chat` bis `[DONE]`, `/tasks` bis
+`plugin_dispatched`), erst danach GHCR-Push und `gh release create`.
+
+Der Grund fuer die Reihenfolge ist derselbe wie ueberall hier: ein Image, das
+gebaut wurde, ist nicht dasselbe wie ein Image, das antwortet — diese Luecke hat
+schon die Plugin-Dispatch und danach den Chat gekostet, beide gruen im Checkout
+und tot im Container. Ein Release ist der letzte Ort, an dem das auffallen darf,
+also wird veroeffentlicht *nach* der Live-Pruefung, nicht davor.
+
+**Die Notiz wird gerechnet, nicht geschrieben.** `scripts/release_notes.py`
+liest ausschliesslich `status/build-manifest.json` und
+`status/deploy-contract.json`. Kein Wert darin ist von Hand hineingeschrieben;
+steht etwas dort nicht, steht es im Release nicht. Von Hand geschriebene
+Release-Notizen veralten ab dem naechsten Bau, ohne dass es jemand merkt —
+dieselbe Drift wie bei der Krate-Tabelle („intentional placeholders", waehrend
+die Kraten laengst echt waren) und der Zeile „31 Dateien getrackt trotz
+.gitignore", die lange nach dem Aufraeumen noch dastand.
+
+Der Abschnitt **„Was hier NICHT nachgewiesen ist" ist nicht optional**:
+gefallene und unbekannte Pruefungen erscheinen genauso wie bestandene, fehlende
+Artefakte werden als fehlend gefuehrt, und die dauerhaften Grenzen (keine
+Kanalkrate gegen eine echte Chat-Plattform getestet, kein lokales GGUF im
+Release) stehen auch in einem vollstaendig gruenen Lauf da. Eine Notiz, die nur
+Bestandenes zeigt, ist eine Auswahl und keine Aussage.
+`tests/test_release_notes.py` haelt beides fest — auch den Gegentest, der
+zaehlt: ein Geheimnis in der Notiz fuehrt nicht zu einer Warnung, sondern dazu,
+dass die Datei **nicht geschrieben** wird.
+
+Kein Drittanbieter-Geheimnis: veroeffentlicht wird mit dem eingebauten
+`GITHUB_TOKEN` nach GHCR und in die Releases desselben Repositories.
+
 ### Readiness vs. constitution: `scripts/hugin_clarity.py`
 
 The supervisor answers *may it be like this*. This one answers *does it carry
