@@ -208,3 +208,18 @@ def test_the_index_file_exists_and_is_current():
     assert p.is_file(), f"{hi.INDEX_DATEI} fehlt — --index laufen lassen"
     assert p.read_text(encoding="utf-8") == hi.index_md(hi.inventar()), \
         f"{hi.INDEX_DATEI} veraltet — python3 scripts/hugin_inventar.py --index"
+
+
+def test_the_inventory_reads_only_tracked_files():
+    """**In CI aufgefallen, und zu Recht.** Lokal lagen `status/`-Protokolle,
+    `vendor/llama.cpp` und ein 6,6-GB-Modell im Baum, auf dem Runner nicht.
+    Nennt eine ungetrackte Logdatei ein Skript, gilt es hier als erreichbar
+    und dort nicht — der eingecheckte Index wich vom gerechneten ab.
+
+    Ein Inventar des Repos muss lesen, was **im Repo** ist, nicht was
+    zufaellig im Arbeitsverzeichnis liegt. Dieselbe Regel wie im
+    Metatest-Sandkasten."""
+    baum = hi.Baum()
+    getrackt = set(hi._getrackt())
+    fremde = [rel for rel in baum.dateien if rel not in getrackt]
+    assert not fremde, f"ungetrackte Dateien im Inventar: {fremde[:5]}"

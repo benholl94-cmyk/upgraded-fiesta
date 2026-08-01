@@ -11,18 +11,18 @@
 
 | Teil | Grund | Befehl |
 |---|---|---|
-| `scripts/_migrate_to_log.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer _migrate_to_log.py ergaenzen` |
+| `scripts/_migrate_to_log.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/_migrate_to_log.py` |
 | `scripts/ashell_fullstack_up.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer ashell_fullstack_up.py ergaenzen` |
-| `scripts/ashell_remote_channel.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer ashell_remote_channel.py ergaenzen` |
+| `scripts/ashell_remote_channel.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/ashell_remote_channel.py` |
 | `scripts/ashell_signal_client_setup.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer ashell_signal_client_setup.py ergaenzen` |
 | `scripts/generate_crate_readmes.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer generate_crate_readmes.py ergaenzen` |
 | `scripts/hardware_console.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hardware_console.py ergaenzen` |
-| `scripts/hugin_growth.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_growth.py ergaenzen` |
+| `scripts/hugin_growth.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/hugin_growth.py` |
 | `scripts/hugin_limits.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_limits.py ergaenzen` |
 | `scripts/hugin_push.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_push.py ergaenzen` |
 | `scripts/hugin_reflect.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_reflect.py ergaenzen` |
-| `scripts/hugin_tool.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_tool.py ergaenzen` |
-| `scripts/mobile_rust_check.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer mobile_rust_check.py ergaenzen` |
+| `scripts/hugin_tool.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/hugin_tool.py` |
+| `scripts/mobile_rust_check.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/mobile_rust_check.py` |
 | `scripts/munin_bridge.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer munin_bridge.py ergaenzen` |
 | `scripts/rotation-daemon.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer rotation-daemon.py ergaenzen` |
 | `scripts/signal_cli_smoke_test.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer signal_cli_smoke_test.py ergaenzen` |

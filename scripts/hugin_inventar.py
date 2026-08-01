@@ -103,8 +103,34 @@ class Teil:
 # Der Baum, einmal gelesen
 # ---------------------------------------------------------------------------
 
+def _getrackt() -> list[str]:
+    """Nur, was git kennt.
+
+    **Sonst ist das Inventar nicht reproduzierbar** -- und genau das ist in
+    CI aufgefallen: lokal lagen `status/`-Protokolle, `vendor/llama.cpp` und
+    ein 6,6-GB-Modell im Baum, auf dem Runner nicht. Nennt eine ungetrackte
+    Logdatei ein Skript, gilt es hier als erreichbar und dort nicht -- der
+    eingecheckte Index wich vom gerechneten ab, und der Test fiel zu Recht.
+
+    Ein Inventar des Repos muss lesen, was **im Repo** ist, nicht was
+    zufaellig im Arbeitsverzeichnis liegt. Dieselbe Regel wie im
+    Metatest-Sandkasten, der ebenfalls ueber `git ls-files` geht.
+    """
+    import subprocess
+    try:
+        r = subprocess.run(["git", "ls-files", "-z"], cwd=REPO,
+                           capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        log.warning("git ls-files nicht ausfuehrbar: %s", exc)
+        return []
+    if r.returncode != 0:
+        log.warning("git ls-files: exit %s", r.returncode)
+        return []
+    return [x for x in r.stdout.split("\0") if x]
+
+
 class Baum:
-    """Alle Textdateien einmal im Speicher.
+    """Alle getrackten Textdateien einmal im Speicher.
 
     Je Teil erneut ueber das Repo zu greppen waere bei ~130 Teilen und ~400
     Dateien 52.000 Dateilesungen. Einmal lesen ist derselbe Gedanke wie beim
@@ -117,12 +143,11 @@ class Baum:
 
     def __init__(self) -> None:
         self.dateien: dict[str, str] = {}
-        for p in sorted(REPO.rglob("*")):
+        for rel in _getrackt():
+            p = REPO / rel
             if not p.is_file():
                 continue
-            rel = str(p.relative_to(REPO))
-            if rel.startswith((".git/", "target/", "node_modules/", "vendor/",
-                               "models/", "corpus/")):
+            if rel.startswith("corpus/"):
                 continue
             # DER EIGENE BERICHT ZAEHLT NICHT ALS NENNUNG. `docs/INVENTAR.md`
             # listet jeden Teil auf -- wer ihn mitliest, findet jeden Teil
