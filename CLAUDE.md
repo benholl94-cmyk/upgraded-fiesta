@@ -152,6 +152,51 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+### Inventar — kein Teil im Zustand „unbekannt"
+
+`scripts/hugin_inventar.py` beantwortet weder „laeuft es" (das tut
+`codeam_cli.py verify`) noch „darf es so sein" (`munin_supervisor.py`),
+sondern: **ist jeder Teil ueberhaupt erfasst — und wenn nicht, welcher Befehl
+schliesst ihn.**
+
+```sh
+python3 scripts/hugin_inventar.py            # Bericht je Art
+python3 scripts/hugin_inventar.py --offen    # nur das Schliessbare
+python3 scripts/hugin_inventar.py --index    # docs/INVENTAR.md erzeugen
+```
+
+Drei Zustaende: `geschlossen`, `offen` (**mit Befehl**), `extern` (von hier
+nicht entscheidbar). **`unbekannt` gibt es nicht** — was das Programm nicht
+einordnen kann, wird als `offen` gefuehrt und benannt, nie weggelassen.
+`extern` von `offen` zu trennen ist kein Komfort: eine Liste, die nie leer
+wird, wird nicht gelesen.
+
+Ein Teil, ueber den niemand etwas sagen kann, ist gefaehrlicher als ein
+kaputter — der kaputte faellt auf. Dieses Repo hat genau daran dreimal
+verloren: die Plugin-Dispatch, die im Image fehlte; der Chat, dessen
+`agents/` nicht kopiert wurde; die Erdung, die ohne `.git` von 178 auf 59
+Faelle fiel. Alle drei waren nicht kaputt, sondern **unerfasst**.
+
+**Drei eigene Messfehler, in `tests/test_inventar_und_skripte.py`
+festgehalten**, weil ein Befund, der keiner ist, die Glaubwuerdigkeit der
+ganzen Liste kostet:
+
+| Fehler | Folge | Behoben durch |
+|---|---|---|
+| `tests/` als einzige Testquelle | 12 von 20 Kraten faelschlich „ungeprueft" (Rust testet in `#[cfg(test)]`) | Modultests mitzaehlen |
+| Namenssuche bricht beim ersten Treffer ab | getestete Skripte gelten als ungeprueft (`import hugin_keyring` ohne `.py`) | Vereinigung statt erster Liste |
+| der eigene Bericht wird mitgelesen | Workflows sprangen 15/18 → 18/18, ohne Aenderung | `docs/INVENTAR.md` beim Messen ausklammern |
+
+Der letzte ist dieselbe **Selbstbezugs-Falle** wie beim Korpus, der seine
+eigenen Gegenbeispiele las — dreimal in einer Sitzung, jedes Mal anders
+verkleidet.
+
+`tests/test_inventar_und_skripte.py` traegt ausserdem eine **Grundwache ueber
+jedes Skript**, parametrisiert ueber die tatsaechliche Dateiliste statt ueber
+eine gepflegte Aufzaehlung: Syntax, Moduldocstring, `--help`, und **kein
+`shell=True` irgendwo**. Sie behauptet nicht, dass die Programme fachlich
+richtig sind — nur, dass sie startbar sind. Das ist wenig und es ist wahr.
+
 ### Der operative Weg — drei Befehle, sechs Beweise
 
 Es gibt **einen** Weg vom leeren Rechner zum befehligbaren System, und er ist
