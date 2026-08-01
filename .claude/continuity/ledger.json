@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-31T09:27:04+00:00",
+  "updated": "2026-07-31T15:26:48+00:00",
   "session": 4,
   "entries": [
     {
@@ -778,6 +778,18 @@
       ],
       "state": "offen",
       "weight": 1
+    },
+    {
+      "id": "s4-5",
+      "session": 4,
+      "ts": "2026-07-31T15:26:48+00:00",
+      "kind": "sackgasse",
+      "text": "Tests, die getrackte Dateien mutieren und im finally zurueckschreiben, beschaedigen den Baum bei Prozessabbruch — finally laeuft dann nicht. Konkret: ci.yml mit kaputtem YAML, icon-192.png veraendert. Die Begruendung 'Kopieren waere zu langsam' war eine Annahme; gemessen 378 Dateien, 3,3 MB, 0,06 s. Immer in einer Kopie mutieren.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 3
     }
   ]
 }
