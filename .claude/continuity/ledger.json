@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-08-01T21:12:24+00:00",
+  "updated": "2026-08-01T22:24:19+00:00",
   "session": 4,
   "entries": [
     {
@@ -811,6 +811,18 @@
       "text": "Tag-Push aus dieser Umgebung ist unmoeglich: 'git push origin refs/tags/v1.0.0' -> HTTP 403 am lokalen Git-Proxy (127.0.0.1:41729), und die GitHub-API fuer git/refs antwortet 'Bad credentials' (kein nutzbarer GITHUB_TOKEN). Der MCP-Server hat keinen create-ref/create-tag-Aufruf. Folge: v1.0.0 muss vom Master getaggt oder per 'Run workflow' ausgeloest werden.",
       "anchors": [
         "path:.github/workflows/release.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-8",
+      "session": 4,
+      "ts": "2026-08-01T22:24:19+00:00",
+      "kind": "invariante",
+      "text": "Es gibt EINEN operativen Weg: codeam_cli.py prepare/up/verify. Kein zweiter daneben — ein zweiter Weg ist die Stelle, an der beide auseinanderlaufen und niemand merkt, welcher der betriebene ist. verify fuehrt sechs Beweise; die vier Live-Beweise sind wortgleich die aus release.yml.",
+      "anchors": [
+        "path:scripts/codeam_cli.py"
       ],
       "state": "offen",
       "weight": 1

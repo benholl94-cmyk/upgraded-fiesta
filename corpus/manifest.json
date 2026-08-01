@@ -1,0 +1,45 @@
+{
+  "arten": {
+    "begruendung": 217,
+    "commit": 400,
+    "doku": 136,
+    "ledger-entscheidung": 16,
+    "ledger-invariante": 22,
+    "ledger-sackgasse": 21,
+    "rustdoc": 72
+  },
+  "dateien": {
+    "beispiele.md": {
+      "bytes": 7289,
+      "sha256": "10708b1c4d9462229cc3e13eb68f6404840268bd7b64d3d16e04d5b56e8a4821"
+    },
+    "chat.jsonl": {
+      "bytes": 609086,
+      "sha256": "f44cd82866c215c5836d4df7ccf46b0ff3532da9ee3b778f702ae1b00844a391"
+    },
+    "faelle.jsonl": {
+      "bytes": 577266,
+      "sha256": "d45f4faf8ac9f9ebd35ea3923f2fd77c30335110ee29973266702352043288eb"
+    },
+    "index.json": {
+      "bytes": 570882,
+      "sha256": "abba40cb6cb2d603755398decf5627028370da2f8b1119da3f395fb49f5ce762"
+    },
+    "instruct.jsonl": {
+      "bytes": 599580,
+      "sha256": "0833fa8518637d797825214db0f5e757007b00de2738a61de0d070633d1479f8"
+    }
+  },
+  "erzeugt": "2026-08-01T23:03:09+00:00",
+  "faelle": 884,
+  "herkunft": {
+    "commits": 400,
+    "docstrings": 217,
+    "ledger": 59,
+    "markdown": 136,
+    "rust": 72
+  },
+  "schema": "hugin.corpus.v1",
+  "stamm": 5,
+  "zeichen": 405565
+}

@@ -24,6 +24,12 @@ COPY scripts/ /app/scripts/
 # Checkout funktioniert und im Container tot ist. Dieselbe Fehlerklasse, die
 # hier schon einmal die Plugin-Dispatch im Image gekostet hat.
 COPY agents/ /app/agents/
+# Der vorgebaute Korpus. OHNE IHN IST DIE ERDUNG IM CONTAINER HALBIERT:
+# das Image hat kein .git, und `extract_cases` lieferte dort gemessen 59
+# statt 178 Faelle -- lautlos, waehrend die Antwort weiter aussah wie
+# eine Antwort. Dieselbe Luecke hat hier schon die Plugin-Dispatch und
+# danach den Chat gekostet, beide gruen im Checkout und tot im Container.
+COPY corpus/ /app/corpus/
 # .claude/ ist Datenquelle, nicht Konfiguration: der Kernel schliesst aus
 # dem Ledger (.claude/continuity/ledger.json), und die Regelschicht des
 # Kerns liegt in config/kern-persona.json. Fehlt das Ledger, antwortet der
