@@ -1,0 +1,30 @@
+{
+  "_hinweis": "Frei aenderbar. Wird angelegt, wenn sie fehlt -- eine Konfiguration, die man erst schreiben muss, bevor etwas laeuft, ist eine Huerde und keine Einstellung.",
+  "quellen": {
+    "ledger": true,
+    "commits": 400,
+    "markdown": [
+      "CLAUDE.md",
+      "AGENTS.md",
+      "docs"
+    ],
+    "docstrings": [
+      "scripts",
+      "tests",
+      "agents",
+      "plugins"
+    ],
+    "rust_moduldoc": [
+      "crates"
+    ]
+  },
+  "min_zeichen": 200,
+  "formate": [
+    "faelle",
+    "chat",
+    "instruct",
+    "index",
+    "beispiele"
+  ],
+  "beispiele_je_art": 2
+}

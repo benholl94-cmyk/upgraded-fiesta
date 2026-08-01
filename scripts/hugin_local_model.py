@@ -139,10 +139,29 @@ def laufzeit_bauen() -> int:
         return 1
 
     BIN_DIR.mkdir(parents=True, exist_ok=True)
-    for datei in (build / "bin").iterdir():
-        if datei.is_file() and (datei.name.startswith("lib") or datei.name.startswith("llama-")):
-            shutil.copy2(datei, BIN_DIR / datei.name)
-            (BIN_DIR / datei.name).chmod(0o755)
+    for datei in sorted((build / "bin").iterdir()):
+        if not (datei.is_file() and (datei.name.startswith("lib")
+                                     or datei.name.startswith("llama-"))):
+            continue
+        ziel = BIN_DIR / datei.name
+        # Temp-Datei daneben, dann `os.replace` -- NICHT direkt darueber
+        # kopieren. Gemessen: laeuft der `llama-server` bereits aus genau
+        # dieser Datei, scheitert `shutil.copy2` mit
+        # `OSError: [Errno 26] Text file busy`, und `setup` bricht ab,
+        # obwohl Modell und Dienst in Ordnung sind. Ein Rename ueber eine
+        # laufende Binaerdatei ist auf POSIX erlaubt: der laufende Prozess
+        # behaelt seinen alten Inode, neue Starts nehmen den neuen.
+        #
+        # Dieselbe Regel wie bei `LocalFsStorage::put` und aus demselben
+        # Grund: ein Ziel, das jemand gerade benutzt, wird nicht in place
+        # ueberschrieben.
+        temp = ziel.with_name(ziel.name + f".neu{os.getpid()}")
+        try:
+            shutil.copy2(datei, temp)
+            temp.chmod(0o755)
+            os.replace(temp, ziel)
+        finally:
+            temp.unlink(missing_ok=True)
     print(f"Laufzeit gebaut: {SERVER}")
     return 0
 

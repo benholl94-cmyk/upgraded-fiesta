@@ -170,8 +170,64 @@ def _anchor_rotted(anchors) -> bool:
     return False
 
 
+#: Der vorgebaute Korpus. Fehlt er, wird live extrahiert -- eine fehlende
+#: Datei darf die Erdung nicht abschalten.
+KORPUS = REPO / "corpus" / "faelle.jsonl"
+
+
+def _cases_aus_korpus() -> list[Case]:
+    """Den vorgebauten Korpus lesen, statt bei jeder Frage git zu befragen.
+
+    **Drei gemessene Gruende** (2026-08-01), und der dritte ist der teure:
+
+    * Die Live-Extraktion las bei *jeder* Frage 120 Commits nach --
+      0,58 s und ~240 Unterprozesse, pro Frage.
+    * Sie sah 178 Faelle mit 26.544 Zeichen. Der gebaute Korpus hat ueber
+      870 mit rund 500.000: Markdown-Abschnitte, Docstrings und
+      Rust-Moduldoku, in denen dieses Repo den groessten Teil seiner
+      Begruendungen ablegt.
+    * **Im Laufzeitimage gibt es kein `.git`.** Dort lieferte dieselbe
+      Funktion 59 statt 178 Faelle -- lautlos, und die Antwort sah
+      weiterhin aus wie eine Antwort. Der eingecheckte Korpus liegt im
+      Image und traegt dort, wo git fehlt.
+
+    Faellt die Datei weg, wird live extrahiert. Ein fehlender Korpus soll
+    langsamer und aermer machen, nicht stumm.
+    """
+    if not KORPUS.is_file():
+        return []
+    out: list[Case] = []
+    try:
+        roh = KORPUS.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    for zeile in roh.splitlines():
+        if not zeile.strip():
+            continue
+        try:
+            d = json.loads(zeile)
+        except json.JSONDecodeError:
+            continue
+        art = str(d.get("art", ""))
+        # Artnamen des Korpus auf die des Kerns abbilden: `Case.kind` steuert
+        # die Gewichtung, und ein unbekannter Wert faellt sonst still in den
+        # Standardfall.
+        kind = art.split("-", 1)[1] if art.startswith("ledger-") else art
+        anchors = tuple(d.get("anker", ()))
+        subs = {subsystem(p) for p in _anchor_paths(anchors)}
+        out.append(Case(cid=str(d.get("id", "")), kind=kind,
+                        text=str(d.get("text", "")),
+                        subsystems=frozenset(s for s in subs if s),
+                        anchors=anchors, rotted=False))
+    return out
+
+
 def extract_cases(commit_limit: int = 120) -> list[Case]:
-    """Faelle aus Ledger und git. Gemessen, nicht gepflegt."""
+    """Faelle aus dem gebauten Korpus, sonst live aus Ledger und git."""
+    vorgebaut = _cases_aus_korpus()
+    if vorgebaut:
+        return vorgebaut
+
     cases: list[Case] = []
 
     if LEDGER.is_file():
