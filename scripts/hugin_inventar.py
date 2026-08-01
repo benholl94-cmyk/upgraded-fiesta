@@ -195,26 +195,46 @@ def _dockerfile_deckt(baum: Baum, pfad: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def _sammeln() -> list[tuple[str, str]]:
+    """Die Teile -- ebenfalls nur getrackte.
+
+    `Baum` allein umzustellen reichte nicht: die Sammlung griff weiter
+    direkt aufs Dateisystem und nahm `config/knowledge-loop-state.json` und
+    `config/llm-active.json` mit -- beides ungetrackter Laufzeitzustand, der
+    lokal existiert und auf dem Runner nicht. Derselbe Fehler in der anderen
+    Haelfte, gefunden erst durch den Vergleich gegen einen frischen Klon.
+    """
+    getrackt = set(_getrackt())
+
+    def da(rel: str) -> bool:
+        return rel in getrackt
+
     out: list[tuple[str, str]] = []
     for p in sorted((REPO / "crates").rglob("Cargo.toml")):
-        out.append((str(p.parent.relative_to(REPO)), "krate"))
+        rel = str(p.parent.relative_to(REPO))
+        if da(str(p.relative_to(REPO))):
+            out.append((rel, "krate"))
     for p in sorted((REPO / "scripts").glob("*.py")):
-        out.append((str(p.relative_to(REPO)), "skript"))
+        if da(str(p.relative_to(REPO))):
+            out.append((str(p.relative_to(REPO)), "skript"))
     for p in sorted((REPO / "plugins").glob("*.py")):
-        out.append((str(p.relative_to(REPO)), "plugin"))
+        if da(str(p.relative_to(REPO))):
+            out.append((str(p.relative_to(REPO)), "plugin"))
     for p in sorted((REPO / ".github" / "workflows").glob("*.yml")):
-        out.append((str(p.relative_to(REPO)), "workflow"))
+        if da(str(p.relative_to(REPO))):
+            out.append((str(p.relative_to(REPO)), "workflow"))
     skills = REPO / ".claude" / "skills"
     if skills.is_dir():
         for p in sorted(skills.iterdir()):
             if p.is_dir():
                 out.append((str(p.relative_to(REPO)), "skill"))
     for p in sorted((REPO / "config").glob("*.json")):
-        out.append((str(p.relative_to(REPO)), "konfig"))
+        if da(str(p.relative_to(REPO))):
+            out.append((str(p.relative_to(REPO)), "konfig"))
     docs = REPO / "docs"
     if docs.is_dir():
         for p in sorted(docs.glob("*.md")):
-            out.append((str(p.relative_to(REPO)), "doku"))
+            if da(str(p.relative_to(REPO))):
+                out.append((str(p.relative_to(REPO)), "doku"))
     return out
 
 

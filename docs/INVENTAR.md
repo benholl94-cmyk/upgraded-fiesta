@@ -2,8 +2,8 @@
 
 **Erzeugt von `scripts/hugin_inventar.py --index`. Nicht von Hand aendern.** Jede Zeile ist gerechnet: erreichbar heisst, dass eine andere Datei im Repo diesen Teil nennt; geprueft heisst, dass eine Datei unter `tests/` ihn nennt.
 
-- Teile gesamt: **130**
-- geschlossen: **106**
+- Teile gesamt: **128**
+- geschlossen: **104**
 - offen: **24**
 - extern: **0**
 
@@ -55,7 +55,7 @@
 | `docs/ui-control-plane-implementation.md` | geschlossen | nein | nein |
 | `docs/xcloud-platform-plan.md` | geschlossen | nein | ja |
 
-## konfig — 14
+## konfig — 12
 
 | Teil | Zustand | geprueft | beschrieben |
 |---|---|---|---|
@@ -67,8 +67,6 @@
 | `config/heavy-metal.json` | geschlossen | nein | ja |
 | `config/kern-persona.json` | geschlossen | nein | nein |
 | `config/knowledge-feeds.json` | geschlossen | nein | ja |
-| `config/knowledge-loop-state.json` | geschlossen | nein | ja |
-| `config/llm-active.json` | geschlossen | ja | ja |
 | `config/llm-providers.json` | geschlossen | nein | nein |
 | `config/model.json` | geschlossen | ja | ja |
 | `config/plugins.json` | geschlossen | ja | ja |

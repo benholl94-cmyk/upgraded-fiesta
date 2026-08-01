@@ -223,3 +223,16 @@ def test_the_inventory_reads_only_tracked_files():
     getrackt = set(hi._getrackt())
     fremde = [rel for rel in baum.dateien if rel not in getrackt]
     assert not fremde, f"ungetrackte Dateien im Inventar: {fremde[:5]}"
+
+
+def test_untracked_runtime_state_is_not_a_part(teile):
+    """`Baum` allein umzustellen reichte nicht: die Teilesammlung griff
+    weiter direkt aufs Dateisystem und nahm `config/knowledge-loop-state.json`
+    und `config/llm-active.json` mit — ungetrackter Laufzeitzustand, der
+    lokal existiert und auf dem Runner nicht. Derselbe Fehler in der anderen
+    Haelfte, gefunden erst durch den Vergleich gegen einen frischen Klon."""
+    getrackt = set(hi._getrackt())
+    fremde = [t.pfad for t in teile if t.pfad not in getrackt
+              and not (REPO / t.pfad / "Cargo.toml").is_file()
+              and not (REPO / t.pfad).is_dir()]
+    assert not fremde, f"ungetrackte Teile im Inventar: {fremde}"
