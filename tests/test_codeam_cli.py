@@ -230,3 +230,17 @@ def test_prepare_without_yes_changes_nothing():
     cc.prepare(apply=False)
     nachher = seed.stat().st_mtime if seed.is_file() else None
     assert vorher == nachher
+
+
+def test_describe_enumerates_the_env_vars_the_gateway_actually_reads():
+    d = cc.describe()
+    dienst = json.dumps(d["dienst"], ensure_ascii=False)
+    for var in ("HM_OWNER_TOKEN", "HM_GATEWAY_ALLOW_NO_AUTH", "HM_BRAIN_REPO", "HM_BRAIN_PYTHON", "HM_ALLOWED_ORIGINS"):
+        assert var in dienst, f"{var} fehlt im appseitigen Vertrag"
+
+
+def test_preview_declares_the_required_env():
+    import json as _json
+    preview = _json.loads(pathlib.Path(".codeam/preview.json").read_text())
+    for var in ("HM_GATEWAY_BIND", "HM_OWNER_TOKEN", "HM_BRAIN_REPO", "HM_BRAIN_PYTHON"):
+        assert var in preview.get("required_env", []), f"{var} fehlt im preview.json required_env"

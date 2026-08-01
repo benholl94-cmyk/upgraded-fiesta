@@ -11,6 +11,12 @@
   "env": {
     "HM_GATEWAY_BIND": "0.0.0.0:8080"
   },
+  "required_env": [
+    "HM_GATEWAY_BIND",
+    "HM_OWNER_TOKEN",
+    "HM_BRAIN_REPO",
+    "HM_BRAIN_PYTHON"
+  ],
   "setup_commands": [],
   "notes": "Gateway boots without Postgres/Redis but full functionality needs them; UI in ui/ has no vite dev script — only the gateway binary serves the HTTP API."
 }
