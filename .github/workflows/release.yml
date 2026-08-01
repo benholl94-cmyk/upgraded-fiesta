@@ -32,7 +32,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag, der veroeffentlicht werden soll (muss existieren)"
+        description: "Tagname, z.B. v1.0.1 (wird angelegt, falls er fehlt)"
         required: true
         type: string
 
@@ -55,18 +55,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
+      # Kein `ref:`-Override. Bei einem Tag-Push IST `github.ref` der Tag; bei
+      # `workflow_dispatch` ist es der Branch, auf dem der Knopf gedrueckt
+      # wurde. Ein Override auf `inputs.tag` scheiterte genau dann, wenn der
+      # Tag noch nicht existiert — also im haeufigsten Fall vom Telefon aus,
+      # wo "Run workflow" antippen einfacher ist als einen Tag anzulegen.
+      # `gh release create` legt den Tag am ausgecheckten Commit an, wenn er
+      # fehlt; existiert er, wird er unveraendert benutzt.
       - name: Tag feststellen
         id: tag
         run: |
           set -euo pipefail
           TAG="${{ inputs.tag }}"
           [ -n "$TAG" ] || TAG="${GITHUB_REF#refs/tags/}"
+          case "$TAG" in
+            v*) ;;
+            *) echo "::error::Tagname muss mit 'v' beginnen: $TAG"; exit 1 ;;
+          esac
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "kurz=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-          echo "Release: $TAG"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Release: $TAG auf $(git rev-parse --short HEAD)"
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-node@v4
@@ -185,6 +196,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release create "${{ steps.tag.outputs.tag }}" \
+            --target "${{ steps.tag.outputs.sha }}" \
             --title "${{ steps.tag.outputs.tag }}" \
             --notes-file status/release-notes.md \
             release/*
