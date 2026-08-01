@@ -152,6 +152,45 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+### Der operative Weg — drei Befehle, sechs Beweise
+
+Es gibt **einen** Weg vom leeren Rechner zum befehligbaren System, und er ist
+`scripts/codeam_cli.py`. Kein zweiter daneben: ein zweiter Weg ist kein
+Rueckfallplan, sondern die Stelle, an der beide auseinanderlaufen und niemand
+merkt, welcher der betriebene ist.
+
+```sh
+python3 scripts/codeam_cli.py prepare --yes   # Werkzeuge, Schluessel, Bau, Selbsterhalt
+python3 scripts/codeam_cli.py up              # startet und wartet, bis er antwortet
+python3 scripts/codeam_cli.py verify          # sechs Beweise, Exit 1 bei jedem Fehlbefund
+```
+
+`up` gibt kein "gestartet" zurueck, weil `Popen` das nicht weiss: der Prozess
+kann in derselben Sekunde am fehlenden Token sterben — genau der vorgesehene
+fail-closed-Fall. Gewartet wird auf eine Antwort.
+
+**`verify` fuehrte lange genau einen Beweis und meldete trotzdem gruen.**
+`/health` antwortet sagt, dass ein Prozess lebt. Es sagt nicht, dass der
+Zugang gesperrt ist, und nicht, dass sich das System befehligen laesst — also
+gerade das nicht, was den Weg operativ macht. Jetzt sind es sechs, und es sind
+dieselben vier Live-Beweise, die `release.yml` am Containerimage fuehrt:
+
+| Beweis | Kriterium | warum nicht weniger |
+|---|---|---|
+| `startfrei` | `hugin_clarity.py --start` | verhindert etwas den Betrieb — nicht: begrenzt ihn |
+| `dienst` | TCP-Handschlag | ein Lookup ist keine Erreichbarkeit |
+| `health` | `200` **mit** Token | ein offener Port beweist nicht, dass es dieses Gateway ist |
+| `gesperrt` | `401` **ohne** Token | die einzige Pruefung, deren Erfolg ein Fehlercode ist |
+| `chat` | Stream bis `[DONE]` | ein Stream, der abbricht, sieht am Anfang aus wie einer, der traegt |
+| `dispatch` | `plugin_dispatched` | `202 accepted` hat das Gateway monatelang geantwortet, waehrend jeder Task ins Leere lief |
+
+`tests/test_codeam_verify.py` prueft jede Richtung gegen einen hermetischen
+Server im selben Prozess — auch die Gegenproben: ein **offenes** Gateway muss
+`gesperrt` fallen lassen, ein abgebrochener Stream muss `chat` fallen lassen,
+ein `unhandled` muss `dispatch` fallen lassen. Hermetisch deshalb, weil der
+Gegentest einen offenen Server braucht und ein absichtlich auth-freies Gateway
+auf einem echten Port nichts ist, was in einer Testsuite laufen sollte.
+
 ### Ein Release entsteht aus einem Tag, nicht aus einer Hand
 
 `.github/workflows/release.yml` haengt an `push: tags: ["v*"]`. Damit genuegt

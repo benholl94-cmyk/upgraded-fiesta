@@ -253,7 +253,15 @@ def verify() -> list[Schritt]:
                        f"Port {port} {'antwortet' if laeuft else 'still'}",
                        "" if laeuft else "python3 scripts/codeam_cli.py up"))
     if laeuft:
+        # Die vier Beweise, und zwar alle vier. `/health` allein sagt nur,
+        # dass ein Prozess lebt — nicht, dass der Zugang gesperrt ist und
+        # nicht, dass sich das System befehligen laesst. Genau dieselben vier
+        # fuehrt der Release-Workflow am Containerimage; ein Weg, der weniger
+        # prueft als sein eigenes Release, meldet gruen und traegt nicht.
         out.append(_health(k, umgebung))
+        out.append(_gesperrt(k))
+        out.append(_chat(k, umgebung))
+        out.append(_dispatch(k, umgebung))
     return out
 
 
@@ -279,6 +287,99 @@ def _health(k: dict, umgebung: dict | None = None) -> Schritt:
                        'eval "$(python3 scripts/hugin_keyring.py env)"' if e.code == 401 else "")
     except Exception as e:
         return Schritt("health", FEHLT, f"{type(e).__name__}: {e}")
+
+
+def _post(k: dict, pfad: str, koerper: dict, umgebung: dict | None,
+          timeout: int = 60) -> tuple[int, str]:
+    """Ein echter POST mit Token. Gibt (status, text) zurueck.
+
+    Kein `raise_for_status`: ein 401 ist hier eine *Messung*, kein Unfall,
+    und der Aufrufer entscheidet, ob er sie erwartet hat.
+    """
+    import urllib.error
+    import urllib.request
+    port = k["dienst"]["port"]
+    token = (umgebung or eigene_umgebung()).get(k["dienst"]["auth"]["env"], "")
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{port}{pfad}",
+        data=json.dumps(koerper).encode("utf-8"),
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/json"},
+        method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode("utf-8", "replace")
+
+
+def _gesperrt(k: dict) -> Schritt:
+    """Ohne Token muss 401 kommen — fail-closed, nicht fail-open.
+
+    Das ist die einzige Pruefung hier, deren *Erfolg* ein Fehlercode ist.
+    Ein 200 an dieser Stelle waere ein offenes Gateway, und das faellt sonst
+    niemandem auf: alle anderen Pruefungen wuerden weiter gruen melden.
+    """
+    import urllib.error
+    import urllib.request
+    port = k["dienst"]["port"]
+    pfad = k["dienst"]["health"]["pfad"]
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}{pfad}", timeout=5) as r:
+            return Schritt("gesperrt", FEHLT,
+                           f"ohne Token kam {r.status} statt 401 — Gateway offen",
+                           "HM_GATEWAY_ALLOW_NO_AUTH darf im Betrieb nicht gesetzt sein")
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return Schritt("gesperrt", OK, "ohne Token 401")
+        return Schritt("gesperrt", FEHLT, f"ohne Token {e.code} statt 401")
+    except Exception as e:
+        return Schritt("gesperrt", FEHLT, f"{type(e).__name__}: {e}")
+
+
+def _chat(k: dict, umgebung: dict | None = None) -> Schritt:
+    """Der Befehlskanal. Geprueft wird bis `[DONE]`, nicht bis zum ersten Byte.
+
+    Ein Stream, der beginnt und abbricht, sieht am Anfang genauso aus wie
+    einer, der traegt — deshalb ist das Ende das Kriterium.
+    """
+    status, text = _post(k, k["dienst"]["chat"]["pfad"], {"line": "/tiers"}, umgebung)
+    if status != 200:
+        return Schritt("chat", FEHLT, f"HTTP {status}")
+    if "[DONE]" not in text:
+        return Schritt("chat", FEHLT, "Stream endet ohne [DONE] — abgebrochen",
+                       "status/codeam-gateway.log ansehen")
+    stufe = ""
+    for zeile in text.splitlines():
+        if '"tier"' in zeile:
+            try:
+                stufe = json.loads(zeile.partition("data: ")[2]).get("meta", {}).get("tier", "")
+            except Exception:  # noqa: BLE001 — die Stufe ist Beiwerk, nicht das Kriterium
+                pass
+    return Schritt("chat", OK, f"streamt bis [DONE]" + (f", Stufe {stufe}" if stufe else ""))
+
+
+def _dispatch(k: dict, umgebung: dict | None = None) -> Schritt:
+    """Ein Task muss ein Plugin erreichen.
+
+    `202 accepted` allein ist hier wertlos: genau das hat das Gateway
+    monatelang geantwortet, waehrend jeder Task ins Leere lief. Das
+    Kriterium ist `plugin_dispatched`, nicht die Annahme.
+    """
+    status, text = _post(k, "/tasks",
+                         {"task_type": "echo", "payload": {"probe": "verify"}},
+                         umgebung)
+    if status not in (200, 202):
+        return Schritt("dispatch", FEHLT, f"HTTP {status}")
+    try:
+        d = json.loads(text)
+    except json.JSONDecodeError:
+        return Schritt("dispatch", FEHLT, "Antwort ist kein JSON")
+    if d.get("dispatch") != "plugin_dispatched":
+        return Schritt("dispatch", FEHLT,
+                       f"{d.get('dispatch', '?')}: {d.get('dispatch_reason', '')}",
+                       "config/plugins.json prueft der Metatest verbindungsrouten")
+    return Schritt("dispatch", OK, "echo erreicht das Plugin")
 
 
 # ---------------------------------------------------------------------------
