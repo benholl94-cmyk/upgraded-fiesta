@@ -271,7 +271,7 @@ def r_workflow_yaml(apply: bool) -> Schritt:
 # Reparaturskripts gehoert -- wer das Skript aendert, sieht, was es wieder
 # herstellt. Issue #94 hat die Vorlage festgelegt; Aenderungen am Workflow
 # sind daher am Skript, nicht am Workflow selbst zu pflegen.
-_AUTO_ROLLBACK_YML = """\
+_AUTO_ROLLBACK_YML = r"""\
 name: Auto-Rollback
 
 # Haelt main lauffaehig, ohne dass jemand nachts eingreift: bricht ein

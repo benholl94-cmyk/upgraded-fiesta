@@ -2,7 +2,7 @@
 
 Erzeugt von `scripts/hugin_corpus.py`. Nicht von Hand aendern: der naechste Bau ueberschreibt die Datei.
 
-## begruendung — 217 Faelle
+## begruendung — 238 Faelle
 
 **scripts/release_notes.py:scripts/release_notes.py** · `scripts/release_notes.py`
 
@@ -46,7 +46,7 @@ Update visible monitoring report
 Update visible monitoring report
 ```
 
-## doku — 136 Faelle
+## doku — 145 Faelle
 
 **Architecture: rest of the Rust workspace** · `CLAUDE.md`
 

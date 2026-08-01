@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""ashell_fullstack_up.py -- Fullstack-Zustand aus der lokalen SQLite lesen.
+
+Liest den in `ashell`-Sitzungen gefuehrten Bestand und gibt ihn als JSON
+aus. Ein reines Lesewerkzeug: es startet nichts und aendert nichts.
+
+Der operative Weg ist `scripts/codeam_cli.py` -- dieses Skript ist eine
+Auskunft, kein zweiter Startpfad.
+"""
 from __future__ import annotations
 
 import json

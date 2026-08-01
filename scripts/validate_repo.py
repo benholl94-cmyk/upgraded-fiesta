@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""validate_repo.py -- strukturelle Pruefung: liegt ueberhaupt da, was liegen muss.
+
+Prueft die Pflichtdateien des Repos, die Workspace-Mitglieder in
+`Cargo.toml` und die Lesbarkeit der JSON-Konfigurationen. Absichtlich
+duemmer als jede andere Wache hier: sie stellt keine Frage nach Richtigkeit,
+nur nach Vorhandensein -- und laeuft deshalb auch dann, wenn sonst nichts
+mehr laeuft.
+
+Sie ist der erste Schritt in `scripts/codex_fullstack_check.sh` und im
+Build-Manifest die Pruefung `repo-struktur`.
+"""
 from __future__ import annotations
 import json, tomllib
 from pathlib import Path

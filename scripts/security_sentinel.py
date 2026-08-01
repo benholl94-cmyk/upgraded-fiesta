@@ -1,3 +1,14 @@
+"""security_sentinel.py -- sucht Geheimnisse und unsichere Muster im Baum.
+
+Faehrt die bekannten Schluesselmuster (OpenAI, GitHub, Google, Slack,
+private Schluessel, selbst ausgestellte Projektschluessel) ueber die
+getrackten Dateien und meldet Treffer.
+
+`KNOWN_SAFE_ENV` ist eine Ausnahmeliste und deshalb die gefaehrlichste
+Zeile der Datei: ein Eintrag, der auf eine geloeschte Datei zeigt, ist kein
+toter Code, sondern ein Loch -- er befreit stillschweigend, was spaeter an
+diesem Pfad auftaucht. Genau das ist hier schon passiert.
+"""
 
 # Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
 # aufgerufen waere ein No-Op, weil `_configure_once()` einen

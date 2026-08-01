@@ -1,3 +1,14 @@
+"""echo_plugin.py -- die Referenzimplementierung des hm-plugins-Protokolls.
+
+Eine Zeile JSON auf stdin herein (`PluginRequest`), eine Zeile JSON auf
+stdout hinaus (`PluginResponse`), 5 s Zeitfenster. Mehr ist das Protokoll
+nicht, und dieses Plugin ist der kuerzeste vollstaendige Beleg dafuer.
+
+Es ist zugleich der Task-Typ `echo`, mit dem `codeam_cli.py verify` und der
+Release-Workflow nachweisen, dass ein Task ein Plugin wirklich erreicht --
+`202 accepted` allein hat das Gateway monatelang geantwortet, waehrend
+jeder Task ins Leere lief.
+"""
 
 # Strukturiertes Logging (Plan B.3). Idempotent -- mehrfach
 # aufgerufen waere ein No-Op, weil `_configure_once()` einen
