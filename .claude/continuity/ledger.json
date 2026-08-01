@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-07-31T15:26:48+00:00",
+  "updated": "2026-08-01T21:12:24+00:00",
   "session": 4,
   "entries": [
     {
@@ -790,6 +790,30 @@
       ],
       "state": "offen",
       "weight": 3
+    },
+    {
+      "id": "s4-6",
+      "session": 4,
+      "ts": "2026-08-01T21:12:24+00:00",
+      "kind": "entscheidung",
+      "text": "Release entsteht aus einem Tag (.github/workflows/release.yml, push: tags v*), nicht aus einem API-Aufruf einer Sitzung. Verworfene Alternative: gh/API-Release direkt aus der Sitzung — dieselbe Sackgasse wie jeder Befehl in einer sterbenden Shell. Notiz wird aus build-manifest.json + deploy-contract.json gerechnet (scripts/release_notes.py), kein Wert von Hand.",
+      "anchors": [
+        "path:.github/workflows/release.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-7",
+      "session": 4,
+      "ts": "2026-08-01T21:12:24+00:00",
+      "kind": "sackgasse",
+      "text": "Tag-Push aus dieser Umgebung ist unmoeglich: 'git push origin refs/tags/v1.0.0' -> HTTP 403 am lokalen Git-Proxy (127.0.0.1:41729), und die GitHub-API fuer git/refs antwortet 'Bad credentials' (kein nutzbarer GITHUB_TOKEN). Der MCP-Server hat keinen create-ref/create-tag-Aufruf. Folge: v1.0.0 muss vom Master getaggt oder per 'Run workflow' ausgeloest werden.",
+      "anchors": [
+        "path:.github/workflows/release.yml"
+      ],
+      "state": "offen",
+      "weight": 1
     }
   ]
 }

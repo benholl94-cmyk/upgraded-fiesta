@@ -182,6 +182,16 @@ def test_the_image_is_checked_live_before_it_is_published():
         "veroeffentlicht, bevor geprueft wurde"
 
 
+def test_the_workflow_does_not_check_out_a_tag_that_may_not_exist_yet():
+    """Ein `ref: inputs.tag`-Override scheiterte genau dann, wenn der Tag noch
+    nicht existiert — also im haeufigsten Fall vom Telefon aus, wo "Run
+    workflow" antippen einfacher ist als einen Tag anzulegen. `gh release
+    create --target <sha>` legt ihn am ausgecheckten Commit an."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "ref: ${{ inputs.tag" not in text
+    assert "--target" in text, "Tag wuerde am Default-Branch statt am Bau haengen"
+
+
 def test_the_notes_are_computed_from_the_manifest_in_the_workflow():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "scripts/build_manifest.py --pruefen" in text
