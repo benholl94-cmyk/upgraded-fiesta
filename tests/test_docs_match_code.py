@@ -93,13 +93,21 @@ def _summary() -> str:
     return f"doc={len(_DOC_ROUTES)} routes, code={len(_CODE_ROUTES)} routes"
 
 
-@pytest.mark.skipif(not DOC.is_file(),
-                    reason="docs/production-api-contract.md fehlt")
-@pytest.mark.skipif(not GW_MAIN.is_file(),
-                    reason="crates/hm-gateway/src/main.rs fehlt")
 def test_documented_routes_exist_in_code() -> None:
     """Jede Route, die im Production-API-Contract dokumentiert ist,
-    MUSS auch im Code existieren."""
+    MUSS auch im Code existieren.
+
+    **Die beiden `skipif` sind entfernt, und das war eine Korrektur.** Sie
+    uebersprangen den Test, wenn `docs/production-api-contract.md` oder
+    `crates/hm-gateway/src/main.rs` fehlt. Beides waere aber kein
+    Umgebungsfakt, sondern ein **Defekt** — und ein Test, der genau dann
+    still uebersprungen wird, verdeckt ihn. Fehlt eine der Dateien, soll
+    dieser Test laut fallen.
+    """
+    for pfad in (DOC, GW_MAIN):
+        assert pfad.is_file(), (
+            f"{pfad.relative_to(REPO)} fehlt — das ist ein Defekt, kein Grund "
+            "zum Ueberspringen")
     missing = sorted(_DOC_ROUTES - _CODE_ROUTES)
     assert not missing, (
         f"{len(missing)} Route(n) sind in docs/production-api-contract.md "

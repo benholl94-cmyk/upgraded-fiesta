@@ -1,3 +1,23 @@
+# Fullstack-Compose: Datenschicht, zwei Gateways, Lastverteiler, UI.
+#
+# ACHTUNG, RELATIVE PFADE. Diese Datei liegt in `deploy/`, und docker compose
+# loest `./` gegen das Verzeichnis der Compose-Datei auf -- nicht gegen die
+# Repo-Wurzel. Drei Pfade zeigten deshalb ins Leere und wurden beim ersten
+# echten Lauf am 2026-08-02 gefunden:
+#
+#   ./scripts/init-db.sql   -> deploy/scripts/init-db.sql  (existiert nicht)
+#   ./config/nginx-lb.conf  -> deploy/config/nginx-lb.conf (existiert nicht)
+#   context: .              -> deploy/                     (kein Dockerfile)
+#
+# Der erste war der luetteste: Docker legt fuer einen fehlenden Bind-Mount ein
+# VERZEICHNIS an, statt zu scheitern. Postgres startete, legte die Datenbank
+# an und starb dann an `psql: could not read from input file: Is a directory`
+# -- eine Fehlermeldung ueber ein Verzeichnis, das es vorher nicht gab.
+#
+# `docker compose config` konnte das nicht finden: es prueft Syntax, nicht ob
+# ein Bind-Mount-Ziel existiert. Deshalb stand diese Datei monatelang als
+# "gueltig" im Build-Manifest und war trotzdem nicht startbar.
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -7,7 +27,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-heavy_metal}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ../scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
       - "${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -31,7 +51,7 @@ services:
 
   gateway:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     environment:
       HM_OWNER_TOKEN: "${HM_OWNER_TOKEN:?HM_OWNER_TOKEN is required}"
@@ -62,7 +82,7 @@ services:
 
   gateway-b:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     environment:
       HM_OWNER_TOKEN: "${HM_OWNER_TOKEN:?HM_OWNER_TOKEN is required}"
@@ -91,7 +111,7 @@ services:
   nginx-lb:
     image: nginx:1.27-alpine
     volumes:
-      - ./config/nginx-lb.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../config/nginx-lb.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       gateway:
         condition: service_healthy
@@ -103,7 +123,7 @@ services:
 
   ui:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile.ui
     depends_on:
       nginx-lb:

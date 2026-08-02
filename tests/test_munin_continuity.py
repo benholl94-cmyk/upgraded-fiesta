@@ -174,9 +174,25 @@ def test_anker_auf_gueltige_zeile_traegt():
     assert status == "ok"
 
 
-def test_anker_auf_erfundenen_commit_ist_rot():
-    status, _ = mc.verify_anchor("sha:" + "0" * 40)
-    assert status == "rot"
+def test_anker_auf_erfundenen_commit_gilt_nie_als_gesund():
+    """Ein erfundener Commit darf **nie** als geprueft durchgehen.
+
+    Die vorige Fassung verlangte genau `rot`. Das war eine Beschriftung,
+    keine Eigenschaft: in einem **flachen Klon** (CI checkt mit
+    `fetch-depth: 1` aus) ist ein unaufloesbarer SHA nicht entscheidbar und
+    heisst darum `extern` — dieselbe dritte Kategorie wie in
+    `hugin_clarity.py`. Der Test fiel damit auf dem Runner, obwohl die
+    Wache genau richtig arbeitete.
+
+    Zugesichert wird deshalb, worauf es ankommt: nicht `ok`. In einem
+    vollen Klon bleibt es `rot`, und das ist die schaerfere Aussage.
+    """
+    status, detail = mc.verify_anchor("sha:" + "0" * 40)
+    assert status != "ok", detail
+    assert status in ("rot", "extern")
+    flach = mc.git("rev-parse", "--is-shallow-repository").stdout.strip() == "true"
+    if not flach:
+        assert status == "rot", "im vollen Klon ist die Aussage sicher"
 
 
 def test_nicht_pruefbarer_anker_heisst_extern_nicht_ok():

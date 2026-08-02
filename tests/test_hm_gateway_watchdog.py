@@ -53,9 +53,14 @@ def test_unreachable_gateway_reports_unhealthy_without_restarting() -> None:
 def test_healthy_gateway_reports_ok(tmp_path: pathlib.Path) -> None:
     repo_root = pathlib.Path(__file__).resolve().parents[1]
     gateway_bin = repo_root / "target" / "debug" / "hm-gateway"
-    if not gateway_bin.is_file():
-        import pytest
-        pytest.skip("hm-gateway debug binary not built")
+    # KEIN SKIP. Dieser Test startet einen echten Gateway-Unterprozess; ohne
+    # das Binary prueft er nichts. Bis 2026-08-02 uebersprang er sich dann
+    # still — und im Python-Job der CI, der keinen Rust-Schritt hat, war das
+    # IMMER der Fall. Ein Test, der nie laeuft, sieht aus wie Abdeckung und
+    # ist keine. `ci.yml` baut das Binary jetzt in genau diesem Job.
+    assert gateway_bin.is_file(), (
+        f"{gateway_bin.relative_to(repo_root)} fehlt — dieser Test braucht "
+        "einen echten Gateway-Prozess. Bauen mit: cargo build -p hm-gateway")
 
     port = _free_port()
     env = dict(

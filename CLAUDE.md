@@ -152,6 +152,45 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+### `deploy/fullstack-compose.yml` — erstmals live gefahren, und es war kaputt
+
+Am 2026-08-02 zum ersten Mal wirklich gestartet. Die Datei galt bis dahin
+als gueltig: `docker compose config` bestand, das Build-Manifest fuehrte
+`compose-syntax: bestanden`. **Sie war nicht startbar.**
+
+Eine Ursache, drei Fehler: die Datei liegt in `deploy/`, und docker compose
+loest `./` gegen das Verzeichnis der Compose-Datei auf — nicht gegen die
+Repo-Wurzel.
+
+| Pfad in der Datei | zeigte auf | existiert |
+|---|---|---|
+| `./scripts/init-db.sql` | `deploy/scripts/init-db.sql` | nein |
+| `./config/nginx-lb.conf` | `deploy/config/nginx-lb.conf` | nein |
+| `context: .` | `deploy/` | kein Dockerfile |
+
+**Der erste war der tueckischste: Docker legt fuer einen fehlenden
+Bind-Mount ein Verzeichnis an, statt zu scheitern.** Postgres startete,
+legte die Datenbank an und starb dann an `psql: could not read from input
+file: Is a directory` — eine Meldung ueber ein Verzeichnis, das es vorher
+nicht gab.
+
+**Und danach kam die gefaehrlichere Stufe.** Nach dem gescheiterten Init
+bleibt ein halb angelegtes Datenverzeichnis liegen; Postgres meldet beim
+naechsten Start `Skipping initialization`, wird `healthy` — und die
+Datenbank ist leer. Gesund gemeldet, ohne Schema. Ein `down -v` ohne
+gesetzte Pflichtvariablen entfernt das Volume **nicht**, sondern bricht
+still ab.
+
+Nach der Korrektur live gemessen: `postgres healthy`, `redis healthy`,
+Tabellen `memories`/`messages`/`sessions`, Erweiterungen `vector` und
+`pg_trgm` aktiv, `redis-cli ping` → `PONG`.
+
+**Die Lehre, als Invariante festgehalten: eine Syntaxpruefung ist kein
+Startbarkeitsnachweis.** `docker compose config` prueft nicht, ob ein
+Bind-Mount-Ziel existiert — dieselbe Luecke, die hier schon das
+Containerimage gekostet hat. `tests/test_fullstack_compose.py` rechnet
+jetzt jeden relativen Pfad gegen das Dateisystem nach.
+
 ### Die Bruecke — Routenplanung, und ausdruecklich kein zweiter Ausgang
 
 `scripts/hugin_bruecke.py` plant Provider-Aufrufe: Anfrage-Huelle rein,
@@ -875,6 +914,15 @@ Key piece: `ui/src/endpoint-rotation.ts`. The UI is designed to fail over across
 - `docs/production-api-contract.md` — the authoritative reference for every gateway route, env var, and the `ghm-core` CLI subcommands. Update this when changing gateway behavior.
 - `docs/master-dossier.html` — visual dossier (architecture, per-crate line counts, API reference); open in a browser.
 - `docs/architecture.md` states the intended chain (`Gateway -> Agent Runtime -> Memory -> Channels -> Tools -> Plugins -> UI`) and, below it, which links are real vs. still placeholder — keep that table in sync when a stub crate becomes real.
+- `docs/hugin-companion-hud.md` — das Anwendungsprofil hinter der PWA: der
+  transparente Begleiter ueber dem iOS-Homescreen, ferngesteuert ueber den
+  Gateway-Port. Beschreibt, **wofuer** `hugin/hugin.html` gebaut ist; ohne
+  dieses Dokument liest sich die PWA wie ein Chatfenster ohne Anlass.
+- `docs/multi-agent.md` — Claude + ChatGPT-Codex nebeneinander. Der erste
+  Satz darin ist die ganze Wahrheit: *die Integrationsschicht ist lauffaehig
+  und end-to-end getestet, die Anbindung an die echte Codex-Gegenstelle ist
+  implementiert, aber unverifiziert* — hier liegt kein `HUGIN_OPENAI_KEY`,
+  also wurde nie eine echte Codex-Antwort durch diesen Code geparst.
 - `docs/xcloud-platform-plan.md` — a staged, PoC-first roadmap (external memory backends via the existing `FileStorage` trait, cloud-portable deployment, graph-enhanced memory, an actual LLM-calling plugin, multi-instance failover). A plan, not a changelog — check it before assuming any of those phases already exist.
 
 

@@ -309,66 +309,49 @@ def _shell_tests() -> list[pathlib.Path]:
     return sorted((REPO / "tests").glob("*.sh"))
 
 
-@pytest.mark.parametrize("test_datei", _shell_tests(), ids=lambda p: p.name)
-def test_every_shell_test_has_a_subject_that_exists(test_datei: pathlib.Path):
-    """Ein Test, dessen Subjekt fehlt, prüft nichts und sagt es nicht."""
-    import re
+def test_no_shell_test_is_a_silent_no_op():
+    """Shell-Tests, sofern welche existieren, muessen echte Tests sein.
 
-    inhalt = test_datei.read_text(encoding="utf-8")
-    subjekte = {
-        m.group(1)
-        for m in re.finditer(r'\$REPO_ROOT/([A-Za-z0-9_/.-]+\.(?:sh|py|mjs))', inhalt)
-    }
-    fehlend = sorted(s for s in subjekte if not (REPO / s).exists())
-    assert not fehlend, (
-        f"{test_datei.name} prüft nicht vorhandene Dateien: {fehlend}.\n"
-        "Entweder wurde das Subjekt entfernt und der Test blieb liegen, oder "
-        "das Subjekt fehlt versehentlich. Beides muss aufgelöst werden — ein "
-        "Test ohne Subjekt ist kein Schutz, sondern ein Platzhalter, der wie "
-        "einer aussieht."
-    )
+    **Warum diese Wache nicht mehr parametrisiert ist.** Die vorige Fassung
+    spannte sich ueber `tests/*.sh` auf — und dort liegt seit dem Entfernen
+    der beiden Waisen (`test_codex_cloud_setup.sh`,
+    `test_validate_iphone_control_plane.sh`) keine Datei mehr. pytest meldete
+    dreimal `got empty parameter set` bzw. `keine Shell-Tests vorhanden`:
+    drei uebersprungene Tests, die aussahen wie Schutz und keiner waren.
 
+    Ein Skip ist eine Spur, kein Ergebnis. Diese Fassung faellt nie aus: sie
+    prueft die Eigenschaft fuer jede vorhandene Datei und stellt fest, dass
+    es keine gibt, wenn es keine gibt — beides ist eine Aussage.
 
-@pytest.mark.parametrize("test_datei", _shell_tests(), ids=lambda p: p.name)
-def test_every_shell_test_reports_failure_through_its_exit_code(test_datei: pathlib.Path):
-    """Ein Test, der `FAIL` druckt und 0 zurückgibt, ist schlimmer als keiner.
-
-    Er wird von jeder Automatisierung als bestanden gewertet. Beide
-    Shell-Tests dieses Repos hatten genau diesen Defekt.
+    Die drei Fehler, gegen die sie gerichtet bleibt, sind real gewesen:
+    falsches Subjekt (das geprueefte Skript existierte nie in `main`),
+    falscher Exit-Code (`FAIL:` gedruckt, `0` zurueckgegeben — jede
+    Automatisierung wertete das als bestanden), und von pytest nie
+    eingesammelt, weil es keine `.sh`-Dateien sammelt.
     """
-    inhalt = test_datei.read_text(encoding="utf-8")
-    assert "exit" in inhalt, f"{test_datei.name} setzt nirgends einen Exit-Code"
-    assert ("FAIL" not in inhalt) or ("exit 1" in inhalt or "exit $" in inhalt), (
-        f"{test_datei.name} kennt einen FAIL-Zustand, beendet sich aber nirgends "
-        "mit einem Fehlercode."
-    )
+    dateien = _shell_tests()
+    if not dateien:
+        # Eine Aussage, kein Ausweichen: es gibt keine, also ist nichts
+        # verletzt. Faellt spaeter eine hinein, greifen die Pruefungen unten.
+        assert True
+        return
 
-
-def test_shell_tests_are_actually_executed_somewhere():
-    """`pytest` sammelt keine `.sh`-Dateien.
-
-    Liegt ein Shell-Test im Verzeichnis, ohne dass ihn ein Workflow aufruft,
-    läuft er nie — und niemand merkt es, weil das Verzeichnis voll aussieht.
-    """
-    tests = _shell_tests()
-    if not tests:
-        pytest.skip("keine Shell-Tests vorhanden")
-
+    import re as _re
+    befunde = []
     workflows = "\n".join(
-        p.read_text(encoding="utf-8")
-        for p in (REPO / ".github" / "workflows").glob("*.yml")
-    )
-    nie_gerufen = [t.name for t in tests if t.name not in workflows]
-    assert not nie_gerufen, (
-        f"Diese Shell-Tests ruft kein Workflow auf: {nie_gerufen}.\n"
-        "pytest sammelt keine .sh-Dateien — sie laufen also nirgends. "
-        "Entweder in einen Workflow aufnehmen oder entfernen."
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. Verbindungsrouten: was das Gateway kann, muss dokumentiert sein
-# ─────────────────────────────────────────────────────────────────────────────
+        q.read_text(encoding="utf-8")
+        for q in (REPO / ".github" / "workflows").glob("*.yml"))
+    for d in dateien:
+        inhalt = d.read_text(encoding="utf-8")
+        subjekte = {m for m in _re.findall(r"(?:scripts|tests)/[\w./-]+", inhalt)}
+        for s in subjekte:
+            if not (REPO / s).exists():
+                befunde.append(f"{d.name}: Subjekt {s} existiert nicht")
+        if "FAIL" in inhalt and "exit 1" not in inhalt:
+            befunde.append(f"{d.name}: druckt FAIL, gibt aber nie exit 1")
+        if d.name not in workflows:
+            befunde.append(f"{d.name}: kein Workflow ruft ihn auf — laeuft nie")
+    assert not befunde, befunde
 
 def test_every_gateway_route_appears_in_the_api_contract():
     """Eine Route, die niemand dokumentiert, wird von niemandem benutzt —
@@ -433,3 +416,71 @@ def test_every_plugin_in_the_manifest_has_an_existing_program():
         f"Diese Plugin-Einträge zeigen ins Leere: {kaputt}.\n"
         "Der Fehler tritt sonst erst auf, wenn der Task ausgelöst wird."
     )
+
+
+def test_the_suite_contains_no_unconditional_skip():
+    """**Ein Skip ist eine Spur, kein Ergebnis.**
+
+    Vier Skips standen in dieser Suite, und jeder war ein Rest:
+
+    * drei Metatest-Wachen spannten sich ueber `tests/*.sh` auf, wo seit
+      dem Entfernen zweier Waisen keine Datei mehr liegt — `got empty
+      parameter set`, dreimal.
+    * ein Relay-Test fuehrte einen Fall in der Liste der unauffaelligen
+      Texte und uebersprang ihn dann. Wer die Liste las, hielt ihn fuer
+      abgedeckt.
+
+    Beides sah aus wie Schutz und war keiner. Diese Wache verlangt, dass
+    eine Entscheidung als Zusicherung dasteht, nicht als Ausweichen.
+
+    Erlaubt bleibt `importorskip` fuer eine echte fehlende Abhaengigkeit
+    (ohne PyYAML ist eine YAML-Pruefung nicht durchfuehrbar — das ist eine
+    Aussage ueber die Umgebung, nicht ueber den Code) und ein Skip, der an
+    eine *gemessene* Bedingung gebunden ist, etwa ein nicht laufender
+    Dienst.
+    """
+    import re as _re
+    befunde = []
+    for datei in sorted((REPO / "tests").glob("test_*.py")):
+        for nr, zeile in enumerate(datei.read_text(encoding="utf-8").splitlines(), 1):
+            s = zeile.strip()
+            if not s.startswith(("pytest.skip(", "@pytest.mark.skip")):
+                continue
+            # An eine Bedingung gebunden? Dann steht davor ein `if`.
+            umfeld = datei.read_text(encoding="utf-8").splitlines()[max(0, nr - 4):nr]
+            if any(z.strip().startswith(("if ", "elif ")) for z in umfeld):
+                continue
+            befunde.append(f"{datei.name}:{nr} {s[:70]}")
+    assert not befunde, (
+        "unbedingte Skips — eine Entscheidung gehoert als Zusicherung "
+        f"formuliert: {befunde}")
+
+
+def test_the_python_ci_job_builds_the_gateway_it_needs():
+    """**Zwei Tests liefen in CI nie, und niemand sah es.**
+
+    `test_ghm_core_cli_smoke.py` und `test_hm_gateway_watchdog.py` starten
+    einen echten `target/debug/hm-gateway` als Unterprozess. Fehlte die
+    Datei, uebersprangen sie sich still — und im Python-Job fehlte sie
+    *immer*: der Job hat keinen Rust-Schritt. `cargo test --workspace` im
+    Nachbarjob baut Testbinaries, nicht dieses Binary.
+
+    Aufgefallen ist es nur, weil die Suite in einem frischen
+    `--depth 1`-Klon gefahren wurde: dort erschienen 2 Skips, die lokal nie
+    auftreten, weil im Arbeitsbaum ein Build herumliegt.
+
+    Diese Wache haelt beides fest: der Job baut das Binary, und die Tests
+    verlangen es, statt auszuweichen.
+    """
+    ci = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    python_job = ci.partition("  python:")[2]
+    assert "cargo build -p hm-gateway" in python_job, \
+        "der Python-Job baut das Gateway nicht — die Unterprozess-Tests laufen nie"
+
+    for datei in ("tests/test_ghm_core_cli_smoke.py",
+                  "tests/test_hm_gateway_watchdog.py"):
+        text = (REPO / datei).read_text(encoding="utf-8")
+        assert "hm-gateway debug binary not built" not in text, \
+            f"{datei} weicht wieder aus, statt das Binary zu verlangen"
+        assert "cargo build -p hm-gateway" in text, \
+            f"{datei} nennt den Befehl nicht, der es herstellt"

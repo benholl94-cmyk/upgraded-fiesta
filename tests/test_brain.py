@@ -324,3 +324,60 @@ def test_commands_without_declared_needs_are_reachable_everywhere():
     setzen — sonst waere die Sperre eine schleichende Funktionsentfernung."""
     mit_bedarf = {n for n, c in brain.COMMANDS.items() if c.braucht}
     assert mit_bedarf == {"struktur", "supervisor", "tests"}, mit_bedarf
+
+
+# ---------------------------------------------------------------------------
+# Die Stufen, vollstaendig ausformuliert
+# ---------------------------------------------------------------------------
+
+def test_every_tier_states_purpose_cost_and_limit():
+    """**Eine Stufe, die nur sagt DASS sie fehlt, ermoeglicht keine
+    Handlung.** Jede muss beantworten: wofuer ist sie da, was kostet sie,
+    was kann sie auch dann nicht, wenn sie laeuft. Ohne das letzte Feld
+    liest sich jede offene Stufe wie eine vollstaendige Loesung."""
+    from agents.brain import stufen
+    for s in stufen():
+        assert s.zweck and len(s.zweck) > 40, s.id
+        assert s.grund, s.id
+        if s.id != "T0":
+            assert s.grenze or s.kosten, s.id
+
+
+def test_a_closed_tier_names_the_command_that_opens_it():
+    """Ein Befund ohne Befehl ist eine Beschwerde — dieselbe Regel wie im
+    Inventar und in der Klarheitspruefung."""
+    from agents.brain import stufen
+    for s in stufen():
+        if not s.verfuegbar:
+            assert s.befehl, f"{s.id} ist zu und nennt keinen Weg"
+
+
+def test_the_tiers_never_publish_a_secret_value():
+    """`braucht` nennt Variablennamen und Dateien, nie Werte. Dass ein
+    Dienst einen Schluessel liest, ist keine Preisgabe; sein Wert waere
+    eine."""
+    import json as _json
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "scripts"))
+    import build_manifest as bm
+    from agents.brain import stufen
+    text = _json.dumps([s.to_dict() for s in stufen()], ensure_ascii=False)
+    assert bm.leckpruefung(text) == []
+
+
+def test_the_ladder_is_ordered_by_precedence():
+    """Reihenfolge ist Vorrang: die erste verfuegbare Stufe antwortet. Eine
+    vertauschte Leiter wuerde stillschweigend Geld ausgeben, wo T0 gereicht
+    haette."""
+    from agents.brain import stufen
+    assert [s.id for s in stufen()] == ["T0", "T1b", "T1", "T2"]
+
+
+def test_the_measured_fields_are_never_invented():
+    """Leer heisst 'nie gelaufen', nicht 'in Ordnung'. Ein erfundener
+    Messwert ist schlimmer als ein fehlender."""
+    from agents.brain import stufen
+    for s in stufen():
+        for was, wert in s.gemessen:
+            assert was and wert, s.id
