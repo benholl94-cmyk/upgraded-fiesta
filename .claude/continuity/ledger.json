@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-08-02T11:47:42+00:00",
+  "updated": "2026-08-02T12:39:24+00:00",
   "session": 4,
   "entries": [
     {
@@ -883,6 +883,54 @@
       "text": "Nicht jeder tote Anker ist Drift. Ein sha:-Anker auf einen Feature-Branch stirbt beim Squash-Merge — er war beim Anlegen zum Tod verurteilt. Dagegen hilft keine Reparatur, sondern eine Warnung beim capture, wo der Autor ihn noch durch path: ersetzen kann.",
       "anchors": [
         "path:scripts/munin_continuity.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-14",
+      "session": 4,
+      "ts": "2026-08-02T12:39:24+00:00",
+      "kind": "invariante",
+      "text": "Eine Syntaxpruefung ist kein Startbarkeitsnachweis. 'docker compose config' prueft nicht, ob ein Bind-Mount-Ziel existiert — deploy/fullstack-compose.yml galt monatelang als gueltig und war nicht startbar. Docker legt fuer einen fehlenden Bind-Mount ein VERZEICHNIS an statt zu scheitern.",
+      "anchors": [
+        "path:tests/test_fullstack_compose.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-15",
+      "session": 4,
+      "ts": "2026-08-02T12:39:24+00:00",
+      "kind": "sackgasse",
+      "text": "Postgres meldet nach gescheitertem Init beim naechsten Start 'Skipping initialization' und wird HEALTHY — mit leerer Datenbank. Ein 'docker compose down -v' ohne gesetzte Pflichtvariablen entfernt das Volume NICHT, sondern bricht still ab. Beides zusammen: gesund gemeldet, ohne Schema.",
+      "anchors": [
+        "path:deploy/fullstack-compose.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-16",
+      "session": 4,
+      "ts": "2026-08-02T12:39:24+00:00",
+      "kind": "invariante",
+      "text": "Gegen einen frischen --depth 1 Klon pruefen, nicht nur lokal. Drei Befunde dieser Sitzung waren lokal unsichtbar: das Inventar las ungetrackte Dateien mit, zwei Tests uebersprangen sich mangels Binary, und ein Anker-Test mass die Klontiefe statt die Ankergesundheit.",
+      "anchors": [
+        "path:tests/test_meta_guards.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-17",
+      "session": 4,
+      "ts": "2026-08-02T12:39:24+00:00",
+      "kind": "invariante",
+      "text": "Ein Pruefer darf sich nicht selbst mitlesen. Viermal in einer Sitzung: der Korpus las sein eigenes Gegenbeispiel aus dem Docstring (2x), das Inventar las docs/INVENTAR.md, und die Shell-Wache fand ihren verbotenen Ausdruck im eigenen Erklaertext.",
+      "anchors": [
+        "path:tests/test_hugin_corpus.py"
       ],
       "state": "offen",
       "weight": 1
