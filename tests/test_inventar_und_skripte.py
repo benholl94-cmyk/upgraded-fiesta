@@ -236,3 +236,22 @@ def test_untracked_runtime_state_is_not_a_part(teile):
               and not (REPO / t.pfad / "Cargo.toml").is_file()
               and not (REPO / t.pfad).is_dir()]
     assert not fremde, f"ungetrackte Teile im Inventar: {fremde}"
+
+
+def test_a_new_unstaged_file_is_already_visible(tmp_path):
+    """**In CI aufgefallen.** `git ls-files --cached` sieht eine neue Datei
+    nicht, solange sie nicht gestaged ist — der Index konnte damit nie die
+    Datei enthalten, die im selben Commit dazukommt. Gemessen an
+    `.github/workflows/zyklus.yml`, das als 19. Workflow fehlte.
+
+    `--others --exclude-standard` schliesst die Luecke, ohne die
+    Reproduzierbarkeit aufzugeben: auf einem frischen Checkout ist diese
+    Menge leer."""
+    neu = REPO / ".github" / "workflows" / "__probe_inventar.yml"
+    neu.write_text("name: probe\non: workflow_dispatch\njobs:\n  a:\n"
+                   "    runs-on: ubuntu-latest\n    steps:\n"
+                   "      - run: 'true'\n", encoding="utf-8")
+    try:
+        assert str(neu.relative_to(REPO)) in hi._getrackt()
+    finally:
+        neu.unlink()

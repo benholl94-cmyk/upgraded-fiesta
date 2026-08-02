@@ -2,8 +2,8 @@
 
 **Erzeugt von `scripts/hugin_inventar.py --index`. Nicht von Hand aendern.** Jede Zeile ist gerechnet: erreichbar heisst, dass eine andere Datei im Repo diesen Teil nennt; geprueft heisst, dass eine Datei unter `tests/` ihn nennt.
 
-- Teile gesamt: **128**
-- geschlossen: **104**
+- Teile gesamt: **130**
+- geschlossen: **106**
 - offen: **24**
 - extern: **0**
 
@@ -123,7 +123,7 @@
 | `.claude/skills/repo-steward` | geschlossen | nein | ja |
 | `.claude/skills/xcode-alternative` | geschlossen | ja | ja |
 
-## skript — 48
+## skript — 49
 
 | Teil | Zustand | geprueft | beschrieben |
 |---|---|---|---|
@@ -158,6 +158,7 @@
 | `scripts/hugin_relay.py` | geschlossen | ja | nein |
 | `scripts/hugin_selfheal.py` | geschlossen | ja | nein |
 | `scripts/hugin_tool.py` | offen | nein | nein |
+| `scripts/hugin_zyklus.py` | geschlossen | ja | ja |
 | `scripts/install_hooks.py` | geschlossen | ja | ja |
 | `scripts/knowledge_loop.py` | geschlossen | ja | ja |
 | `scripts/llm_key_manager.py` | geschlossen | ja | ja |
@@ -176,7 +177,7 @@
 | `scripts/write_visibility_report.py` | offen | nein | nein |
 | `scripts/write_visible_status.py` | offen | nein | nein |
 
-## workflow — 18
+## workflow — 19
 
 | Teil | Zustand | geprueft | beschrieben |
 |---|---|---|---|
@@ -198,4 +199,5 @@
 | `.github/workflows/selbsterhalt.yml` | geschlossen | nein | ja |
 | `.github/workflows/visible-monitoring.yml` | geschlossen | nein | nein |
 | `.github/workflows/visible-status.yml` | geschlossen | nein | nein |
+| `.github/workflows/zyklus.yml` | geschlossen | ja | ja |
 
