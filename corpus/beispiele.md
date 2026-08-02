@@ -2,7 +2,7 @@
 
 Erzeugt von `scripts/hugin_corpus.py`. Nicht von Hand aendern: der naechste Bau ueberschreibt die Datei.
 
-## begruendung — 256 Faelle
+## begruendung — 259 Faelle
 
 **scripts/release_notes.py:scripts/release_notes.py** · `scripts/release_notes.py`
 
@@ -76,7 +76,7 @@ previously-documented packaging gap. **Live-verified, not just inspected**:
 this sandbox has no Docker daemon by default,  …
 ```
 
-## ledger-entscheidung — 16 Faelle
+## ledger-entscheidung — 17 Faelle
 
 **Verfassungslockerung A1: Mandatsgrenze verlaeuft entlang Umkehrbarkeit** · `.claude/continuity/ledger.json`
 
@@ -90,7 +90,7 @@ Verfassungslockerung A1: Mandatsgrenze verlaeuft entlang Umkehrbarkeit und Reich
 Toter Baum self_space_workspace_ (449 Dateien) und die Waise supervisor_agent.production.py (1404 Zeilen) auf Master-Befehl entfernt. Gefahr war nicht die Groesse, sondern die Spiegelkopie des Repos darin: 56 der 244 Dateien waren VERALTETE Fassungen echter Dateien, u.a. .github/workflows/rust-ci.yml. Vor dem Loeschen byteweise verglichen — 110 identisch, 56 veraltet, 1 nur im Spiegel (leere main.yml, im echten Baum bewusst geloescht). Nichts Einzigartiges verloren.
 ```
 
-## ledger-invariante — 22 Faelle
+## ledger-invariante — 23 Faelle
 
 **Ungepusht heisst nicht vorhanden. Ein Commit lebt nur solange sein Con** · `.claude/continuity/ledger.json`
 

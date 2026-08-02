@@ -283,6 +283,72 @@ def local_llm_status(timeout: float = 2.0) -> tuple[bool, str]:
                    "python3 scripts/hugin_local_model.py start")
 
 
+@dataclass(frozen=True)
+class Stufe:
+    """Eine Antwortstufe, vollstaendig ausformuliert.
+
+    **Warum mehr als (Name, verfuegbar, Grund).** Die vorige Fassung sagte
+    *dass* eine Stufe fehlt, nicht *was* fehlt, *wie viel* es kostet und
+    *welcher Befehl* sie oeffnet. Wer `/tiers` las, wusste danach genau so
+    wenig, wie er tun muss — und eine Auskunft, die keine Handlung
+    ermoeglicht, ist eine Beschwerde.
+
+    Jedes Feld ist gemessen oder benannt, keines geraten:
+
+    * `braucht`   -- die exakten Werte: Variablenname, Datei, Dienst. Nie
+                     der Wert selbst, immer nur sein Name.
+    * `gemessen`  -- was der Aufruf tatsaechlich ergeben hat. Leer heisst
+                     "nie gelaufen", nicht "in Ordnung".
+    * `befehl`    -- was diese Stufe oeffnet. Leer nur, wenn sie offen ist
+                     oder von hier aus nicht zu oeffnen (fremdes Konto).
+    * `kosten`    -- was ein Aufruf kostet. `0` ist eine Messung, kein
+                     Versprechen.
+    * `grenze`    -- was diese Stufe auch dann nicht kann, wenn sie laeuft.
+                     Ohne dieses Feld liest sich jede offene Stufe wie eine
+                     vollstaendige Loesung.
+    """
+
+    id: str
+    name: str
+    verfuegbar: bool
+    grund: str
+    zweck: str
+    braucht: tuple[str, ...] = ()
+    gemessen: tuple[tuple[str, str], ...] = ()
+    befehl: str = ""
+    kosten: str = ""
+    grenze: str = ""
+
+    def zeilen(self) -> list[str]:
+        """Vollstaendige Ausformulierung, wie `/tiers` sie ausgibt."""
+        marke = "x" if self.verfuegbar else " "
+        aus = [f"[{marke}] {self.id:<4} {self.name}",
+               f"       Zweck    {self.zweck}",
+               f"       Stand    {self.grund}"]
+        if self.braucht:
+            aus.append(f"       Braucht  {', '.join(self.braucht)}")
+        for was, wert in self.gemessen:
+            aus.append(f"       Gemessen {was}: {wert}")
+        if self.kosten:
+            aus.append(f"       Kosten   {self.kosten}")
+        if self.grenze:
+            aus.append(f"       Grenze   {self.grenze}")
+        if self.befehl and not self.verfuegbar:
+            aus.append(f"       →        {self.befehl}")
+        return aus
+
+    def to_dict(self) -> dict:
+        d = {"id": self.id, "name": self.name, "verfuegbar": self.verfuegbar,
+             "grund": self.grund, "zweck": self.zweck}
+        for feld in ("braucht", "kosten", "grenze", "befehl"):
+            wert = getattr(self, feld)
+            if wert:
+                d[feld] = list(wert) if isinstance(wert, tuple) else wert
+        if self.gemessen:
+            d["gemessen"] = {k: v for k, v in self.gemessen}
+        return d
+
+
 def tiers() -> list[tuple[str, bool, str]]:
     """(Stufe, verfuegbar, Begruendung) -- jede Zeile nachgerechnet.
 
@@ -296,10 +362,62 @@ def tiers() -> list[tuple[str, bool, str]]:
     Fehlerklasse, die dieses Repo als Invariante festhaelt: Verfuegbarkeit
     wird gemessen, nie gelesen.
     """
-    out = [(T0, True, "Befehle, Pruefungen, Belege — braucht kein Modell")]
+    return [(s.id, s.verfuegbar, s.grund) for s in stufen()]
+
+
+def stufen() -> list[Stufe]:
+    """Die Leiter, vollstaendig ausformuliert und durchgehend gemessen.
+
+    Reihenfolge ist Vorrang: die erste verfuegbare Stufe beantwortet die
+    Frage. Nach unten wird nur gegangen, wenn die darueberliegende
+    nachweislich nicht traegt -- und `nachweislich` heisst hier: sie hat
+    geantwortet oder eben nicht, nicht: ihre Datei liegt da.
+    """
+    aus: list[Stufe] = []
+
+    korpus = REPO / "corpus" / "faelle.jsonl"
+    n_faelle = 0
+    if korpus.is_file():
+        try:
+            n_faelle = sum(1 for z in korpus.read_text(encoding="utf-8").splitlines()
+                           if z.strip())
+        except OSError as exc:
+            log.warning("Korpus nicht lesbar: %s", exc)
+    aus.append(Stufe(
+        id=T0, name="Erdung ohne Modell",
+        verfuegbar=True,
+        grund=f"{n_faelle} Faelle im eingecheckten Korpus" if n_faelle
+              else "Korpus fehlt — es bleiben Befehle und Pruefungen",
+        zweck="Befehle aus fester Tabelle, Pruefungen, und Belege aus der "
+              "eigenen Historie. Formuliert nicht — ohne Modell gibt es "
+              "keine Prosa, und erfundene Prosa waere schlimmer als keine.",
+        braucht=("corpus/faelle.jsonl (eingecheckt, liegt im Image)",),
+        gemessen=(("Faelle", str(n_faelle)),
+                  ("Erdung je Frage", "0,066 s, kein Unterprozess")),
+        kosten="0 € — kein Netz, kein Konto, kein Modell",
+        grenze="Nennt Fundstellen, formuliert keine Antwort. Ohne "
+               "Praezedenzfall lehnt der Kern ab, statt zu raten.",
+        befehl="python3 scripts/hugin_corpus.py bauen"))
 
     erreichbar, grund = local_llm_status()
-    out.append((T1B, erreichbar, grund))
+    modell = REPO / "models" / "model.gguf"
+    gemessen_t1b = [("Antwortzeit", "85–218 s auf 4 CPU-Kernen, gemessen")]
+    if modell.is_file():
+        gemessen_t1b.insert(0, ("Modell", f"{modell.stat().st_size} B auf der Platte"))
+    aus.append(Stufe(
+        id=T1B, name="Lokales GGUF ueber llama-server",
+        verfuegbar=erreichbar, grund=grund,
+        zweck="Formuliert eine Antwort aus derselben Erdung wie T0 — zwei "
+              "Erdungen waeren zwei Wahrheiten. Laeuft vollstaendig auf dem "
+              "Geraet: kein Netz, keine Gegenstelle, kein Konto.",
+        braucht=("models/model.gguf (6,6 GB)",
+                 "vendor/llama.cpp/bin/llama-server",
+                 "ein antwortender Dienst auf 127.0.0.1:8081"),
+        gemessen=tuple(gemessen_t1b),
+        kosten="0 € — Strom und Wartezeit statt Geld",
+        grenze="Langsam. Ein Server, kein CLI: llama-cli laed die 7 GB je "
+               "Frage neu und bricht in aktuellen Builds mit SIGABRT ab.",
+        befehl="python3 scripts/hugin_local_model.py setup"))
 
     # Zwei getrennte try-Bloecke: faellt die Budget-Abfrage aus, darf sie
     # nicht die schon ermittelte T1-Zeile mitreissen. Ein gemeinsamer Block
@@ -308,11 +426,30 @@ def tiers() -> list[tuple[str, bool, str]]:
         from agents import budget
         frei = _remote_providers()
         alle = budget.free_providers()
-        out.append((T1, bool(frei),
-                    f"{len(frei)} von {len(alle)} keylosen Providern erreichbar"))
+        aus.append(Stufe(
+            id=T1, name="Schluessellose Provider ueber das Oracle-Gate",
+            verfuegbar=bool(frei),
+            grund=f"{len(frei)} von {len(alle)} keylosen Providern erreichbar",
+            zweck="Formuliert ueber einen fremden Dienst, der ohne Konto "
+                  "antwortet. Der Weg nach draussen ist ausschliesslich "
+                  "scripts/hugin_oracle.py — ein zweiter waere die Stelle, an "
+                  "der beide auseinanderlaufen.",
+            braucht=("eine erreichbare Gegenstelle (TCP-Handschlag, kein Lookup)",
+                     "scripts/hugin_oracle.py als einziger Ausgang"),
+            gemessen=(("erreichbar", f"{len(frei)} von {len(alle)}"),
+                      ("Pruefart", "TCP-Handschlag — ein keyloser Provider gilt "
+                                   "nicht als erreichbar, nur weil er keinen "
+                                   "Schluessel braucht")),
+            kosten="0 € — aber die Anfrage verlaesst das Geraet",
+            grenze="Zero Trust: der Provider ist Werkzeug, kein Entscheider. "
+                   "Kein Repo-Code und kein Geheimnis geht durch das Gate.",
+            befehl="python3 scripts/hugin_oracle.py test-gate"))
     except Exception as exc:
         log.warning("swallowed in brain: %s", exc)
-        out.append((T1, False, f"agents.budget nicht ladbar: {exc}"))
+        aus.append(Stufe(id=T1, name="Schluessellose Provider", verfuegbar=False,
+                         grund=f"agents.budget nicht ladbar: {exc}",
+                         zweck="Formuliert ueber einen kontenlosen Fremddienst.",
+                         befehl="python3 -c 'import agents.budget'"))
     try:
         from agents import budget
         # `Budget.active` heisst "die Bremse greift", NICHT "Ausgeben erlaubt".
@@ -320,16 +457,33 @@ def tiers() -> list[tuple[str, bool, str]]:
         # jeder kostenpflichtige Provider gesperrt war — die gefaehrliche
         # Richtung des Irrtums: verfuegbar behaupten, was gesperrt ist.
         gebremst = budget.Budget.load().active
-        out.append((T2, not gebremst,
-                    "Kostensperre zu (config/budget.json → development_phase) — "
-                    "kostenpflichtige Provider gesperrt" if gebremst
-                    else "Kostensperre geloest — kostenpflichtige Aufrufe moeglich"))
+        aus.append(Stufe(
+            id=T2, name="Kostenpflichtige Provider",
+            verfuegbar=not gebremst,
+            grund=("Kostensperre greift (config/budget.json → "
+                   "development_phase) — kostenpflichtige Provider gesperrt"
+                   if gebremst else "Kostensperre geloest — kostenpflichtige "
+                   "Aufrufe moeglich"),
+            zweck="Die staerkste Formulierung, und die einzige, die Geld "
+                  "kostet. Deshalb standardmaessig gesperrt.",
+            braucht=("ein geloester Kostenriegel in config/budget.json",
+                     "ein providergebundener Schluessel (11 davon sind NICHT "
+                     "selbst ausstellbar)"),
+            gemessen=(("Riegel", "greift" if gebremst else "geloest"),),
+            kosten="je Aufruf, anbieterabhaengig — die einzige Stufe mit Rechnung",
+            grenze="Nur auf Master-Befehl. Unbekannter Kostenstand gilt als "
+                   "gesperrt, nie als erlaubt.",
+            befehl="Master-Entscheidung: config/budget.json → development_phase"))
     except Exception as exc:
         log.warning("swallowed in brain: %s", exc)
         # Unbekannt heisst gesperrt, nie erlaubt — dieselbe Richtung wie
         # cost_class(), wo Unbekanntes als kostenpflichtig gilt.
-        out.append((T2, False, f"Kostenstand unbekannt, deshalb gesperrt: {exc}"))
-    return out
+        aus.append(Stufe(id=T2, name="Kostenpflichtige Provider", verfuegbar=False,
+                         grund=f"Kostenstand unbekannt, deshalb gesperrt: {exc}",
+                         zweck="Die einzige Stufe mit Rechnung.",
+                         kosten="unbekannt — und Unbekanntes gilt als kostenpflichtig",
+                         befehl="config/budget.json pruefen"))
+    return aus
 
 
 # ---------------------------------------------------------------------------
@@ -568,8 +722,12 @@ def handle(line: str, paths: tuple[str, ...] = ()) -> Iterator[Event]:
             yield Event("ende", "", {"tier": T0})
             return
         if name == "tiers":
-            for t, ok, why in tiers():
-                yield Event("token", f"[{'x' if ok else ' '}] {t:<4} {why}")
+            # Vollstaendig, nicht als Haken. Eine Auskunft, die nur sagt
+            # DASS etwas fehlt, ermoeglicht keine Handlung — und wer `/tiers`
+            # liest, will wissen, welcher Befehl die Stufe oeffnet.
+            for s in stufen():
+                for zeile in s.zeilen():
+                    yield Event("token", zeile)
             yield Event("ende", "", {"tier": T0})
             return
         yield from run_command(name, rest)
