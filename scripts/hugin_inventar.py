@@ -250,6 +250,52 @@ def _sammeln() -> list[tuple[str, str]]:
     return out
 
 
+_GESAMMELT: set[str] | None = None
+
+
+def _gesammelt() -> set[str]:
+    """Was pytest tatsaechlich sammelt -- gerechnet, nicht gegrept.
+
+    **Vierter Messfehler dieses Programms, und derselbe Fehlertyp wie die
+    drei davor: eine Naeherung wurde fuer die Sache gehalten.** Die
+    Namenssuche im Dateitext findet keinen parametrisierten Test.
+    `tests/test_inventar_und_skripte.py` spannt sich ueber
+    `(REPO / "scripts").glob("*.py")` auf und prueft **jedes** Skript auf
+    Syntax, Moduldocstring, `--help` und das Verbot von Shell-Aufrufen;
+    im Quelltext steht
+    dabei kein einziger Dateiname.
+
+    Gemessen: 12 Testfaelle allein fuer die drei Skripte, die das Inventar
+    als "keine Testdatei nennt diesen Teil" fuehrte, und 6 fuer die drei
+    Workflows. Der Befund war jedes Mal falsch -- und ein falscher Befund
+    kostet die Glaubwuerdigkeit der ganzen Liste.
+
+    `--collect-only` fuehrt nichts aus, es sammelt nur. Einmal je Lauf.
+    """
+    global _GESAMMELT
+    if _GESAMMELT is not None:
+        return _GESAMMELT
+    import subprocess
+    try:
+        r = subprocess.run([sys.executable, "-m", "pytest", "tests/",
+                            "--collect-only", "-q", "--no-header", "-p",
+                            "no:cacheprovider"],
+                           cwd=REPO, capture_output=True, text=True, timeout=600)
+        _GESAMMELT = {z.strip() for z in r.stdout.splitlines() if "::" in z}
+    except (OSError, subprocess.SubprocessError) as exc:
+        log.warning("pytest --collect-only nicht ausfuehrbar: %s", exc)
+        _GESAMMELT = set()
+    return _GESAMMELT
+
+
+def _in_testfaellen(pfad: str) -> bool:
+    """Nennt irgendein *gesammelter* Testfall diesen Teil?"""
+    name = Path(pfad).name
+    ohne = name[:-3] if name.endswith(".py") else name
+    return any(name in fall or ohne in fall or pfad in fall
+               for fall in _gesammelt())
+
+
 def _geprueft(pfad: str, art: str, nenner: list[str], baum: Baum) -> bool:
     """Wird dieser Teil von irgendeinem Test beruehrt?
 
@@ -269,8 +315,8 @@ def _geprueft(pfad: str, art: str, nenner: list[str], baum: Baum) -> bool:
                     "#[cfg(test)]" in txt or "#[test]" in txt
                     or "#[tokio::test]" in txt):
                 return True
-        return any(r.startswith("tests/") for r in nenner)
-    return any(r.startswith("tests/") for r in nenner)
+        return any(r.startswith("tests/") for r in nenner) or _in_testfaellen(pfad)
+    return any(r.startswith("tests/") for r in nenner) or _in_testfaellen(pfad)
 
 
 def _pruefe(pfad: str, art: str, baum: Baum) -> Teil:
@@ -291,7 +337,7 @@ def _pruefe(pfad: str, art: str, baum: Baum) -> Teil:
     nenner = sorted(treffer)
 
     fakten = {
-        "erreichbar": bool(nenner) or pfad in EINSTIEG,
+        "erreichbar": bool(nenner) or pfad in EINSTIEG or _in_testfaellen(pfad),
         "geprueft": _geprueft(pfad, art, nenner, baum),
         "beschrieben": any(r == "CLAUDE.md" or r.startswith("docs/")
                            for r in nenner),

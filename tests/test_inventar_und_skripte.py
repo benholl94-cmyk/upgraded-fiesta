@@ -255,3 +255,66 @@ def test_a_new_unstaged_file_is_already_visible(tmp_path):
         assert str(neu.relative_to(REPO)) in hi._getrackt()
     finally:
         neu.unlink()
+
+
+# ---------------------------------------------------------------------------
+# Vierter Messfehler: eine Naeherung wurde fuer die Sache gehalten
+# ---------------------------------------------------------------------------
+
+def test_a_parametrized_test_counts_as_coverage():
+    """**Der Befund war falsch, nicht das Repo.**
+
+    `tests/test_inventar_und_skripte.py` spannt sich ueber
+    `(REPO / "scripts").glob("*.py")` auf und prueft **jedes** Skript auf
+    Syntax, Moduldocstring, `--help` und `shell=True` — im Quelltext steht
+    dabei kein einziger Dateiname. Die Namenssuche fand das nicht und
+    meldete 13 Skripte und 3 Workflows als ungeprueft.
+
+    Gemessen: allein fuer `hugin_growth`, `hugin_reflect` und `hugin_tool`
+    sammelt pytest 12 Testfaelle. Der Befund war jedes Mal falsch — und ein
+    falscher Befund kostet die Glaubwuerdigkeit der ganzen Liste.
+
+    Gefragt wird jetzt pytest selbst (`--collect-only`, fuehrt nichts aus).
+    """
+    assert hi._in_testfaellen("scripts/hugin_growth.py")
+    assert hi._in_testfaellen("scripts/hugin_reflect.py")
+    assert hi._in_testfaellen(".github/workflows/codeql.yml")
+
+
+def test_something_genuinely_uncollected_is_still_reported():
+    """**Die Gegenprobe, die zaehlt.** Waere `_in_testfaellen` einfach
+    grosszuegig, meldete das Inventar nie wieder etwas — und eine Liste,
+    die immer leer ist, ist kein Schutz, sondern eine Beruhigung."""
+    assert not hi._in_testfaellen("scripts/gibt-es-garantiert-nicht-xyz.py")
+
+
+def test_the_collection_is_measured_not_assumed():
+    """`--collect-only` fuehrt nichts aus. Waere die Menge leer, wuerde das
+    Inventar wieder alles als ungeprueft melden — das faellt auf, statt
+    still durchzugehen."""
+    assert len(hi._gesammelt()) > 500, "pytest sammelt nichts — Messung kaputt"
+
+
+def test_no_part_remains_open():
+    """**Das Ziel, maschinell nachgerechnet.** Jeder Teil ist geschlossen
+    oder ausdruecklich extern. Faellt dieser Test, ist etwas dazugekommen,
+    das niemand nennt, testet oder beschreibt — und genau dann soll er
+    fallen."""
+    offen = [t.pfad for t in hi.inventar() if t.zustand == hi.OFFEN]
+    assert not offen, f"offene Teile: {offen}"
+
+
+def test_the_shell_guard_stays_blunt_on_purpose():
+    """**Die Wache hat mich selbst erwischt, und sie hatte recht.**
+
+    Ein Grep nach dem Literal kann Prosa nicht von Code unterscheiden — ich
+    hatte den verbotenen Ausdruck in einem *Docstring* stehen, der die
+    Wache beschreibt. Eine AST-basierte Fassung waere klueger und
+    schwaecher: sie uebersaehe den Aufruf in einem `exec`, in einer
+    erzeugten Datei oder in einem Shellskript daneben.
+
+    Blunt ist hier die richtige Wahl. Wer darueber schreiben will,
+    umschreibt es — das kostet einen Satz und haelt die Wache scharf.
+    """
+    quelle = (REPO / "tests" / "test_inventar_und_skripte.py").read_text(encoding="utf-8")
+    assert 'assert "shell=' in quelle, "die Wache prueft nicht mehr auf den Literalstring"

@@ -32,13 +32,27 @@ def test_parser_recognises_limit_messages(text):
 
 @pytest.mark.parametrize("text", [
     "", "alles in Ordnung", "Der Test prueft die Obergrenze der Liste",
-    "429 Zeilen geaendert",     # Zahl im Fliesstext ohne Limit-Bezug? -> bewusst
 ])
 def test_parser_stays_quiet_on_ordinary_text(text):
     hit, _ = rl.parse_limit(text)
-    if "429" in text:
-        pytest.skip("bewusst grosszuegig: lieber einmal zu oft ausweichen")
     assert not hit
+
+
+def test_a_bare_429_in_prose_is_deliberately_treated_as_a_limit():
+    """**Bewusst zu empfindlich, und deshalb ein eigener Test statt eines
+    Skips.**
+
+    "429 Zeilen geaendert" ist keine Ratenbegrenzung. Der Parser erkennt es
+    trotzdem als eine — und das ist die gewollte Richtung: einmal zu oft
+    ausweichen kostet eine Wartezeit, einmal zu wenig kostet die Sperre.
+
+    Die vorige Fassung fuehrte diesen Fall in der Liste der *unauffaelligen*
+    Texte und uebersprang ihn dann mit `pytest.skip`. Ein Skip ist eine
+    Spur, kein Ergebnis: der Fall stand da, wurde nie geprueft, und wer die
+    Liste las, hielt ihn fuer abgedeckt. Jetzt steht die Entscheidung als
+    Zusicherung da, wo sie hingehoert."""
+    hit, _ = rl.parse_limit("429 Zeilen geaendert")
+    assert hit, "die gewollte Ueberempfindlichkeit ist verschwunden"
 
 
 def test_tiers_are_ordered_and_complete():

@@ -914,6 +914,15 @@ Key piece: `ui/src/endpoint-rotation.ts`. The UI is designed to fail over across
 - `docs/production-api-contract.md` — the authoritative reference for every gateway route, env var, and the `ghm-core` CLI subcommands. Update this when changing gateway behavior.
 - `docs/master-dossier.html` — visual dossier (architecture, per-crate line counts, API reference); open in a browser.
 - `docs/architecture.md` states the intended chain (`Gateway -> Agent Runtime -> Memory -> Channels -> Tools -> Plugins -> UI`) and, below it, which links are real vs. still placeholder — keep that table in sync when a stub crate becomes real.
+- `docs/hugin-companion-hud.md` — das Anwendungsprofil hinter der PWA: der
+  transparente Begleiter ueber dem iOS-Homescreen, ferngesteuert ueber den
+  Gateway-Port. Beschreibt, **wofuer** `hugin/hugin.html` gebaut ist; ohne
+  dieses Dokument liest sich die PWA wie ein Chatfenster ohne Anlass.
+- `docs/multi-agent.md` — Claude + ChatGPT-Codex nebeneinander. Der erste
+  Satz darin ist die ganze Wahrheit: *die Integrationsschicht ist lauffaehig
+  und end-to-end getestet, die Anbindung an die echte Codex-Gegenstelle ist
+  implementiert, aber unverifiziert* — hier liegt kein `HUGIN_OPENAI_KEY`,
+  also wurde nie eine echte Codex-Antwort durch diesen Code geparst.
 - `docs/xcloud-platform-plan.md` — a staged, PoC-first roadmap (external memory backends via the existing `FileStorage` trait, cloud-portable deployment, graph-enhanced memory, an actual LLM-calling plugin, multi-instance failover). A plan, not a changelog — check it before assuming any of those phases already exist.
 
 
