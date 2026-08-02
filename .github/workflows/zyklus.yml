@@ -1,0 +1,128 @@
+name: Zyklus · Selbstpruefung
+
+# Die Kette laeuft regelmaessig, nicht wenn jemand daran denkt.
+#
+# WARUM ALS ZEITPLAN: dieses Repo hatte alle Werkzeuge fuer eine
+# selbstpruefende Architektur -- Inventar, Supervisor, Selfheal, Korpus,
+# Klarheit -- und keines lief automatisch zusammen. Ein Werkzeugkasten ohne
+# Kette ist eine Ansammlung. Woran sich niemand erinnert, das laeuft nicht.
+#
+# DIE GRENZE, UND SIE IST HART: dieser Lauf schreibt **nie** auf den
+# Default-Branch. Er heilt, erdet und erzeugt den Index, committet das auf
+# einen `claude/`-Branch und oeffnet einen Draft-PR. Merge nach `main`
+# bleibt eine Master-Entscheidung -- eine Routine, die sich diese Grenze
+# nimmt, waere von einer legitimen Entscheidung nicht mehr zu unterscheiden.
+# `tests/test_hugin_zyklus.py` rechnet das nach, statt es zu glauben.
+#
+# KEIN DRITTANBIETER-GEHEIMNIS. Nur der eingebaute `GITHUB_TOKEN`.
+
+on:
+  schedule:
+    # Taeglich 04:17 UTC. Nicht zur vollen Stunde: dort draengen sich alle
+    # Zeitplaene, und ein verzoegerter Lauf sieht aus wie ein ausgefallener.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "heilen und erden wirklich ausfuehren"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: zyklus
+  cancel-in-progress: false
+
+jobs:
+  zyklus:
+    name: messen · erden · heilen · pruefen
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Abhaengigkeiten
+        run: pip install -q pytest pyyaml
+
+      - name: Kette fahren
+        id: kette
+        # Exit 1 = Befund (Arbeit), Exit 2 = Defekt (kaputtes Messgeraet).
+        # Nur der zweite bricht den Lauf ab: ein Befund ist genau das, was
+        # dieser Zyklus finden soll, und daran zu scheitern hiesse, das
+        # Finden zu bestrafen.
+        run: |
+          set +e
+          python3 scripts/hugin_zyklus.py --apply \
+            --bericht status/zyklus-bericht.md | tee /tmp/zyklus.txt
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo "::error::Die Kette selbst ist gescheitert — kein Befund, ein Defekt."
+            exit 1
+          fi
+
+      - name: Aenderungen feststellen
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "geaendert=ja" >> "$GITHUB_OUTPUT"
+            git status --porcelain
+          else
+            echo "geaendert=nein" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Auf eigenen Branch committen
+        if: steps.diff.outputs.geaendert == 'ja'
+        run: |
+          set -euo pipefail
+          BRANCH="claude/zyklus-$(date -u +%Y%m%d-%H%M)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          # Mehrere -m statt eingebetteter Zeilenumbrueche: git macht daraus
+          # Absaetze. Eine Fortsetzungszeile in Spalte 1 wuerde den
+          # YAML-Blockskalar beenden und den Workflow gar nicht erst starten
+          # -- genau das ist hier schon passiert (munin-link-hourly.yml,
+          # total_jobs 0 bei jedem Push, monatelang unbemerkt). Ein
+          # eingerueckter Heredoc waere die zweitbeste Loesung und truege die
+          # Einrueckung in die Botschaft.
+          git commit \
+            -m "chore(zyklus): Korpus, Index und Selbstheilung nachgezogen" \
+            -m "Erzeugt von .github/workflows/zyklus.yml. Jede Datei darin ist das Ergebnis eines gelaufenen Werkzeugs, nicht einer Handaenderung." \
+            -m "Bericht liegt als Artefakt zyklus-bericht am Lauf."
+          git push -u origin "$BRANCH"
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+
+      - name: Draft-PR oeffnen
+        if: steps.diff.outputs.geaendert == 'ja'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh pr create --draft \
+            --base main --head "$BRANCH" \
+            --title "chore(zyklus): Selbstpruefung vom $(date -u +%Y-%m-%d)" \
+            --body-file status/zyklus-bericht.md
+
+      - name: Bericht als Artefakt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zyklus-bericht
+          path: status/zyklus-bericht.md
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Zusammenfassung
+        if: always()
+        run: cat status/zyklus-bericht.md >> "$GITHUB_STEP_SUMMARY" || true

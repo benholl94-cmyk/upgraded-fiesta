@@ -152,6 +152,90 @@ cd iphone-dev-platform && npm test    # or: python3 scripts/test-validate.py
 
 Codex cloud environment setup/maintenance commands (`bash .codex/setup.sh`, `bash .codex/maintenance.sh`) wrap `scripts/codex_fullstack_setup.sh` and dependency refresh (`cargo fetch`, `npm install`) respectively — see `AGENTS.md` for when these apply.
 
+### Die Bruecke — Routenplanung, und ausdruecklich kein zweiter Ausgang
+
+`scripts/hugin_bruecke.py` plant Provider-Aufrufe: Anfrage-Huelle rein,
+Kette R1–R7, versiegelte Routentabelle, Grenz- und Kopfzeilenpruefung,
+kettenverhakte Quittung. Uebernommen aus einem eigenstaendigen
+stdlib-only-Werkzeug und fuer dieses Repo umbenannt (Zustand unter
+`~/.hugin/bruecke`, `HUGIN_BRUECKE_HEIM`, Namensfamilie `hugin_*`).
+
+**Sie sendet nichts.** R6 erzeugt einen Plan; es wird nie ein Socket
+geoeffnet. Genau das ist der Grund, warum sie neben `hugin_oracle.py`
+stehen darf: die Verfassung kennt **einen** Weg nach draussen, und das ist
+das Oracle-Gate. Ein zweiter waere kein Rueckfallplan, sondern die Stelle,
+an der beide auseinanderlaufen und niemand merkt, welcher der betriebene
+ist.
+
+| | Bruecke | Oracle-Gate |
+|---|---|---|
+| Frage | wohin, welche Koepfe, welche Groesse | darf das raus, was kommt zurueck |
+| Netz | **nie** | ja, der einzige Ausgang |
+
+`tests/test_hugin_bruecke.py` **rechnet das nach** statt es zu glauben: es
+parst den Importbaum und verlangt, dass weder `socket` noch `urllib` noch
+`requests` vorkommen. Dazu die Gegenproben, die zaehlen — ein fremder
+Schluessel darf den Zustand nicht oeffnen, ein beschaedigtes Fach wird aus
+dem gesunden geheilt, und eine **veraenderte Chronikzeile muss auffallen**
+(eine Verhakung, die das nicht bemerkt, ist Zierde). Die 100 mitgelieferten
+Selbsttestfaelle laufen mit.
+
+Ehrlich benannte Grenze: der HMAC-Schluessel liegt auf demselben Geraet wie
+der Zustand. Die Siegel schuetzen gegen Beschaedigung und stilles
+Abdriften, **nicht** gegen einen Angreifer mit Schreibrecht — derselbe
+Zuschnitt wie beim Schluesselbund, wo sechs Schluessel selbst ausstellbar
+sind und elf ausdruecklich nicht.
+
+### Der Zyklus — die Kette, nicht ein weiteres Werkzeug
+
+`scripts/hugin_zyklus.py` baut **nichts Neues**. Dieses Repo hatte alle
+Werkzeuge einer selbstpruefenden Architektur — Inventar, Klarheit,
+Supervisor, Korpus, Selfheal, `codeam_cli verify` — und **keines lief
+automatisch mit den anderen**. Ein Werkzeugkasten ohne Kette ist eine
+Ansammlung; woran sich niemand erinnert, das laeuft nicht.
+
+```sh
+python3 scripts/hugin_zyklus.py              # Vorlauf, schreibt nichts
+python3 scripts/hugin_zyklus.py --apply      # heilen und erden
+python3 scripts/hugin_zyklus.py --nur messen,pruefen
+```
+
+**Die Reihenfolge folgt der Abhaengigkeit, nicht der Bequemlichkeit:**
+messen (was ist da) → erden (Korpus neu, *vor* dem Pruefen — ein veralteter
+Korpus laesst den Kern auf einen Stand antworten, den es nicht mehr gibt) →
+heilen (nur Deterministisches) → pruefen (Tests, Supervisor, Startfreiheit,
+Index) → berichten.
+
+**Drei Ausgaenge, und die Trennung ist der eigentliche Beitrag:**
+
+| Exit | Bedeutung |
+|---|---|
+| 0 | nichts zu tun |
+| 1 | **Befund** — mit Teil, Grund und Befehl |
+| 2 | **Defekt** — die Kette selbst ist gescheitert |
+
+Ein Werkzeug, das mit 1 endet, hat gearbeitet und etwas gefunden; eines mit
+127 gibt es nicht. Beides zusammenzuwerfen hiesse, ein defektes Thermometer
+wie Fieber zu behandeln. Der erste Lauf hat das sofort belegt: der
+Testschritt ruft `-m pytest`, meine Existenzpruefung hielt `-m` fuer einen
+Dateipfad — und der Zyklus meldete seinen **eigenen** Fehler korrekt als
+Defekt, nicht als Befund.
+
+`.github/workflows/zyklus.yml` faehrt die Kette taeglich (04:17 UTC, nicht
+zur vollen Stunde — dort draengen sich alle Zeitplaene und ein verzoegerter
+Lauf sieht aus wie ein ausgefallener). **Er schreibt nie auf den
+Default-Branch**: Ergebnisse landen auf einem `claude/`-Branch mit
+Draft-PR. Merge bleibt Master-Entscheidung — eine Routine, die sich diese
+Grenze nimmt, waere von einer legitimen Entscheidung nicht mehr zu
+unterscheiden. `tests/test_hugin_zyklus.py` rechnet das nach.
+
+Zwei eigene Fehler beim Bauen, beide von den vorhandenen Wachen gefangen:
+ein Test, der die Stufe `pruefen` wirklich aufrief und damit `pytest` in
+`pytest` startete (Rekursion mit Zeitplan, >10 Minuten); und eine
+Commit-Botschaft in Spalte 1, die den YAML-Blockskalar beendete — dieselbe
+Ursache, die `munin-link-hourly.yml` monatelang mit `total_jobs: 0` laufen
+liess.
+
 ### Inventar — kein Teil im Zustand „unbekannt"
 
 `scripts/hugin_inventar.py` beantwortet weder „laeuft es" (das tut

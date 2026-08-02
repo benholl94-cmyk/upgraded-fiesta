@@ -117,8 +117,20 @@ def _getrackt() -> list[str]:
     Metatest-Sandkasten, der ebenfalls ueber `git ls-files` geht.
     """
     import subprocess
+    # `--cached` allein reicht nicht: eine **neue** Datei ist unsichtbar,
+    # solange sie nicht gestaged ist. Der Index konnte damit nie die Datei
+    # enthalten, die im selben Commit dazukommt -- gemessen an
+    # `.github/workflows/zyklus.yml`, das der Index als 19. Workflow
+    # verschwieg und CI zu Recht rot machte.
+    #
+    # `--others --exclude-standard` schliesst die Luecke, ohne die
+    # Reproduzierbarkeit aufzugeben: ignorierte Laufzeitdateien
+    # (`config/llm-active.json`, `config/knowledge-loop-state.json`) bleiben
+    # draussen, und auf einem frischen Checkout ist diese Menge ohnehin
+    # leer -- dort zaehlt weiterhin nur, was git kennt.
     try:
-        r = subprocess.run(["git", "ls-files", "-z"], cwd=REPO,
+        r = subprocess.run(["git", "ls-files", "-z", "--cached", "--others",
+                            "--exclude-standard"], cwd=REPO,
                            capture_output=True, text=True, timeout=120)
     except (OSError, subprocess.SubprocessError) as exc:
         log.warning("git ls-files nicht ausfuehrbar: %s", exc)
@@ -126,7 +138,7 @@ def _getrackt() -> list[str]:
     if r.returncode != 0:
         log.warning("git ls-files: exit %s", r.returncode)
         return []
-    return [x for x in r.stdout.split("\0") if x]
+    return sorted({x for x in r.stdout.split("\0") if x})
 
 
 class Baum:

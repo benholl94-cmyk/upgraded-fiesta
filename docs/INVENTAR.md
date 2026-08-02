@@ -2,8 +2,8 @@
 
 **Erzeugt von `scripts/hugin_inventar.py --index`. Nicht von Hand aendern.** Jede Zeile ist gerechnet: erreichbar heisst, dass eine andere Datei im Repo diesen Teil nennt; geprueft heisst, dass eine Datei unter `tests/` ihn nennt.
 
-- Teile gesamt: **128**
-- geschlossen: **104**
+- Teile gesamt: **131**
+- geschlossen: **107**
 - offen: **24**
 - extern: **0**
 
@@ -118,12 +118,12 @@
 | `.claude/skills/direct-write` | geschlossen | nein | nein |
 | `.claude/skills/git-config` | geschlossen | nein | nein |
 | `.claude/skills/munin` | geschlossen | ja | ja |
-| `.claude/skills/munin-link` | geschlossen | ja | nein |
+| `.claude/skills/munin-link` | geschlossen | ja | ja |
 | `.claude/skills/pr-bot-triage` | geschlossen | ja | ja |
 | `.claude/skills/repo-steward` | geschlossen | nein | ja |
 | `.claude/skills/xcode-alternative` | geschlossen | ja | ja |
 
-## skript — 48
+## skript — 50
 
 | Teil | Zustand | geprueft | beschrieben |
 |---|---|---|---|
@@ -144,6 +144,7 @@
 | `scripts/generate_knowledge_graph_seed.py` | geschlossen | ja | ja |
 | `scripts/hardware_console.py` | offen | nein | ja |
 | `scripts/hm_gateway_watchdog.py` | geschlossen | ja | ja |
+| `scripts/hugin_bruecke.py` | geschlossen | ja | ja |
 | `scripts/hugin_clarity.py` | geschlossen | ja | ja |
 | `scripts/hugin_corpus.py` | geschlossen | ja | nein |
 | `scripts/hugin_growth.py` | offen | nein | nein |
@@ -158,6 +159,7 @@
 | `scripts/hugin_relay.py` | geschlossen | ja | nein |
 | `scripts/hugin_selfheal.py` | geschlossen | ja | nein |
 | `scripts/hugin_tool.py` | offen | nein | nein |
+| `scripts/hugin_zyklus.py` | geschlossen | ja | ja |
 | `scripts/install_hooks.py` | geschlossen | ja | ja |
 | `scripts/knowledge_loop.py` | geschlossen | ja | ja |
 | `scripts/llm_key_manager.py` | geschlossen | ja | ja |
@@ -176,7 +178,7 @@
 | `scripts/write_visibility_report.py` | offen | nein | nein |
 | `scripts/write_visible_status.py` | offen | nein | nein |
 
-## workflow — 18
+## workflow — 19
 
 | Teil | Zustand | geprueft | beschrieben |
 |---|---|---|---|
@@ -190,7 +192,7 @@
 | `.github/workflows/hugin-kern.yml` | geschlossen | nein | nein |
 | `.github/workflows/hugin-pages.yml` | geschlossen | nein | ja |
 | `.github/workflows/mobile-remote-channel.yml` | geschlossen | nein | nein |
-| `.github/workflows/munin-link-hourly.yml` | geschlossen | ja | nein |
+| `.github/workflows/munin-link-hourly.yml` | geschlossen | ja | ja |
 | `.github/workflows/platform-monitoring.yml` | offen | nein | nein |
 | `.github/workflows/release.yml` | geschlossen | ja | ja |
 | `.github/workflows/rust-ci.yml` | geschlossen | nein | ja |
@@ -198,4 +200,5 @@
 | `.github/workflows/selbsterhalt.yml` | geschlossen | nein | ja |
 | `.github/workflows/visible-monitoring.yml` | geschlossen | nein | nein |
 | `.github/workflows/visible-status.yml` | geschlossen | nein | nein |
+| `.github/workflows/zyklus.yml` | geschlossen | ja | ja |
 

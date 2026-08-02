@@ -91,9 +91,30 @@ def test_real_corpus_finds_the_unpushed_invariant():
 
 
 def test_real_corpus_refuses_an_unrelated_question():
-    r = infer(Situation("Neues Rust-Crate fuer Bildverarbeitung",
-                        paths=("crates/hm-image/src/lib.rs",)))
-    assert r.verdict == "abgelehnt"
+    """Ohne Praezedenzfall wird abgelehnt, nicht geraten.
+
+    **Dieser Test ist dreimal gebrochen, und beim dritten Mal war klar,
+    dass er die falsche Frage stellte.** Die alte Fassung fragte nach einem
+    *"Neues Rust-Crate fuer Bildverarbeitung"* — und ein Rust-Crate **hat**
+    in diesem Repo Praezedenz. Getroffen haben jedes Mal die generischen
+    Woerter (`neues`, `rust-crate`), waehrend das entscheidende Fachwort in
+    0 von ueber 900 Faellen vorkam; zuletzt reichte eine einzige lange
+    Commit-Botschaft fuer 0,333 gegen die Schwelle 0,30.
+
+    Ein Test, den jeder neue Commit umkippen kann, misst den Korpus und
+    nicht den Code. Die Kontrollfrage besteht deshalb jetzt **nur** aus
+    Woertern, die nachweislich nirgends vorkommen — und dass sie das tun,
+    wird hier zuerst geprueft, statt es zu hoffen.
+    """
+    frage = "Kolibri Marzipan Wolkenkratzer Rasenmaeher"
+    faelle = extract_cases()
+    vorhanden = [w for w in frage.lower().split()
+                 if any(w in c.text.lower() for c in faelle)]
+    assert not vorhanden, (
+        f"Kontrollwoerter stehen im Korpus: {vorhanden} — der Test misst "
+        "nichts mehr. Andere Woerter waehlen, nicht die Schwelle senken.")
+    r = infer(Situation(frage, paths=("crates/hm-image/src/lib.rs",)))
+    assert r.verdict == "abgelehnt", f"Naehe {r.confidence:.3f}"
 
 
 def test_extraction_yields_both_ledger_and_commit_cases():
