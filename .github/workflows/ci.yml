@@ -40,6 +40,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      # DAS GATEWAY-BINARY, UND ZWAR HIER. Zwei Tests starten einen echten
+      # `target/debug/hm-gateway` als Unterprozess:
+      # `test_ghm_core_cli_smoke.py::test_onboard_iphone_*` und
+      # `test_hm_gateway_watchdog.py::test_healthy_gateway_reports_ok`.
+      #
+      # Sie uebersprangen sich still, wenn die Datei fehlte — und in diesem
+      # Job fehlte sie IMMER: er hat keinen Rust-Schritt. `cargo test
+      # --workspace` laeuft im Nachbarjob und baut Testbinaries, nicht
+      # `target/debug/hm-gateway`. Beide Tests liefen in CI also nie.
+      #
+      # Gemessen an einem frischen `--depth 1`-Klon: 2 Skips, die lokal
+      # nicht auftreten, weil dort ein Build herumliegt. Genau die
+      # Fehlerklasse dieses Repos — es sieht aus wie Abdeckung und ist
+      # keine.
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-pytest-gw-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-pytest-gw-
+      - name: Gateway-Binary fuer die Unterprozess-Tests bauen
+        run: cargo build -p hm-gateway
       - name: Install test dependencies
         # pyyaml ist nicht optional: tests/test_workflows_parse.py prueft
         # jede Workflow-Datei auf Parsebarkeit und wuerde ohne den Parser

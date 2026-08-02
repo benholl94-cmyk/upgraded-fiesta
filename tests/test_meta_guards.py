@@ -454,3 +454,33 @@ def test_the_suite_contains_no_unconditional_skip():
     assert not befunde, (
         "unbedingte Skips — eine Entscheidung gehoert als Zusicherung "
         f"formuliert: {befunde}")
+
+
+def test_the_python_ci_job_builds_the_gateway_it_needs():
+    """**Zwei Tests liefen in CI nie, und niemand sah es.**
+
+    `test_ghm_core_cli_smoke.py` und `test_hm_gateway_watchdog.py` starten
+    einen echten `target/debug/hm-gateway` als Unterprozess. Fehlte die
+    Datei, uebersprangen sie sich still — und im Python-Job fehlte sie
+    *immer*: der Job hat keinen Rust-Schritt. `cargo test --workspace` im
+    Nachbarjob baut Testbinaries, nicht dieses Binary.
+
+    Aufgefallen ist es nur, weil die Suite in einem frischen
+    `--depth 1`-Klon gefahren wurde: dort erschienen 2 Skips, die lokal nie
+    auftreten, weil im Arbeitsbaum ein Build herumliegt.
+
+    Diese Wache haelt beides fest: der Job baut das Binary, und die Tests
+    verlangen es, statt auszuweichen.
+    """
+    ci = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    python_job = ci.partition("  python:")[2]
+    assert "cargo build -p hm-gateway" in python_job, \
+        "der Python-Job baut das Gateway nicht — die Unterprozess-Tests laufen nie"
+
+    for datei in ("tests/test_ghm_core_cli_smoke.py",
+                  "tests/test_hm_gateway_watchdog.py"):
+        text = (REPO / datei).read_text(encoding="utf-8")
+        assert "hm-gateway debug binary not built" not in text, \
+            f"{datei} weicht wieder aus, statt das Binary zu verlangen"
+        assert "cargo build -p hm-gateway" in text, \
+            f"{datei} nennt den Befehl nicht, der es herstellt"
