@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-08-01T22:24:19+00:00",
+  "updated": "2026-08-02T07:33:08+00:00",
   "session": 4,
   "entries": [
     {
@@ -823,6 +823,30 @@
       "text": "Es gibt EINEN operativen Weg: codeam_cli.py prepare/up/verify. Kein zweiter daneben — ein zweiter Weg ist die Stelle, an der beide auseinanderlaufen und niemand merkt, welcher der betriebene ist. verify fuehrt sechs Beweise; die vier Live-Beweise sind wortgleich die aus release.yml.",
       "anchors": [
         "path:scripts/codeam_cli.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-9",
+      "session": 4,
+      "ts": "2026-08-02T07:33:08+00:00",
+      "kind": "entscheidung",
+      "text": "Die Bruecke (hugin_bruecke.py, aus BIFROEST) darf neben hugin_oracle.py stehen, weil sie nachweislich keinen Socket oeffnet. Verworfen: Eintrag in ORACLE_EXEMPT — eine Pfad-Ausnahme gilt auch nach einem spaeteren 'import urllib'. Stattdessen prueft die Supervisor-Regel die Eigenschaft (Importbaum).",
+      "anchors": [
+        "path:scripts/hugin_bruecke.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-10",
+      "session": 4,
+      "ts": "2026-08-02T07:33:08+00:00",
+      "kind": "invariante",
+      "text": "Ein Pruefer darf seinen eigenen Bericht nicht mitlesen. Dreimal in einer Sitzung passiert: Korpus las sein Gegenbeispiel im Docstring (2x), Inventar las docs/INVENTAR.md (Workflows sprangen 15/18 auf 18/18 ohne Aenderung).",
+      "anchors": [
+        "path:scripts/hugin_inventar.py"
       ],
       "state": "offen",
       "weight": 1
