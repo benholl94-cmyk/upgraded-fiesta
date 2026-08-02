@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-08-02T07:33:08+00:00",
+  "updated": "2026-08-02T08:21:03+00:00",
   "session": 4,
   "entries": [
     {
@@ -847,6 +847,30 @@
       "text": "Ein Pruefer darf seinen eigenen Bericht nicht mitlesen. Dreimal in einer Sitzung passiert: Korpus las sein Gegenbeispiel im Docstring (2x), Inventar las docs/INVENTAR.md (Workflows sprangen 15/18 auf 18/18 ohne Aenderung).",
       "anchors": [
         "path:scripts/hugin_inventar.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-11",
+      "session": 4,
+      "ts": "2026-08-02T08:21:03+00:00",
+      "kind": "sackgasse",
+      "text": "deploy/fullstack-compose.yml war nie startbar, obwohl 'docker compose config' bestand und das Build-Manifest die Pruefung als bestanden fuehrte. Ursache: die Datei liegt in deploy/, docker compose loest ./ gegen das Compose-Verzeichnis auf. Drei Pfade zeigten ins Leere (init-db.sql, nginx-lb.conf, context). Docker legt fuer einen fehlenden Bind-Mount ein VERZEICHNIS an statt zu scheitern — Postgres starb an 'Is a directory'.",
+      "anchors": [
+        "path:deploy/fullstack-compose.yml"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-12",
+      "session": 4,
+      "ts": "2026-08-02T08:21:03+00:00",
+      "kind": "invariante",
+      "text": "Eine Syntaxpruefung ist kein Startbarkeitsnachweis. 'docker compose config' prueft nicht, ob ein Bind-Mount-Ziel existiert. Dieselbe Luecke wie beim Containerimage: gruen gebaut, tot im Betrieb.",
+      "anchors": [
+        "path:tests/test_fullstack_compose.py"
       ],
       "state": "offen",
       "weight": 1

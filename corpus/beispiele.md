@@ -2,7 +2,7 @@
 
 Erzeugt von `scripts/hugin_corpus.py`. Nicht von Hand aendern: der naechste Bau ueberschreibt die Datei.
 
-## begruendung — 259 Faelle
+## begruendung — 261 Faelle
 
 **scripts/release_notes.py:scripts/release_notes.py** · `scripts/release_notes.py`
 
@@ -46,7 +46,7 @@ Update visible monitoring report
 Update visible monitoring report
 ```
 
-## doku — 147 Faelle
+## doku — 148 Faelle
 
 **Architecture: rest of the Rust workspace** · `CLAUDE.md`
 
@@ -90,7 +90,7 @@ Verfassungslockerung A1: Mandatsgrenze verlaeuft entlang Umkehrbarkeit und Reich
 Toter Baum self_space_workspace_ (449 Dateien) und die Waise supervisor_agent.production.py (1404 Zeilen) auf Master-Befehl entfernt. Gefahr war nicht die Groesse, sondern die Spiegelkopie des Repos darin: 56 der 244 Dateien waren VERALTETE Fassungen echter Dateien, u.a. .github/workflows/rust-ci.yml. Vor dem Loeschen byteweise verglichen — 110 identisch, 56 veraltet, 1 nur im Spiegel (leere main.yml, im echten Baum bewusst geloescht). Nichts Einzigartiges verloren.
 ```
 
-## ledger-invariante — 23 Faelle
+## ledger-invariante — 24 Faelle
 
 **Ungepusht heisst nicht vorhanden. Ein Commit lebt nur solange sein Con** · `.claude/continuity/ledger.json`
 
@@ -104,7 +104,7 @@ Ungepusht heisst nicht vorhanden. Ein Commit lebt nur solange sein Container leb
 Ein Prompt, der wiederkehrend feuert, darf keinen Zustand enthalten, der altern kann: kein Branchname, kein Projektstand, keine offenen Punkte. Alles davon kommt aus dem Ledger. Der Prompt beschreibt nur das Verfahren.
 ```
 
-## ledger-sackgasse — 21 Faelle
+## ledger-sackgasse — 22 Faelle
 
 **Die Mandatswache mit any() ueber lose Stichwoerter zu bauen scheitert:** · `.claude/continuity/ledger.json`
 
