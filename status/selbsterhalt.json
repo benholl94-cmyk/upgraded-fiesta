@@ -1,19 +1,19 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-08-02T08:35:36+00:00",
+  "ts": "2026-08-02T12:50:35+00:00",
   "offen": [
     {
       "id": "supervisor",
       "was": "Verfassungs-Audit",
       "stand": "eskaliert",
-      "detail": "[VIOLATION] git-committer-identity: Committer-Mail ist (leer), erwartet noreply@anthropic.com | [DRIFT    ] continuity: 3 Anker im Gedächtnis zeigen ins Leere | [RISK     ] hook-not-installed: stop-hook-git-check.sh liegt im Repo, ist aber nicht installiert",
+      "detail": "[VIOLATION] git-committer-identity: Committer-Mail ist (leer), erwartet noreply@anthropic.com | [RISK     ] hook-not-installed: stop-hook-git-check.sh liegt im Repo, ist aber nicht installiert",
       "braucht_master": "Diese Befunde verlangen eine Entscheidung — der Supervisor loest nie selbst auf."
     },
     {
       "id": "tests",
       "was": "Testsuite",
       "stand": "eskaliert",
-      "detail": "/usr/bin/python3: No module named pytest",
+      "detail": "2 failed, 1465 passed, 2 skipped in 39.20s",
       "braucht_master": "Ein roter Test ist keine mechanische Reparatur — welcher Code richtig ist, entscheidet kein Automat."
     },
     {
@@ -22,13 +22,6 @@
       "stand": "eskaliert",
       "detail": "stufe-T1b: models/model.gguf fehlt — python3 scripts/hugin_local_model.py setup | stufe-T1: 0 von 10 keylosen Providern erreichbar",
       "braucht_master": "  stufe-T1b: gh workflow run hugin-kern.yml -f frage='...'   # holt und prueft beides auf Repo-Hardware\n  stufe-T1: ollama serve   # oder: export HUGIN_<PROVIDER>_KEY=..."
-    },
-    {
-      "id": "anker",
-      "was": "Ledger-Anker",
-      "stand": "eskaliert",
-      "detail": "  [rot] s4-4 → sha:b724047 (Commit nicht im Repo)",
-      "braucht_master": "Ein verrotteter Anker zeigt auf etwas, das es nicht mehr gibt — was an seine Stelle gehoert, weiss nur ein Mensch."
     }
   ],
   "getan": [
