@@ -118,7 +118,7 @@
 | `.claude/skills/direct-write` | geschlossen | nein | nein |
 | `.claude/skills/git-config` | geschlossen | nein | nein |
 | `.claude/skills/munin` | geschlossen | ja | ja |
-| `.claude/skills/munin-link` | geschlossen | ja | nein |
+| `.claude/skills/munin-link` | geschlossen | ja | ja |
 | `.claude/skills/pr-bot-triage` | geschlossen | ja | ja |
 | `.claude/skills/repo-steward` | geschlossen | nein | ja |
 | `.claude/skills/xcode-alternative` | geschlossen | ja | ja |
@@ -190,7 +190,7 @@
 | `.github/workflows/hugin-kern.yml` | geschlossen | nein | nein |
 | `.github/workflows/hugin-pages.yml` | geschlossen | nein | ja |
 | `.github/workflows/mobile-remote-channel.yml` | geschlossen | nein | nein |
-| `.github/workflows/munin-link-hourly.yml` | geschlossen | ja | nein |
+| `.github/workflows/munin-link-hourly.yml` | geschlossen | ja | ja |
 | `.github/workflows/platform-monitoring.yml` | offen | nein | nein |
 | `.github/workflows/release.yml` | geschlossen | ja | ja |
 | `.github/workflows/rust-ci.yml` | geschlossen | nein | ja |
