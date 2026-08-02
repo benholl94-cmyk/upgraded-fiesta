@@ -34,6 +34,7 @@ from _log import get_logger
 log = get_logger(__name__)
 
 import argparse
+import ast
 import json
 import re
 import subprocess
@@ -400,6 +401,46 @@ ORACLE_EXEMPT = ("hugin/", "scripts/hugin_oracle.py", "docs/", "CLAUDE.md",
                  "scripts/munin_supervisor.py", "tests/")
 
 
+#: Module, ohne die eine Python-Datei keine Verbindung aufbauen kann.
+NETZ_MODULE = ("socket", "ssl", "http", "urllib", "requests", "httpx",
+               "ftplib", "smtplib", "asyncio", "aiohttp")
+
+
+def _kann_senden(path: str, body: str) -> bool:
+    """Kann diese Datei ueberhaupt eine Verbindung oeffnen?
+
+    **Warum die Regel das prueft statt einer Pfad-Ausnahmeliste.** Eine
+    Datei darf Provider-Endpunkte *nennen*, ohne sie aufzurufen:
+    `scripts/hugin_bruecke.py` fuehrt eine Routentabelle mit Hostnamen und
+    plant Aufrufe, oeffnet aber nie einen Socket -- R6 erzeugt einen Plan.
+    Sie in `ORACLE_EXEMPT` einzutragen waere ein Stempel: die Ausnahme
+    gaelte dann auch, wenn jemand spaeter `import urllib` ergaenzt. Genau
+    diese Sorte Eintrag hat hier schon einmal ein Loch hinterlassen
+    (`KNOWN_SAFE_ENV` zeigte auf eine geloeschte Datei und befreite alles,
+    was danach an diesem Pfad auftauchte).
+
+    Geprueft wird deshalb die Eigenschaft, nicht der Name. Fuer
+    Nicht-Python-Dateien bleibt die Antwort `True` -- dort laesst sich das
+    hier nicht entscheiden, und Unbekanntes gilt nie als in Ordnung.
+    """
+    if not path.endswith(".py"):
+        return True
+    try:
+        baum = ast.parse(body)
+    except SyntaxError:
+        return True
+    for k in ast.walk(baum):
+        if isinstance(k, ast.Import):
+            namen = [a.name.split(".")[0] for a in k.names]
+        elif isinstance(k, ast.ImportFrom) and k.module:
+            namen = [k.module.split(".")[0]]
+        else:
+            continue
+        if any(n in NETZ_MODULE for n in namen):
+            return True
+    return False
+
+
 def check_oracle_gate() -> list[Finding]:
     """Alle serverseitigen Provider-Calls laufen durch hugin_oracle.py."""
     out: list[Finding] = []
@@ -410,6 +451,8 @@ def check_oracle_gate() -> list[Finding]:
         if not f.is_file():
             continue
         body = f.read_text(encoding="utf-8", errors="replace")
+        if not _kann_senden(path, body):
+            continue      # nennt Endpunkte, kann sie aber nicht aufrufen
         for host in PROVIDER_HOSTS:
             if host in body:
                 out.append(Finding(

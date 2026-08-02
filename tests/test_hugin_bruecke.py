@@ -177,3 +177,36 @@ def test_no_trace_of_the_original_name_remains():
     fuer dieselbe Sache im Baum."""
     text = QUELLE.read_text(encoding="utf-8").lower()
     assert "bifroest" not in text
+
+
+# ---------------------------------------------------------------------------
+# Die Regel, die die Bruecke passieren laesst — und die dabei nicht stumpf wird
+# ---------------------------------------------------------------------------
+
+def test_the_oracle_rule_lets_a_planner_pass():
+    """Eine Datei darf Provider-Endpunkte *nennen*, ohne sie aufzurufen."""
+    sys.path.insert(0, str(REPO / "scripts"))
+    import munin_supervisor as ms
+    assert not ms._kann_senden("scripts/x.py",
+                               'ROUTEN = {"a": "https://api.anthropic.com/v1"}\n')
+
+
+def test_the_oracle_rule_still_bites_when_a_socket_appears():
+    """**Die Gegenprobe, die zaehlt.** Waere die Bruecke einfach in
+    `ORACLE_EXEMPT` eingetragen worden, gaelte die Ausnahme auch, nachdem
+    jemand `import urllib` ergaenzt — genau die Sorte Eintrag, die hier
+    schon einmal ein Loch hinterliess (`KNOWN_SAFE_ENV` zeigte auf eine
+    geloeschte Datei). Die Regel prueft deshalb die Eigenschaft."""
+    sys.path.insert(0, str(REPO / "scripts"))
+    import munin_supervisor as ms
+    for quelle in ("import urllib.request\nX='api.anthropic.com'\n",
+                   "import socket\n", "from http import client\n",
+                   "import requests\n"):
+        assert ms._kann_senden("scripts/x.py", quelle), quelle
+
+
+def test_a_non_python_file_is_never_assumed_harmless():
+    """Unbekanntes gilt nie als in Ordnung — dieselbe Richtung wie ueberall."""
+    sys.path.insert(0, str(REPO / "scripts"))
+    import munin_supervisor as ms
+    assert ms._kann_senden("deploy/irgendwas.sh", "curl api.anthropic.com")
