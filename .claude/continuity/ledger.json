@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-08-02T08:21:03+00:00",
+  "updated": "2026-08-02T11:47:42+00:00",
   "session": 4,
   "entries": [
     {
@@ -761,7 +761,7 @@
       "kind": "entscheidung",
       "text": "Auto-Rollback (#77) wiederhergestellt (git revert 7d812c4) und den unknown-Bug behoben: Sperre 2 war Blockliste (== 'failure'), jetzt Allowlist (!= 'success'). previous_conclusion-Default in Context/from_dict von 'success' auf 'unknown' geändert. Ursache des Selbst-Reverts war exakt dieser Bug: erster Lauf hatte previous_conclusion='unknown', Blockliste liess es durch, Workflow revertierte seinen eigenen Einführungs-Commit. 7 neue parametrisierte Testfälle (unknown/cancelled/timed_out/neutral/action_required/stale/leer) ersetzen den alten Platzhaltertest, der beide Ausgänge akzeptierte. Workflow reaktiviert (nicht mehr disabled) — Sperre 3 (Circuit Breaker, max 2 Reverts/6h) bleibt als zusätzliche Absicherung bestehen, falls der Fix selbst fehlerhaft ist.",
       "anchors": [
-        "sha:b724047",
+        "sha:265432b",
         "path:scripts/auto_rollback.py:125"
       ],
       "state": "offen",
@@ -774,9 +774,9 @@
       "kind": "offen",
       "text": "PR #106 (fix(ci): auto-rollback Sperre 2 als Allowlist) offen, subscribed. Drive-to-green: CI-Fehler selbst fixen, Review-Kommentare beantworten, Subscription endet erst mit Merge/Close.",
       "anchors": [
-        "sha:b724047"
+        "sha:265432b"
       ],
-      "state": "offen",
+      "state": "erledigt",
       "weight": 1
     },
     {
@@ -871,6 +871,18 @@
       "text": "Eine Syntaxpruefung ist kein Startbarkeitsnachweis. 'docker compose config' prueft nicht, ob ein Bind-Mount-Ziel existiert. Dieselbe Luecke wie beim Containerimage: gruen gebaut, tot im Betrieb.",
       "anchors": [
         "path:tests/test_fullstack_compose.py"
+      ],
+      "state": "offen",
+      "weight": 1
+    },
+    {
+      "id": "s4-13",
+      "session": 4,
+      "ts": "2026-08-02T11:47:42+00:00",
+      "kind": "invariante",
+      "text": "Nicht jeder tote Anker ist Drift. Ein sha:-Anker auf einen Feature-Branch stirbt beim Squash-Merge — er war beim Anlegen zum Tod verurteilt. Dagegen hilft keine Reparatur, sondern eine Warnung beim capture, wo der Autor ihn noch durch path: ersetzen kann.",
+      "anchors": [
+        "path:scripts/munin_continuity.py"
       ],
       "state": "offen",
       "weight": 1

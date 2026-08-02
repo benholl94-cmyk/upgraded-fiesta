@@ -300,13 +300,58 @@ def compact(led: Ledger, budget: int = DEFAULT_BUDGET) -> tuple[list[str], bool]
 # ---------------------------------------------------------------------------
 
 
+def _default_branch() -> str:
+    r = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    if r.returncode == 0 and r.stdout.strip():
+        return r.stdout.strip().split("/", 1)[-1]
+    return "main"
+
+
+def _fluechtiger_sha(anchor: str) -> bool:
+    """Ist dieser SHA-Anker beim Anlegen schon zum Tod verurteilt?
+
+    **Die Wurzel der beiden toten Anker dieser Sitzung.** `s4-3` und `s4-4`
+    zeigten auf `b724047`, einen Commit vom Branch zu PR #106. Beim
+    Squash-Merge entsteht ein *neuer* Commit; der alte wird unerreichbar
+    und irgendwann weggeraeumt. Der Anker war nicht verrottet -- er konnte
+    in einem Squash-Workflow nie halten.
+
+    Gewarnt wird beim `capture`, nicht erst beim `verify`: dort ist die
+    Information noch nuetzlich, weil der Schreiber sie sofort durch einen
+    `path:`-Anker ersetzen kann. Beim Verify ist der Commit schon weg und
+    niemand weiss mehr, worauf er zeigte.
+
+    Kein Abbruch: ein SHA vom Feature-Branch kann trotzdem der richtige
+    Bezug sein, solange man weiss, dass er den Merge nicht ueberlebt.
+    """
+    if not anchor.startswith("sha:"):
+        return False
+    rev = anchor[4:]
+    if git("cat-file", "-e", f"{rev}^{{commit}}").returncode != 0:
+        return False          # existiert nicht -- das meldet verify_anchor
+    zweig = _default_branch()
+    r = git("merge-base", "--is-ancestor", rev, f"origin/{zweig}")
+    return r.returncode != 0
+
+
 def verify_anchor(anchor: str) -> tuple[str, str]:
     """Gibt (status, detail). status: ok | rot | extern."""
     if anchor.startswith("sha:"):
         rev = anchor[4:]
         if git("cat-file", "-e", f"{rev}^{{commit}}").returncode == 0:
             return "ok", ""
-        return "rot", "Commit nicht im Repo"
+        # **Die Wurzel, nicht das Symptom.** Ein SHA von einem
+        # Feature-Branch stirbt beim Squash-Merge: der Squash erzeugt einen
+        # neuen Commit, der alte wird unerreichbar und irgendwann
+        # weggeraeumt. `s4-3` und `s4-4` zeigten auf `b724047` -- einen
+        # Commit aus PR #106, der genau so verschwand.
+        #
+        # Das ist kein Datenverlust, sondern eine Anker-Art, die in einem
+        # Squash-Workflow nicht taugt. Deshalb wird hier benannt, WARUM er
+        # weg ist, statt nur DASS er weg ist: nur so weiss der naechste
+        # Leser, dass er den Eintrag umankern und nicht suchen muss.
+        return "rot", ("Commit nicht im Repo — bei Squash-Merge verschwindet "
+                       "der Feature-Branch-SHA. Auf einen Pfad umankern.")
 
     if anchor.startswith("path:"):
         rest = anchor[5:]
@@ -316,8 +361,15 @@ def verify_anchor(anchor: str) -> tuple[str, str]:
             if tail.isdigit():
                 rest, line = head, int(tail)
         p = REPO / rest
-        if not p.is_file():
-            return "rot", "Datei existiert nicht"
+        # `exists()`, nicht `is_file()`. Ein Anker darf auf ein VERZEICHNIS
+        # zeigen: `s3-19` haelt eine Sackgasse ueber `.github/workflows`
+        # als Ganzes fest -- der OAuth-Token des Codespace hat keinen
+        # workflow-Scope, das betrifft jede Datei darin und keine einzelne.
+        # Die vorige Fassung meldete diesen Anker als "Datei existiert
+        # nicht", waehrend das Verzeichnis danebenlag. Ein falscher
+        # Rot-Befund ist teurer als keiner: er trainiert das Weglesen.
+        if not p.exists():
+            return "rot", "Pfad existiert nicht"
         if line is not None:
             try:
                 n = sum(1 for _ in p.open(encoding="utf-8", errors="replace"))
@@ -554,12 +606,16 @@ def cmd_capture(a: argparse.Namespace) -> int:
         weight=a.weight,
     )
     bad = [(an, *verify_anchor(an)) for an in e.anchors]
+    fluechtig = [an for an in e.anchors if _fluechtiger_sha(an)]
     led.entries.append(e)
     led.save()
     print(f"✓ {e.id} [{e.kind}] {e.text[:70]}")
     for an, status, detail in bad:
         if status == "rot":
             print(f"  ⚠ Anker zeigt ins Leere: {an} ({detail})")
+    for an in fluechtig:
+        print(f"  ⚠ {an} liegt nicht auf dem Default-Branch — beim "
+              "Squash-Merge verschwindet dieser SHA. Besser: path:<datei>")
     print("  · noch nicht dauerhaft — `seal --push` macht es dauerhaft")
     return 0
 
