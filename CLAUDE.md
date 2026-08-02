@@ -275,6 +275,41 @@ Commit-Botschaft in Spalte 1, die den YAML-Blockskalar beendete — dieselbe
 Ursache, die `munin-link-hourly.yml` monatelang mit `total_jobs: 0` laufen
 liess.
 
+### Die Sperrklinke — vom Messen zum Schieben
+
+Der Zyklus schreibt je Lauf eine Zeile nach `status/verlauf.jsonl` und
+vergleicht den neuen Stand gegen **den besten je gemessenen**. Eine Kurve
+zeigt, dass etwas schlechter wurde; eine Sperrklinke verbietet es.
+
+Der Bedarf ist gemessen, nicht ausgedacht: in einer einzigen Sitzung fiel
+dreimal etwas leise zurueck, **ohne dass ein Test rot war** — zwei Tests
+uebersprangen sich mangels Binary (Testzahl sank), das Inventar meldete
+neun erfundene Befunde, der Korpus veraltete nach jedem Squash-Merge.
+
+Vier Kennzahlen mit **erklaerter Richtung** (`KENNZAHLEN`): mehr Tests und
+mehr Korpusfaelle sind besser, weniger offene Teile und weniger Befunde
+sind besser. Eine geratene Richtung meldete Fortschritt als Rueckschritt.
+
+**Der beste Wert ist der Massstab, nicht der letzte.** Sonst laesst sich
+die Klinke in kleinen Schritten unterlaufen: 1469 → 1467 → 1465, jedes Mal
+ohne Befund.
+
+**Bei der Laufzeit gilt das Gegenteil** — dort ist der *Vorlauf* der
+Massstab, mit 25 % Toleranz. Ein einmal schneller Lauf (warmer Cache) waere
+sonst fuer immer die Vorgabe, und jeder normale Lauf ein Befund. Schritte
+unter 5 s werden gar nicht bewertet: das ist Rauschen, kein Trend.
+
+**Verglichen wird nur Gleiches mit Gleichem.** `_umgebung()` bildet einen
+Fingerabdruck (`ci|lokal` / `flach|voll`); auf dem Runner laeuft kein
+Gateway und der Klon ist flach. Ein lokaler Bestwert als Massstab dort
+waere eine Forderung, die niemand erfuellen kann — und eine Warnung, die
+immer kommt, wird weggeklickt.
+
+Eine fehlende Messung ist `None`, nie `0`: eine fehlende Zahl als Null zu
+fuehren erzeugt einen Absturz in der Kurve, den es nie gegeben hat. Der
+Vorlauf schreibt nichts — er misst einen Zustand, den er nicht hergestellt
+hat.
+
 ### Inventar — kein Teil im Zustand „unbekannt"
 
 `scripts/hugin_inventar.py` beantwortet weder „laeuft es" (das tut

@@ -63,6 +63,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import subprocess
 import sys
 import time
@@ -209,7 +211,153 @@ def s_pruefen() -> list[Schritt]:
     ]
 
 
-STUFEN = ("messen", "erden", "heilen", "pruefen")
+# ---------------------------------------------------------------------------
+# Verlauf und Sperrklinke
+# ---------------------------------------------------------------------------
+
+VERLAUF = REPO / "status" / "verlauf.jsonl"
+
+#: Kennzahlen und ihre gute Richtung. `+1` heisst "groesser ist besser".
+#: Ohne diese Tabelle muesste jede Auswertung die Richtung raten -- und
+#: eine geratene Richtung meldet Fortschritt als Rueckschritt.
+KENNZAHLEN = {
+    "tests_bestanden": +1,
+    "offene_teile": -1,
+    "korpus_faelle": +1,
+    "befunde": -1,
+}
+
+#: Ab dieser relativen Verschlechterung gilt eine Laufzeit als Befund.
+#: 25 % statt 10 %: Runner schwanken, und eine Warnung, die bei jedem
+#: zweiten Lauf kommt, wird weggeklickt.
+DAUER_TOLERANZ = 0.25
+
+
+def _umgebung() -> str:
+    """Fingerabdruck der Umgebung -- nur Gleiches wird verglichen.
+
+    **Ohne diesen Fingerabdruck waere die Sperrklinke schaedlich.** Auf dem
+    Runner laeuft kein Gateway und der Klon ist flach; dort fallen Tests,
+    die lokal bestehen. Ein Bestwert aus der einen Umgebung als Untergrenze
+    fuer die andere zu setzen, meldete bei jedem Lauf einen Rueckschritt,
+    den niemand beheben kann -- und eine Warnung, die immer kommt, wird
+    nicht gelesen.
+    """
+    teile = ["ci" if os.environ.get("GITHUB_ACTIONS") == "true" else "lokal"]
+    r = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                       cwd=REPO, capture_output=True, text=True, timeout=60)
+    teile.append("flach" if r.stdout.strip() == "true" else "voll")
+    return "/".join(teile)
+
+
+def _messwerte(schritte: list[Schritt]) -> dict:
+    """Was dieser Lauf ueber das System aussagt -- gerechnet, nie geschaetzt.
+
+    Fehlt eine Zahl, steht sie **nicht** als 0 da: `None` heisst "nicht
+    gemessen", und die Auswertung ueberspringt sie. Eine fehlende Messung
+    als Null zu fuehren, erzeugt einen Absturz in der Kurve, den es nie
+    gegeben hat.
+    """
+    aus: dict = {"befunde": sum(1 for s in schritte if s.stand == BEFUND)}
+
+    for s in schritte:
+        if s.name == "tests":
+            for z in reversed(s.zeilen):
+                m = re.search(r"(\d+) passed", z)
+                if m:
+                    aus["tests_bestanden"] = int(m.group(1))
+                    break
+        elif s.name == "inventar":
+            aus["offene_teile"] = sum(1 for z in s.zeilen if z.startswith("[OFFEN"))
+    k = REPO / "corpus" / "manifest.json"
+    if k.is_file():
+        try:
+            aus["korpus_faelle"] = json.loads(k.read_text(encoding="utf-8"))["faelle"]
+        except (json.JSONDecodeError, OSError, KeyError) as exc:
+            log.warning("Korpus-Manifest nicht lesbar: %s", exc)
+    aus["dauer"] = {s.name: round(s.dauer, 1) for s in schritte}
+    return aus
+
+
+def verlauf_lesen() -> list[dict]:
+    if not VERLAUF.is_file():
+        return []
+    aus = []
+    for zeile in VERLAUF.read_text(encoding="utf-8").splitlines():
+        if not zeile.strip():
+            continue
+        try:
+            aus.append(json.loads(zeile))
+        except json.JSONDecodeError:
+            continue          # eine kaputte Zeile kostet nicht die Reihe
+    return aus
+
+
+def verlauf_schreiben(schritte: list[Schritt]) -> dict:
+    """Eine Zeile je Lauf. Das ist die einzige Stelle, die schreibt."""
+    eintrag = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               "umgebung": _umgebung(), **_messwerte(schritte)}
+    VERLAUF.parent.mkdir(parents=True, exist_ok=True)
+    with VERLAUF.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(eintrag, ensure_ascii=False, sort_keys=True) + "\n")
+    return eintrag
+
+
+def sperrklinke(jetzt: dict, verlauf: list[dict]) -> list[Schritt]:
+    """**Der beste je gemessene Wert ist die Untergrenze.**
+
+    Das ist der Unterschied zwischen Messen und Schieben. Eine Kurve zeigt,
+    dass etwas schlechter wurde; eine Sperrklinke *verbietet* es. Wer die
+    Testzahl von 1469 einmal erreicht hat, darf nicht unbemerkt auf 1465
+    zurueckfallen -- und genau das ist in dieser Sitzung passiert, ohne dass
+    ein einziger Test rot war: die Faelle uebersprangen sich.
+
+    Verglichen wird nur innerhalb derselben Umgebung. Ein Bestwert aus dem
+    vollen lokalen Klon als Massstab fuer den flachen Runner waere eine
+    Forderung, die dort niemand erfuellen kann.
+    """
+    gleiche = [e for e in verlauf if e.get("umgebung") == jetzt.get("umgebung")]
+    if not gleiche:
+        return [Schritt("sperrklinke", "vergleichen", OK, 0.0,
+                        [f"erster Lauf in {jetzt.get('umgebung')} — "
+                         "ab jetzt gilt dieser Stand als Untergrenze"])]
+
+    aus: list[Schritt] = []
+    for name, richtung in KENNZAHLEN.items():
+        werte = [e[name] for e in gleiche if isinstance(e.get(name), int)]
+        wert = jetzt.get(name)
+        if not werte or not isinstance(wert, int):
+            continue
+        best = max(werte) if richtung > 0 else min(werte)
+        schlechter = wert < best if richtung > 0 else wert > best
+        if schlechter:
+            aus.append(Schritt(
+                f"rueckschritt:{name}", "vergleichen", BEFUND, 0.0,
+                [f"{name}: {wert} — der beste Stand war {best} "
+                 f"({'weniger' if richtung > 0 else 'mehr'} als bisher)"],
+                befehl=("python3 -m pytest tests/ -q" if name.startswith("tests")
+                        else "python3 scripts/hugin_inventar.py --offen")))
+    # Laufzeit: nur der Vorlauf zaehlt, nicht der Bestwert. Ein einmal
+    # schneller Lauf (warmer Cache) waere sonst fuer immer der Massstab.
+    vorher = gleiche[-1].get("dauer") or {}
+    for name, sek in (jetzt.get("dauer") or {}).items():
+        alt = vorher.get(name)
+        if not isinstance(alt, (int, float)) or alt < 5:
+            continue          # unter 5 s ist Rauschen, kein Trend
+        if sek > alt * (1 + DAUER_TOLERANZ):
+            aus.append(Schritt(
+                f"langsamer:{name}", "vergleichen", BEFUND, 0.0,
+                [f"{name}: {sek}s gegen {alt}s im Vorlauf "
+                 f"(+{round((sek/alt - 1) * 100)} %)"],
+                befehl=f"python3 scripts/hugin_zyklus.py --nur {name}"))
+    if not aus:
+        aus.append(Schritt("sperrklinke", "vergleichen", OK, 0.0,
+                           [f"kein Rueckschritt gegenueber {len(gleiche)} "
+                            f"Laeufen in {jetzt.get('umgebung')}"]))
+    return aus
+
+
+STUFEN = ("messen", "erden", "heilen", "pruefen", "vergleichen")
 
 
 def zyklus(apply: bool, nur: set[str] | None = None) -> list[Schritt]:
@@ -225,6 +373,14 @@ def zyklus(apply: bool, nur: set[str] | None = None) -> list[Schritt]:
             aus += s_heilen(apply)
         elif stufe == "pruefen":
             aus += s_pruefen()
+        elif stufe == "vergleichen":
+            # ZULETZT, und das ist der Punkt: die Sperrklinke bewertet, was
+            # die Stufen davor gemessen haben. Vor ihnen haette sie den
+            # Stand von vorhin bewertet.
+            vorher = verlauf_lesen()
+            jetzt = verlauf_schreiben(aus) if apply else {
+                "umgebung": _umgebung(), **_messwerte(aus)}
+            aus += sperrklinke(jetzt, vorher)
     return aus
 
 
