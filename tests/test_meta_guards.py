@@ -471,16 +471,28 @@ def test_the_python_ci_job_builds_the_gateway_it_needs():
 
     Diese Wache haelt beides fest: der Job baut das Binary, und die Tests
     verlangen es, statt auszuweichen.
+        **Und die zweite Fassung dieser Wache war ebenfalls zu eng.** Sie
+    verlangte den Bau-Befehl im Workflow *und* im Testtext. Beides war die
+    Formulierung von damals, nicht die Sache: seit `tests/conftest.py` die
+    Fixture `gateway_binary` traegt, stellt die Suite die Voraussetzung
+    selbst her — in jedem Workflow, auch in dem, den morgen jemand
+    hinzufuegt. Der erste echte Kettenlauf hatte gezeigt, warum das
+    noetig war: `zyklus.yml` faehrt ebenfalls pytest und wusste nichts vom
+    Bau.
+
+    Geprueft wird jetzt die Eigenschaft: es gibt eine Fixture, die baut,
+    beide Tests benutzen sie, und keiner weicht mehr aus.
     """
-    ci = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    python_job = ci.partition("  python:")[2]
-    assert "cargo build -p hm-gateway" in python_job, \
-        "der Python-Job baut das Gateway nicht — die Unterprozess-Tests laufen nie"
+    conftest = (REPO / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert "def gateway_binary" in conftest, "keine Fixture, die das Binary stellt"
+    assert "cargo" in conftest and "build" in conftest, \
+        "die Fixture baut nicht — dann bleibt die Voraussetzung ungedeckt"
+    assert "pytest.skip" not in conftest, "die Fixture weicht aus statt zu bauen"
 
     for datei in ("tests/test_ghm_core_cli_smoke.py",
                   "tests/test_hm_gateway_watchdog.py"):
         text = (REPO / datei).read_text(encoding="utf-8")
         assert "hm-gateway debug binary not built" not in text, \
             f"{datei} weicht wieder aus, statt das Binary zu verlangen"
-        assert "cargo build -p hm-gateway" in text, \
-            f"{datei} nennt den Befehl nicht, der es herstellt"
+        assert "gateway_binary" in text, \
+            f"{datei} benutzt die Fixture nicht"
