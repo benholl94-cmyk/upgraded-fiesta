@@ -2,8 +2,8 @@
 
 **Erzeugt von `scripts/hugin_inventar.py --index`. Nicht von Hand aendern.** Jede Zeile ist gerechnet: erreichbar heisst, dass eine andere Datei im Repo diesen Teil nennt; geprueft heisst, dass eine Datei unter `tests/` ihn nennt.
 
-- Teile gesamt: **130**
-- geschlossen: **106**
+- Teile gesamt: **131**
+- geschlossen: **107**
 - offen: **24**
 - extern: **0**
 
@@ -123,7 +123,7 @@
 | `.claude/skills/repo-steward` | geschlossen | nein | ja |
 | `.claude/skills/xcode-alternative` | geschlossen | ja | ja |
 
-## skript — 49
+## skript — 50
 
 | Teil | Zustand | geprueft | beschrieben |
 |---|---|---|---|
@@ -144,6 +144,7 @@
 | `scripts/generate_knowledge_graph_seed.py` | geschlossen | ja | ja |
 | `scripts/hardware_console.py` | offen | nein | ja |
 | `scripts/hm_gateway_watchdog.py` | geschlossen | ja | ja |
+| `scripts/hugin_bruecke.py` | geschlossen | ja | ja |
 | `scripts/hugin_clarity.py` | geschlossen | ja | ja |
 | `scripts/hugin_corpus.py` | geschlossen | ja | nein |
 | `scripts/hugin_growth.py` | offen | nein | nein |

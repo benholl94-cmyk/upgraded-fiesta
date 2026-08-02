@@ -1,8 +1,8 @@
 {
   "arten": {
-    "begruendung": 250,
+    "begruendung": 254,
     "commit": 400,
-    "doku": 146,
+    "doku": 147,
     "ledger-entscheidung": 16,
     "ledger-invariante": 22,
     "ledger-sackgasse": 21,
@@ -11,35 +11,35 @@
   "dateien": {
     "beispiele.md": {
       "bytes": 7289,
-      "sha256": "539911e1bd5ffdafe9f2fd63dc5e76f6fa83a10f5e7ace344a4f9a1015322a15"
+      "sha256": "c1b9b9bc9cc427e916ea8b3c974c1b6ea0240e1f172cbd6af9e0b6720e1f6b9d"
     },
     "chat.jsonl": {
-      "bytes": 651976,
-      "sha256": "90a5dc962fb3fd85fa227744a656f85ec911d2e2042fa5bbe25effe512fc1255"
+      "bytes": 660348,
+      "sha256": "317e45aafefbd164bd93e6d921d3eaa07c8f76e90dd0fbcee2eb4a77da60b21a"
     },
     "faelle.jsonl": {
-      "bytes": 619090,
-      "sha256": "a9681cd7520efdfcd13752fcf56bcc33a0eab346b6ab339516a9cdbb106c1a4c"
+      "bytes": 627319,
+      "sha256": "878a0fae2b0601adc2727d70329b2b3193b2165167dfec0cab1a74a62029963f"
     },
     "index.json": {
-      "bytes": 605861,
-      "sha256": "574bccfb3032604c1b94ce09dd9e62edd0bdd9c51c8044f5c1a0406374a45b06"
+      "bytes": 615143,
+      "sha256": "c2f00d7af42eb26986d4c7f312ed0b293d8b08df3daf3aec54bf1c4d24b2ac85"
     },
     "instruct.jsonl": {
-      "bytes": 642126,
-      "sha256": "060bb4860ba42a840a2aa00c5e79c6dcefb9e7cf00119d1cfe569bad645122b1"
+      "bytes": 650458,
+      "sha256": "b2df582e1122baaf9502e9ac691399bd17da935470d8a7083c867dcf8912f4d3"
     }
   },
-  "erzeugt": "2026-08-02T07:01:14+00:00",
-  "faelle": 927,
+  "erzeugt": "2026-08-02T07:15:15+00:00",
+  "faelle": 932,
   "herkunft": {
     "commits": 400,
-    "docstrings": 250,
+    "docstrings": 254,
     "ledger": 59,
-    "markdown": 146,
+    "markdown": 147,
     "rust": 72
   },
   "schema": "hugin.corpus.v1",
   "stamm": 5,
-  "zeichen": 438097
+  "zeichen": 445121
 }

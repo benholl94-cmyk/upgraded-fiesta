@@ -333,8 +333,13 @@ def test_control_questions_never_appear_verbatim_in_the_corpus(geladen):
     idx, _ = geladen
     # Die Fachwoerter, auf denen die Kontrollfragen dieses Repos beruhen.
     # Steht eines im Index, ist die zugehoerige Kontrolle wirkungslos.
-    kontrollwoerter = ["bildverarbeitung", "kolibri", "marzipan",
-                       "wolkenkratzer", "rasenmaeher"]
+    # Diese Liste muss den TATSAECHLICHEN Kontrollfragen folgen. Sie fuehrte
+    # eine Zeit lang `bildverarbeitung` mit — ein Wort, das seit der
+    # Umstellung von `test_real_corpus_refuses_an_unrelated_question` keine
+    # Kontrolle mehr traegt und nur noch in dem Docstring vorkommt, der
+    # erklaert, warum es untauglich war. Ein Eintrag fuer eine
+    # abgeschaffte Kontrolle ist kein Schutz, sondern ein Fehlalarm.
+    kontrollwoerter = ["kolibri", "marzipan", "wolkenkratzer", "rasenmaeher"]
     gefunden = [w for w in kontrollwoerter if hc.stamm(w) in idx]
     assert not gefunden, (
         f"Kontrollwoerter im Korpus: {gefunden}. Der zugehoerige Test misst "
