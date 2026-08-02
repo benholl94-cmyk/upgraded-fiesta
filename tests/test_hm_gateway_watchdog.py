@@ -50,17 +50,15 @@ def test_unreachable_gateway_reports_unhealthy_without_restarting() -> None:
     assert payload["restarted"] is False
 
 
-def test_healthy_gateway_reports_ok(tmp_path: pathlib.Path) -> None:
+def test_healthy_gateway_reports_ok(tmp_path: pathlib.Path, gateway_binary) -> None:
     repo_root = pathlib.Path(__file__).resolve().parents[1]
     gateway_bin = repo_root / "target" / "debug" / "hm-gateway"
-    # KEIN SKIP. Dieser Test startet einen echten Gateway-Unterprozess; ohne
-    # das Binary prueft er nichts. Bis 2026-08-02 uebersprang er sich dann
-    # still — und im Python-Job der CI, der keinen Rust-Schritt hat, war das
-    # IMMER der Fall. Ein Test, der nie laeuft, sieht aus wie Abdeckung und
-    # ist keine. `ci.yml` baut das Binary jetzt in genau diesem Job.
-    assert gateway_bin.is_file(), (
-        f"{gateway_bin.relative_to(repo_root)} fehlt — dieser Test braucht "
-        "einen echten Gateway-Prozess. Bauen mit: cargo build -p hm-gateway")
+    # KEIN SKIP, und die Voraussetzung stellt die Suite selbst her. Die
+    # Fixture `gateway_binary` (tests/conftest.py) baut das Binary einmal je
+    # Sitzung, wenn es fehlt. Vorher musste jeder Workflow das einzeln
+    # wissen — `ci.yml` wusste es nach der ersten Korrektur, `zyklus.yml`
+    # nicht, und der erste echte Kettenlauf meldete prompt 2 Fehlschlaege.
+    gateway_bin = gateway_binary
 
     port = _free_port()
     env = dict(
