@@ -51,12 +51,29 @@ def test_a_line_anchor_still_resolves():
     assert status == "ok", detail
 
 
-def test_a_dead_sha_names_the_squash_cause():
-    """Ein Befund ohne Ursache ist eine Beschwerde. Wer `Commit nicht im
-    Repo` liest, sucht; wer die Ursache liest, ankert um."""
+def test_a_dead_sha_names_its_cause_or_admits_it_cannot_tell():
+    """Ein Befund ohne Ursache ist eine Beschwerde — und ein Befund, der
+    eine Umgebungseigenschaft fuer einen Verlust haelt, ist schlimmer.
+
+    **In einem flachen Klon ist das nicht entscheidbar.** CI checkt mit
+    `fetch-depth: 1` aus; dort fehlt fast jeder Commit im Objektspeicher,
+    ohne aus der Historie verschwunden zu sein. Genau daran fiel dieser
+    Test auf dem Runner, waehrend lokal alles gruen war — er mass die
+    Klontiefe, nicht die Gesundheit der Anker.
+    """
     status, detail = mc.verify_anchor("sha:b724047")
-    assert status == "rot"
-    assert "Squash" in detail and "umankern" in detail
+    if status == "extern":
+        assert "flacher Klon" in detail and "unshallow" in detail
+    else:
+        assert status == "rot"
+        assert "Squash" in detail and "umankern" in detail
+
+
+def test_extern_never_counts_as_healthy():
+    """Die dritte Kategorie darf nicht zur Ausrede werden: sie behauptet
+    keinen Verlust, aber auch keine Gesundheit."""
+    status, _ = mc.verify_anchor("sha:0000000")
+    assert status != "ok"
 
 
 def test_an_ephemeral_sha_is_flagged_at_capture_time():
@@ -65,8 +82,13 @@ def test_an_ephemeral_sha_is_flagged_at_capture_time():
     schon weg und niemand weiss mehr, worauf er zeigte."""
     kopf = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO,
                           capture_output=True, text=True, timeout=60).stdout.strip()
+    # Denselben Default-Branch ermitteln wie die Funktion. Ihn hier fest auf
+    # `origin/main` zu verdrahten liess den Test in einem Klon fallen, dessen
+    # origin/HEAD woanders hinzeigt — der Test mass dann die Klonherkunft
+    # statt die Eigenschaft.
+    zweig = mc._default_branch()
     auf_main = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", kopf, "origin/main"],
+        ["git", "merge-base", "--is-ancestor", kopf, f"origin/{zweig}"],
         cwd=REPO, capture_output=True, timeout=60).returncode == 0
     assert mc._fluechtiger_sha(f"sha:{kopf}") is (not auf_main)
 
@@ -95,4 +117,7 @@ def test_no_anchor_in_the_ledger_points_into_the_void():
             status, detail = mc.verify_anchor(an)
             if status == "rot":
                 rot.append(f"{e.get('id')} → {an} ({detail})")
+    # `extern` zaehlt hier nicht: in einem flachen Klon ist ein SHA nicht
+    # entscheidbar, und eine Umgebungseigenschaft ist kein Befund. `rot`
+    # bleibt ein Fehlschlag — dort ist die Aussage sicher.
     assert not rot, rot

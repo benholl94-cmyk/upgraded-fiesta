@@ -350,6 +350,20 @@ def verify_anchor(anchor: str) -> tuple[str, str]:
         # Squash-Workflow nicht taugt. Deshalb wird hier benannt, WARUM er
         # weg ist, statt nur DASS er weg ist: nur so weiss der naechste
         # Leser, dass er den Eintrag umankern und nicht suchen muss.
+        # **In einem flachen Klon ist das nicht entscheidbar.** CI checkt mit
+        # `fetch-depth: 1` aus; dort fehlt fast jeder Commit im
+        # Objektspeicher, ohne dass er aus der Historie verschwunden waere.
+        # Genau daran fiel `test_no_anchor_in_the_ledger_points_into_the_void`
+        # auf dem Runner, waehrend lokal alles gruen war: der Test mass die
+        # Klontiefe, nicht die Gesundheit der Anker.
+        #
+        # `extern` ist die ehrliche Antwort — dieselbe dritte Kategorie wie in
+        # `hugin_clarity.py`. Sie gilt **nie** als in Ordnung, behauptet aber
+        # auch keinen Verlust, den niemand hier feststellen kann. Der Befehl,
+        # der es entscheidet, steht dabei.
+        if git("rev-parse", "--is-shallow-repository").stdout.strip() == "true":
+            return "extern", ("flacher Klon — hier nicht entscheidbar; "
+                              "`git fetch --unshallow` entscheidet")
         return "rot", ("Commit nicht im Repo — bei Squash-Merge verschwindet "
                        "der Feature-Branch-SHA. Auf einen Pfad umankern.")
 
