@@ -3,8 +3,8 @@
 **Erzeugt von `scripts/hugin_inventar.py --index`. Nicht von Hand aendern.** Jede Zeile ist gerechnet: erreichbar heisst, dass eine andere Datei im Repo diesen Teil nennt; geprueft heisst, dass eine Datei unter `tests/` ihn nennt.
 
 - Teile gesamt: **131**
-- geschlossen: **107**
-- offen: **24**
+- geschlossen: **113**
+- offen: **18**
 - extern: **0**
 
 ## Offen — mit dem Befehl, der es schliesst
@@ -17,19 +17,13 @@
 | `scripts/ashell_signal_client_setup.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer ashell_signal_client_setup.py ergaenzen` |
 | `scripts/generate_crate_readmes.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer generate_crate_readmes.py ergaenzen` |
 | `scripts/hardware_console.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hardware_console.py ergaenzen` |
-| `scripts/hugin_growth.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/hugin_growth.py` |
 | `scripts/hugin_limits.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_limits.py ergaenzen` |
 | `scripts/hugin_push.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_push.py ergaenzen` |
-| `scripts/hugin_reflect.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer hugin_reflect.py ergaenzen` |
-| `scripts/hugin_tool.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/hugin_tool.py` |
 | `scripts/mobile_rust_check.py` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm scripts/mobile_rust_check.py` |
-| `scripts/munin_bridge.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer munin_bridge.py ergaenzen` |
 | `scripts/rotation-daemon.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer rotation-daemon.py ergaenzen` |
 | `scripts/signal_cli_smoke_test.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer signal_cli_smoke_test.py ergaenzen` |
 | `scripts/write_visibility_report.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer write_visibility_report.py ergaenzen` |
 | `scripts/write_visible_status.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer write_visible_status.py ergaenzen` |
-| `plugins/claude_tool_plugin.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer claude_tool_plugin.py ergaenzen` |
-| `plugins/ollama_plugin.py` | keine Testdatei nennt diesen Teil | `tests/ um einen Fall fuer ollama_plugin.py ergaenzen` |
 | `.github/workflows/build-ui.yml` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm .github/workflows/build-ui.yml` |
 | `.github/workflows/codeql.yml` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm .github/workflows/codeql.yml` |
 | `.github/workflows/platform-monitoring.yml` | nichts im Repo nennt diesen Teil | `entweder anbinden (Test, Workflow oder Doku) oder entfernen: git rm .github/workflows/platform-monitoring.yml` |
@@ -103,11 +97,11 @@
 |---|---|---|---|
 | `plugins/autonomy_pulse_plugin.py` | geschlossen | ja | ja |
 | `plugins/channel_send_plugin.py` | geschlossen | ja | ja |
-| `plugins/claude_tool_plugin.py` | offen | nein | ja |
+| `plugins/claude_tool_plugin.py` | geschlossen | ja | ja |
 | `plugins/echo_plugin.py` | geschlossen | ja | ja |
 | `plugins/fetch_url_plugin.py` | geschlossen | ja | nein |
 | `plugins/llm_chat_plugin.py` | geschlossen | ja | ja |
-| `plugins/ollama_plugin.py` | offen | nein | ja |
+| `plugins/ollama_plugin.py` | geschlossen | ja | ja |
 | `plugins/router_plugin.py` | geschlossen | ja | nein |
 
 ## skill — 8
@@ -147,7 +141,7 @@
 | `scripts/hugin_bruecke.py` | geschlossen | ja | ja |
 | `scripts/hugin_clarity.py` | geschlossen | ja | ja |
 | `scripts/hugin_corpus.py` | geschlossen | ja | nein |
-| `scripts/hugin_growth.py` | offen | nein | nein |
+| `scripts/hugin_growth.py` | geschlossen | ja | nein |
 | `scripts/hugin_inventar.py` | geschlossen | ja | ja |
 | `scripts/hugin_keyring.py` | geschlossen | ja | ja |
 | `scripts/hugin_limits.py` | offen | nein | nein |
@@ -155,17 +149,17 @@
 | `scripts/hugin_model.py` | geschlossen | ja | nein |
 | `scripts/hugin_oracle.py` | geschlossen | ja | ja |
 | `scripts/hugin_push.py` | offen | nein | ja |
-| `scripts/hugin_reflect.py` | offen | nein | nein |
+| `scripts/hugin_reflect.py` | geschlossen | ja | nein |
 | `scripts/hugin_relay.py` | geschlossen | ja | nein |
 | `scripts/hugin_selfheal.py` | geschlossen | ja | nein |
-| `scripts/hugin_tool.py` | offen | nein | nein |
+| `scripts/hugin_tool.py` | geschlossen | ja | nein |
 | `scripts/hugin_zyklus.py` | geschlossen | ja | ja |
 | `scripts/install_hooks.py` | geschlossen | ja | ja |
 | `scripts/knowledge_loop.py` | geschlossen | ja | ja |
 | `scripts/llm_key_manager.py` | geschlossen | ja | ja |
 | `scripts/mobile_rust_check.py` | offen | nein | nein |
 | `scripts/monitor_platform.py` | geschlossen | ja | ja |
-| `scripts/munin_bridge.py` | offen | nein | ja |
+| `scripts/munin_bridge.py` | geschlossen | ja | ja |
 | `scripts/munin_continuity.py` | geschlossen | ja | ja |
 | `scripts/munin_session.py` | geschlossen | ja | nein |
 | `scripts/munin_supervisor.py` | geschlossen | ja | ja |
