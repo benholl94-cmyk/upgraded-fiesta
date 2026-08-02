@@ -2,7 +2,7 @@
 
 Erzeugt von `scripts/hugin_corpus.py`. Nicht von Hand aendern: der naechste Bau ueberschreibt die Datei.
 
-## begruendung — 254 Faelle
+## begruendung — 256 Faelle
 
 **scripts/release_notes.py:scripts/release_notes.py** · `scripts/release_notes.py`
 
