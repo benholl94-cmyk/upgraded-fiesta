@@ -1,15 +1,22 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-08-03T12:02:10+00:00",
+  "ts": "2026-08-03T15:13:54+00:00",
   "offen": [
     {
       "id": "clarity",
       "was": "Einsatzbereitschaft",
       "stand": "eskaliert",
-      "detail": "stufe-T1: 0 von 10 keylosen Providern erreichbar",
-      "braucht_master": "  stufe-T1: ollama serve   # oder: export HUGIN_<PROVIDER>_KEY=..."
+      "detail": "stufe-T1b: models/model.gguf fehlt — python3 scripts/hugin_local_model.py setup | stufe-T1: 0 von 10 keylosen Providern erreichbar",
+      "braucht_master": "  stufe-T1b: gh workflow run hugin-kern.yml -f frage='...'   # holt und prueft beides auf Repo-Hardware\n  stufe-T1: ollama serve   # oder: export HUGIN_<PROVIDER>_KEY=..."
     }
   ],
-  "getan": [],
+  "getan": [
+    {
+      "id": "schluessel",
+      "was": "eigene Schluessel bereitstellen",
+      "stand": "getan",
+      "detail": "Seed erzeugt — die 6 projekteigenen Schluessel sind ableitbar"
+    }
+  ],
   "zurueckgenommen": false
 }
