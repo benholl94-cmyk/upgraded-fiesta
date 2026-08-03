@@ -64,20 +64,16 @@ def test_report_diagnostics_requires_owner_token_even_with_yes() -> None:
     assert payload == {"ok": False, "sent": False, "reason": "HM_OWNER_TOKEN is not set"}
 
 
-def test_onboard_iphone_refuses_without_consent_when_non_interactive(tmp_path: pathlib.Path) -> None:
+def test_onboard_iphone_refuses_without_consent_when_non_interactive(tmp_path: pathlib.Path, gateway_binary) -> None:
     # Same never-silently-act-without-consent property as report-diagnostics:
     # a piped (non-TTY) run with no --yes must refuse loudly and never start
     # the gateway subprocess, even when a real binary is available.
-    repo_root = pathlib.Path(__file__).resolve().parents[1]
-    gateway_bin = repo_root / "target" / "debug" / "hm-gateway"
-    # KEIN SKIP. Dieser Test startet einen echten Gateway-Unterprozess; ohne
-    # das Binary prueft er nichts. Bis 2026-08-02 uebersprang er sich dann
-    # still — und im Python-Job der CI, der keinen Rust-Schritt hat, war das
-    # IMMER der Fall. Ein Test, der nie laeuft, sieht aus wie Abdeckung und
-    # ist keine. `ci.yml` baut das Binary jetzt in genau diesem Job.
-    assert gateway_bin.is_file(), (
-        f"{gateway_bin.relative_to(repo_root)} fehlt — dieser Test braucht "
-        "einen echten Gateway-Prozess. Bauen mit: cargo build -p hm-gateway")
+    # KEIN SKIP, und die Voraussetzung stellt die Suite selbst her. Die
+    # Fixture `gateway_binary` (tests/conftest.py) baut das Binary einmal je
+    # Sitzung, wenn es fehlt. Vorher musste jeder Workflow das einzeln
+    # wissen — `ci.yml` wusste es nach der ersten Korrektur, `zyklus.yml`
+    # nicht, und der erste echte Kettenlauf meldete prompt 2 Fehlschlaege.
+    gateway_bin = gateway_binary
 
     proc = subprocess.run(
         [
