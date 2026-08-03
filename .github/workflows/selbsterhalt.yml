@@ -46,6 +46,25 @@ jobs:
       - name: Rust-Toolchain
         run: rustup toolchain install stable --profile minimal --component rustfmt
 
+      # Ohne diesen Schritt meldete der Lauf als Messergebnis der Testsuite
+      # woertlich "No module named pytest" -- und eskalierte das an den Master
+      # als etwas, das eine Entscheidung verlangt. Ein Werkzeug, das fehlt,
+      # ist keine Aussage ueber den Code. Dieselbe Luecke wie bei zyklus.yml,
+      # wo pytest ohne Gateway-Binary lief.
+      - name: Python-Werkzeug
+        run: python3 -m pip install --quiet pytest
+
+      # Die Identitaet steht VOR dem Lauf, nicht danach. Der Supervisor
+      # rechnet die Committer-Mail waehrend des Laufs nach; war sie zu dem
+      # Zeitpunkt leer, meldete er "[VIOLATION] git-committer-identity:
+      # Committer-Mail ist (leer)" -- ein Verfassungsverstoss, der reine
+      # Reihenfolge war. Ein Befund, der von einem echten nicht zu
+      # unterscheiden ist, ist schlimmer als gar keiner.
+      - name: Git-Identitaet
+        run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+
       - name: Selbsterhalt-Lauf
         id: lauf
         run: python3 scripts/hugin_selfheal.py --apply
@@ -58,8 +77,6 @@ jobs:
       - name: Reparaturen zurueckschreiben
         run: |
           set -euo pipefail
-          git config user.name "Claude"
-          git config user.email "noreply@anthropic.com"
           if git diff --quiet && git diff --cached --quiet; then
             echo "nichts repariert — kein Commit"
             exit 0
