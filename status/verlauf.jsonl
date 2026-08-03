@@ -1,1 +1,2 @@
 {"befunde": 0, "dauer": {"inventar": 1.1}, "korpus_faelle": 956, "offene_teile": 0, "ts": "2026-08-02T13:11:55+00:00", "umgebung": "lokal/flach"}
+{"befunde": 1, "dauer": {"index": 1.3, "inventar": 10.4, "korpus": 2.6, "selfheal": 174.4, "startfrei": 0.1, "supervisor": 0.7, "tests": 192.0}, "korpus_faelle": 971, "offene_teile": 0, "tests_bestanden": 1486, "ts": "2026-08-03T12:05:25+00:00", "umgebung": "lokal/flach"}
