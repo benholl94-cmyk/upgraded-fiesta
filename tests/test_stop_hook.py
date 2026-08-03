@@ -354,3 +354,54 @@ def test_fremde_mail_wird_auch_bei_vorhandener_signatur_gemeldet(repo):
     git("config", "commit.gpgsign", "true", cwd=repo)
     code, err = run_hook(repo)
     assert code == 2 and "fremd@example.com" in err
+
+
+# ---------------------------------------------------------------------------
+# Die Supervisor-Regel `hook-drift` — nur dort gemessen, wo die Frage zaehlt
+# ---------------------------------------------------------------------------
+#
+# Der Hook greift in eine Arbeitssitzung ein. Auf einem CI-Runner gibt es
+# keine, und `~/.claude` existiert dort nicht — die Regel meldete trotzdem
+# `hook-not-installed`, sieben Selbsterhalt-Laeufe lang, in einer Meldung, die
+# ausdruecklich nur Master-Entscheidungen sammelt. Ein Befund, der von einem
+# echten nicht zu unterscheiden ist und den niemand beheben kann, lehrt alle,
+# die Meldung zu ueberfliegen.
+#
+# Die Regel hatte bis hier **gar keinen Test**. Die drei folgenden pruefen
+# beide Richtungen: dass die Ausnahme greift, und — wichtiger — dass sie den
+# echten Fall nicht mitnimmt.
+
+import sys as _sys
+
+_sys.path.insert(0, str(REPO / "scripts"))
+import munin_supervisor as _sv  # noqa: E402
+
+
+@pytest.fixture
+def heim(tmp_path, monkeypatch):
+    """Ein frei setzbares Zuhause — der echte Baum bleibt unberuehrt."""
+    monkeypatch.setattr(_sv.Path, "home", staticmethod(lambda: tmp_path))
+    return tmp_path
+
+
+def test_ohne_arbeitsumgebung_wird_der_hook_nicht_gemessen(heim):
+    """Kein `~/.claude` heisst: keine Arbeitssitzung, Frage nicht gestellt."""
+    assert _sv.check_hook_drift() == []
+
+
+def test_fehlender_hook_in_einer_arbeitsumgebung_bleibt_ein_befund(heim):
+    """Die Gegenprobe, ohne die die Ausnahme die Regel abschaltet."""
+    (heim / ".claude").mkdir()
+    namen = [f.rule for f in _sv.check_hook_drift()]
+    assert "hook-not-installed" in namen
+
+
+def test_abweichender_hook_bleibt_ein_verstoss(heim):
+    """Installiert, aber anders — genau der Drift, den die Regel sucht."""
+    ziel = heim / ".claude"
+    ziel.mkdir()
+    for src in sorted((REPO / ".claude" / "hooks").glob("*.sh")):
+        (ziel / src.name).write_text("#!/bin/sh\n# abweichend\n", encoding="utf-8")
+    befunde = _sv.check_hook_drift()
+    assert [f.rule for f in befunde] == ["hook-drift"] * len(befunde)
+    assert befunde, "es gibt Hooks im Repo — der Drift muss auffallen"

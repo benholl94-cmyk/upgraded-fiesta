@@ -516,9 +516,24 @@ def check_hook_drift() -> list[Finding]:
     Korrektur dort ist in keinem Diff sichtbar und ueberlebt keinen neuen
     Container. Gleiche Logik wie `hugin_index_sync` -- zwei Kopien, die
     identisch sein muessen, brauchen eine Pruefung, sonst driften sie.
+
+    **Nur dort gemessen, wo die Frage einen Sinn hat.** Ein Hook greift in
+    eine Arbeitssitzung ein; auf einem CI-Runner gibt es keine, und `~/.claude`
+    existiert dort gar nicht. Die Regel meldete trotzdem bei jedem
+    Selbsterhalt-Lauf `hook-not-installed` — ein Befund, der von einem echten
+    nicht zu unterscheiden ist und den niemand beheben kann, weil der Runner
+    nach dem Lauf verschwindet. Sieben Laeufe lang stand er so in der
+    Master-Meldung.
+
+    Die Grenze verlaeuft an `~/.claude` selbst: fehlt das Verzeichnis, ist die
+    Maschine keine Arbeitsumgebung und die Frage nicht gestellt. Ist es da und
+    der Hook fehlt, bleibt es ein Befund — genau der Fall, den die Regel
+    fangen soll.
     """
     src_dir = REPO / ".claude" / "hooks"
     if not src_dir.is_dir():
+        return []
+    if not (Path.home() / ".claude").is_dir():
         return []
     out: list[Finding] = []
     for src in sorted(src_dir.glob("*.sh")):
