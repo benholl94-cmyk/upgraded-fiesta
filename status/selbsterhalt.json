@@ -1,6 +1,6 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-08-03T03:51:00+00:00",
+  "ts": "2026-08-03T07:49:21+00:00",
   "offen": [
     {
       "id": "supervisor",
@@ -13,7 +13,7 @@
       "id": "tests",
       "was": "Testsuite",
       "stand": "eskaliert",
-      "detail": "/usr/bin/python3: No module named pytest",
+      "detail": "2 failed, 1465 passed, 2 skipped in 40.93s",
       "braucht_master": "Ein roter Test ist keine mechanische Reparatur — welcher Code richtig ist, entscheidet kein Automat."
     },
     {
