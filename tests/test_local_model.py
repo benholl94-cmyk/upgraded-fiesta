@@ -1,7 +1,7 @@
 """Der lokale Modellkern (T1b) — gemessen, nicht gelesen.
 
-Diese Datei hält drei Fehler fest, die alle live aufgetreten sind, als T1b
-zum ersten Mal wirklich lief. Jeder davon sah vorher richtig aus.
+Diese Datei hält vier Fehler fest, die alle live aufgetreten sind. Jeder
+davon sah vorher richtig aus.
 
 1. **Verfügbarkeit wurde aus Dateien geschlossen.** `tiers()` prüfte, ob
    `models/model.gguf` und ein `llama-cli` existieren. Beides lag vor, T1b
@@ -19,6 +19,12 @@ zum ersten Mal wirklich lief. Jeder davon sah vorher richtig aus.
    erklärenden Invariante „Hier *kein* Randfall: MemoryStore persistiert bei
    jedem remember()" und antwortete „VERWEIGERT — eine Invariante verbietet
    das" — unter Zitat genau der Invariante, die die Antwort enthielt.
+
+4. **Ein antwortender Dienst wurde für einen bereiten gehalten.** Zwei
+   Rückgabewege meldeten `False` ohne den behebenden Befehl — entgegen der
+   Zusage im eigenen Docstring. Sie treten nur während eines Neustarts auf,
+   also genau dann, wenn jemand nachsieht. Gefunden durch einen Fehlschlag,
+   der sich nicht reproduzieren ließ; siehe Abschnitt 5.
 
 Die Tests, die den laufenden Dienst brauchen, überspringen sich, wenn er
 nicht läuft — aber sie sagen dabei, womit er zurückkommt. Die Tests der
@@ -214,3 +220,101 @@ def test_the_brain_routes_a_question_to_the_local_tier():
     assert "nicht belegt" not in text.lower(), (
         "Der Kern hielt die Frage für unbelegt — die Belegsuche greift nicht"
     )
+
+
+# ── 5. Der halb lebende Dienst ───────────────────────────────────────────────
+#
+# Gefunden nicht durch Nachdenken, sondern durch einen Fehlschlag, der sich
+# nicht reproduzieren liess: ein voller Lauf meldete
+# `test_tier_availability_is_measured_not_read_from_files` rot, der naechste
+# 1489 gruen. Der Unterschied lag in der Laufzeit — 60 s gegen 169 s. Ein
+# **toter** Port laesst jede Anfrage in den Timeout laufen (langsam); ein
+# **lebender** antwortet sofort (schnell). Der schnelle Lauf hatte den Dienst
+# also erwischt, waehrend er hoch- oder herunterfuhr.
+#
+# In genau diesem Fenster gaben zwei Rueckgabewege `False` zurueck, **ohne
+# den Befehl zu nennen** — entgegen der Zusage im eigenen Docstring. Ein
+# Betreiber, der „laedt noch" liest, kann von aussen nicht unterscheiden, ob
+# der Dienst hochfaehrt oder haengt; ohne Befehl bleibt ihm nur Warten.
+#
+# Ein Zustand, der nur waehrend eines Neustarts eintritt, ist kein Randfall,
+# sondern der Normalfall jedes Neustarts. Diese drei Tests stellen ihn
+# hermetisch her, statt auf ihn zu warten.
+
+import http.server  # noqa: E402
+import threading  # noqa: E402
+
+
+class _Halb(http.server.BaseHTTPRequestHandler):
+    """Antwortet — aber nicht mit `ok`. Der Zustand beim Hochfahren."""
+
+    status = "loading model"
+    code = 200
+
+    def do_GET(self):
+        if self.code != 200:
+            self.send_error(self.code)
+            return
+        leib = json.dumps({"status": self.status}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(leib)))
+        self.end_headers()
+        self.wfile.write(leib)
+
+    def log_message(self, *a):
+        pass
+
+
+@pytest.fixture
+def halber_dienst(monkeypatch):
+    """Ein echter Server auf einem echten Port — kein Mock des Aufrufs.
+
+    Der Fehler lag im Verhalten gegenueber einer echten HTTP-Antwort; ein
+    gepatchtes `urlopen` haette genau das nicht geprueft.
+    """
+    def bauen(status="loading model", code=200):
+        typ = type("H", (_Halb,), {"status": status, "code": code})
+        srv = http.server.HTTPServer(("127.0.0.1", 0), typ)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        monkeypatch.setattr(brain, "LOCAL_LLM_URL",
+                            f"http://127.0.0.1:{srv.server_address[1]}")
+        return srv
+    yield bauen
+
+
+def test_a_service_that_answers_but_is_not_ready_is_never_available(halber_dienst):
+    """Eine Antwort ist keine Bereitschaft — dieselbe Invariante wie
+    „eine vorhandene Datei ist kein laufender Dienst", eine Ebene hoeher."""
+    srv = halber_dienst()
+    try:
+        erreichbar, grund = brain.local_llm_status(timeout=2.0)
+        assert erreichbar is False
+        assert "laedt noch" in grund
+    finally:
+        srv.shutdown()
+
+
+def test_the_loading_state_names_the_command_too(halber_dienst):
+    """**Der Fall, der den Fehlschlag erzeugt hat.** Der Docstring von
+    `local_llm_status` sagt zu, dass der Negativfall den Befehl nennt. Zwei
+    Wege hielten das nicht ein — und beide treten nur waehrend eines
+    Neustarts auf, also genau dann, wenn jemand nachsieht."""
+    srv = halber_dienst()
+    try:
+        _, grund = brain.local_llm_status(timeout=2.0)
+        assert "hugin_local_model.py" in grund, grund
+    finally:
+        srv.shutdown()
+
+
+def test_an_http_error_also_names_the_command(halber_dienst):
+    """Der zweite der beiden Wege: der Dienst antwortet mit einem Fehlercode."""
+    srv = halber_dienst(code=503)
+    try:
+        erreichbar, grund = brain.local_llm_status(timeout=2.0)
+        assert erreichbar is False
+        assert "503" in grund
+        assert "hugin_local_model.py" in grund, grund
+    finally:
+        srv.shutdown()

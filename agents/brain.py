@@ -270,9 +270,15 @@ def local_llm_status(timeout: float = 2.0) -> tuple[bool, str]:
             payload = json.loads(r.read().decode("utf-8"))
         if payload.get("status") == "ok":
             return True, f"llama-server antwortet auf {LOCAL_LLM_URL}"
-        return False, f"llama-server laedt noch ({payload.get('status')})"
+        # Der Dienst lebt, traegt aber nicht. Auch hier gehoert der Befehl
+        # dazu: "laedt noch" ist beim Hochfahren richtig und beim haengenden
+        # Prozess irrefuehrend, und der Betreiber kann das von aussen nicht
+        # unterscheiden. Wer den Zustand pruefen will, braucht den Befehl.
+        return False, (f"llama-server laedt noch ({payload.get('status')}) — "
+                       "python3 scripts/hugin_local_model.py status")
     except urllib.error.HTTPError as e:
-        return False, f"llama-server antwortet mit HTTP {e.code} — laedt vermutlich noch"
+        return False, (f"llama-server antwortet mit HTTP {e.code}, laedt vermutlich noch — "
+                       "python3 scripts/hugin_local_model.py status")
     except Exception as exc:
         log.warning("swallowed in brain: %s", exc)
 
