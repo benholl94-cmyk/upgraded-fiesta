@@ -1,11 +1,11 @@
 {
-  "ts": "2026-08-14T19:04:18+00:00",
+  "ts": "2026-08-14T20:36:50+00:00",
   "message": "CI-Scheduler: stündlicher Status-Check",
   "repo": {
     "branch": "main",
     "unpushed": 0,
     "dirty": false,
-    "tip": "96cf5d1 chore(munin): hourly status broadcast [skip ci]"
+    "tip": "5de793c Update visible platform status [skip ci]"
   },
   "links": {
     "telegram": false,
