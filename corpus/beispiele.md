@@ -2,7 +2,7 @@
 
 Erzeugt von `scripts/hugin_corpus.py`. Nicht von Hand aendern: der naechste Bau ueberschreibt die Datei.
 
-## begruendung — 283 Faelle
+## begruendung — 284 Faelle
 
 **scripts/release_notes.py:scripts/release_notes.py** · `scripts/release_notes.py`
 
@@ -34,16 +34,16 @@ Schein-VIOLATION oder einer leeren, grün wirkenden Testsuite.
 
 ## commit — 400 Faelle
 
-**Update visible monitoring report** · `sha:003ab8c`
+**chore(munin): hourly status broadcast [skip ci]** · `sha:00009271`
 
 ```
-Update visible monitoring report
+chore(munin): hourly status broadcast [skip ci]
 ```
 
-**Update visible monitoring report** · `sha:0052306`
+**chore(selbsterhalt): mechanische Reparaturen [skip ci]** · `sha:005a9a42`
 
 ```
-Update visible monitoring report
+chore(selbsterhalt): mechanische Reparaturen [skip ci]
 ```
 
 ## doku — 148 Faelle
