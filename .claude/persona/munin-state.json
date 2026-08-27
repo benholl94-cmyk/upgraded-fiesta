@@ -1,11 +1,11 @@
 {
   "autonomyCore": {
     "active": true,
-    "pulse_count": 3,
-    "last_pulse": "2026-08-27T09:39:09.479484+00:00",
+    "pulse_count": 7,
+    "last_pulse": "2026-08-27T15:17:48.580652+00:00",
     "audit_score": 100.0,
     "security_score": null,
-    "uptime_since": "2026-08-27T09:39:09.230712+00:00",
+    "uptime_since": "2026-08-27T15:16:25.186324+00:00",
     "open_alerts": 0
   }
 }
