@@ -104,14 +104,28 @@ jobs:
       - name: Antworten
         run: |
           set -euo pipefail
+          # Schedule on ubuntu-latest: ~7GB GGUF + ctx 8192 often exits 134 (SIGABRT/OOM).
+          # workflow_dispatch keeps fuller context when an operator asks explicitly.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            CTX=2048
+            NPRED=400
+          else
+            CTX=8192
+            NPRED=700
+          fi
           ./llama.cpp/build/bin/llama-cli \
             --model models/model.gguf \
             --file prompt.txt \
             --grammar-file schema.gbnf \
-            --threads "$(nproc)" --ctx-size 8192 --batch-size 256 \
-            --temp 0.2 --n-predict 700 --no-display-prompt --simple-io \
+            --threads "$(nproc)" --ctx-size "$CTX" --batch-size 256 \
+            --temp 0.2 --n-predict "$NPRED" --no-display-prompt --simple-io \
             2> llama.log | tee antwort.json
-          echo "--- Tempo ---"; grep -E "tokens per second|eval time" llama.log | tail -3 || true
+          echo "--- Tempo (ctx=$CTX n_predict=$NPRED) ---"
+          grep -E "tokens per second|eval time" llama.log | tail -3 || true
+          if grep -qiE "out of memory|oom|aborted|std::bad_alloc" llama.log; then
+            echo "::error::llama-cli likely OOM/abort — see llama.log"
+            exit 134
+          fi
 
       - name: Antwort als Artefakt
         if: always()
