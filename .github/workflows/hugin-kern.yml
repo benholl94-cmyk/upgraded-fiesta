@@ -121,6 +121,7 @@ jobs:
             CTX=2048
             NPRED=400
           fi
+          set +e
           ./llama.cpp/build/bin/llama-cli \
             --model models/model.gguf \
             --file prompt.txt \
@@ -128,7 +129,9 @@ jobs:
             --threads "$(nproc)" --ctx-size "$CTX" --batch-size 256 \
             --temp 0.2 --n-predict "$NPRED" --no-display-prompt --simple-io \
             2> llama.log | tee antwort.json
-          echo "--- Tempo (ctx=$CTX n_predict=$NPRED) ---"
+          lc=${PIPESTATUS[0]}
+          set -e
+          echo "--- Tempo (ctx=$CTX n_predict=$NPRED exit=$lc) ---"
           grep -E "tokens per second|eval time" llama.log | tail -3 || true
           if grep -qiE "failed to parse grammar|error parsing grammar" llama.log; then
             echo "::error::GBNF grammar failed to parse — see llama.log"
@@ -138,9 +141,9 @@ jobs:
             echo "::error::llama-cli likely OOM — see llama.log"
             exit 134
           fi
-          if grep -qiE "aborted|SIGABRT" llama.log && ! grep -qiE "grammar" llama.log; then
-            echo "::error::llama-cli aborted — see llama.log"
-            exit 134
+          if [ "$lc" != "0" ]; then
+            echo "::error::llama-cli exited $lc — see llama.log"
+            exit "$lc"
           fi
 
       - name: Antwort als Artefakt

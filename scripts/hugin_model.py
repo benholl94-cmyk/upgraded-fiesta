@@ -178,14 +178,8 @@ def grounded_prompt(question: str, paths: tuple[str, ...] = ()) -> str:
 
 # GBNF zwingt die Ausgabe in das Schema aus agents/protocol.py. Ohne Grammatik
 # muss man Fliesstext nachtraeglich parsen und scheitert an jedem Modelllaunen.
-GRAMMAR = r'''# One-line root: newer llama.cpp GBNF rejects mid-rule newlines (expecting name at "antwort").
-root ::= "{" ws "\"status\"" ws ":" ws status ws "," ws "\"antwort\"" ws ":" ws string ws "," ws "\"belegt_durch\"" ws ":" ws array ws "}"
-status ::= "\"belegt\"" | "\"nicht_belegt\"" | "\"verweigert\""
-array ::= "[" ws (string (ws "," ws string)*)? ws "]"
-string ::= "\"" ([^"\] | "\" ["\/bfnrt])* "\""
-ws ::= [ 	
-]*
-'''
+import base64 as _b64
+GRAMMAR = _b64.b64decode('cm9vdCA6Oj0gInsiIHdzICJcInN0YXR1c1wiIiB3cyAiOiIgd3Mgc3RhdHVzIHdzICIsIiB3cyAiXCJhbnR3b3J0XCIiIHdzICI6IiB3cyBzdHJpbmcgd3MgIiwiIHdzICJcImJlbGVndF9kdXJjaFwiIiB3cyAiOiIgd3MgYXJyYXkgd3MgIn0iCnN0YXR1cyA6Oj0gIlwiYmVsZWd0XCIiIHwgIlwibmljaHRfYmVsZWd0XCIiIHwgIlwidmVyd2VpZ2VydFwiIgphcnJheSA6Oj0gIlsiIHdzIChzdHJpbmcgKHdzICIsIiB3cyBzdHJpbmcpKik/IHdzICJdIgpzdHJpbmcgOjo9ICJcIiIgKFteIlxcXSB8ICJcXCIgWyJcXC9iZm5ydF0pKiAiXCIiCndzIDo6PSBbIFx0XG5dKgo=').decode()
 
 
 def cmd_plan(_a) -> int:
