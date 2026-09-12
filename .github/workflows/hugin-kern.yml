@@ -19,6 +19,11 @@ on:
         description: "Kontextdateien, kommasepariert (optional)"
         required: false
         type: string
+      full_ctx:
+        description: "Volle ctx 8192 (riskant auf ubuntu-latest)"
+        required: false
+        type: boolean
+        default: false
   schedule:
     # Einmal taeglich den Subroom abarbeiten. Off-Minute, damit der Lauf nicht
     # mit tausend anderen zur vollen Stunde startet.
@@ -106,12 +111,15 @@ jobs:
           set -euo pipefail
           # Schedule on ubuntu-latest: ~7GB GGUF + ctx 8192 often exits 134 (SIGABRT/OOM).
           # workflow_dispatch keeps fuller context when an operator asks explicitly.
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            CTX=2048
-            NPRED=400
-          else
+          # ubuntu-latest + ~7GB GGUF: full ctx still aborts (exit 134) even on workflow_dispatch.
+          # Default safe; opt into full via input full_ctx=true on dispatch.
+          FULL="${{ github.event.inputs.full_ctx || 'false' }}"
+          if [ "$FULL" = "true" ]; then
             CTX=8192
             NPRED=700
+          else
+            CTX=2048
+            NPRED=400
           fi
           ./llama.cpp/build/bin/llama-cli \
             --model models/model.gguf \
