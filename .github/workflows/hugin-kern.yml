@@ -122,13 +122,15 @@ jobs:
             NPRED=400
           fi
           set +e
-          # One-shot: close stdin (b4600 has no --no-cnv). Prevents interactive ">" after first reply.
+          # One-shot: b4600 uses -st/--single-turn (not --no-cnv). Keep </dev/null.
+          # Prevents interactive ">" hang after GBNF OK.
           ./llama.cpp/build/bin/llama-cli \
             --model models/model.gguf \
             --file prompt.txt \
             --grammar-file schema.gbnf \
             --threads "$(nproc)" --ctx-size "$CTX" --batch-size 256 \
             --temp 0.2 --n-predict "$NPRED" --no-display-prompt --simple-io \
+            --single-turn \
             </dev/null \
             2> llama.log | tee antwort.json
           lc=${PIPESTATUS[0]}
