@@ -178,13 +178,13 @@ def grounded_prompt(question: str, paths: tuple[str, ...] = ()) -> str:
 
 # GBNF zwingt die Ausgabe in das Schema aus agents/protocol.py. Ohne Grammatik
 # muss man Fliesstext nachtraeglich parsen und scheitert an jedem Modelllaunen.
-GRAMMAR = r'''root       ::= "{" ws "\"status\"" ws ":" ws status ws "," ws
-                    "\"antwort\"" ws ":" ws string ws "," ws
-                    "\"belegt_durch\"" ws ":" ws array ws "}"
-status     ::= "\"belegt\"" | "\"nicht_belegt\"" | "\"verweigert\""
-array      ::= "[" ws (string (ws "," ws string)*)? ws "]"
-string     ::= "\"" ([^"\\] | "\\" ["\\/bfnrt])* "\""
-ws         ::= [ \t\n]*
+GRAMMAR = r'''# One-line root: newer llama.cpp GBNF rejects mid-rule newlines (expecting name at "antwort").
+root ::= "{" ws "\"status\"" ws ":" ws status ws "," ws "\"antwort\"" ws ":" ws string ws "," ws "\"belegt_durch\"" ws ":" ws array ws "}"
+status ::= "\"belegt\"" | "\"nicht_belegt\"" | "\"verweigert\""
+array ::= "[" ws (string (ws "," ws string)*)? ws "]"
+string ::= "\"" ([^"\] | "\" ["\/bfnrt])* "\""
+ws ::= [ 	
+]*
 '''
 
 

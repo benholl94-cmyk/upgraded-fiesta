@@ -130,8 +130,16 @@ jobs:
             2> llama.log | tee antwort.json
           echo "--- Tempo (ctx=$CTX n_predict=$NPRED) ---"
           grep -E "tokens per second|eval time" llama.log | tail -3 || true
-          if grep -qiE "out of memory|oom|aborted|std::bad_alloc" llama.log; then
-            echo "::error::llama-cli likely OOM/abort — see llama.log"
+          if grep -qiE "failed to parse grammar|error parsing grammar" llama.log; then
+            echo "::error::GBNF grammar failed to parse — see llama.log"
+            exit 2
+          fi
+          if grep -qiE "out of memory|oom|std::bad_alloc" llama.log; then
+            echo "::error::llama-cli likely OOM — see llama.log"
+            exit 134
+          fi
+          if grep -qiE "aborted|SIGABRT" llama.log && ! grep -qiE "grammar" llama.log; then
+            echo "::error::llama-cli aborted — see llama.log"
             exit 134
           fi
 
