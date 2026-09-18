@@ -59,14 +59,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: llama.cpp/build/bin
-          key: llama-cpp-b4600-ubuntu24
+          # portable-v1: GGML_NATIVE=OFF — cached -march=native bins SIGILL (exit 132) on other runners
+          key: llama-cpp-b4600-ubuntu24-portable-v1
 
       - name: llama.cpp bauen
         if: steps.cache-llama.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           git clone --depth 1 https://github.com/ggml-org/llama.cpp
-          cmake -S llama.cpp -B llama.cpp/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+          cmake -S llama.cpp -B llama.cpp/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DGGML_NATIVE=OFF
           cmake --build llama.cpp/build --config Release -j"$(nproc)" --target llama-cli
 
       - name: Modell aus dem Cache
@@ -144,6 +145,10 @@ jobs:
           if grep -qiE "out of memory|oom|std::bad_alloc" llama.log; then
             echo "::error::llama-cli likely OOM — see llama.log"
             exit 134
+          fi
+          if [ "$lc" = "132" ]; then
+            echo "::error::llama-cli SIGILL (exit 132) — native/CPU-feature mismatch; bust llama cache + GGML_NATIVE=OFF"
+            exit 132
           fi
           if [ "$lc" != "0" ]; then
             echo "::error::llama-cli exited $lc — see llama.log"
