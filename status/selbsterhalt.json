@@ -1,7 +1,14 @@
 {
   "schema": "hugin.selbsterhalt.v1",
-  "ts": "2026-09-20T04:50:19+00:00",
+  "ts": "2026-09-20T09:18:56+00:00",
   "offen": [
+    {
+      "id": "supervisor",
+      "was": "Verfassungs-Audit",
+      "stand": "eskaliert",
+      "detail": "[VIOLATION] git-committer-identity: Committer-Mail ist (leer), erwartet noreply@anthropic.com",
+      "braucht_master": "Diese Befunde verlangen eine Entscheidung — der Supervisor loest nie selbst auf."
+    },
     {
       "id": "clarity",
       "was": "Einsatzbereitschaft",
