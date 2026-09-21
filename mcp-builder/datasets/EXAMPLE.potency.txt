@@ -1,0 +1,7 @@
+# EXAMPLE ONLY — not production potency
+# potency_score: UNDEFINED
+# meaning: replace with real MCP tool-schema / prompt / fixture lines
+# if_this_ships_as_real: BAD — late discovery = builder thinks it has data when it does not
+mcp.tool.example.name=echo
+mcp.tool.example.risk=low
+mcp.tool.example.note=DELETE_OR_REPLACE_BEFORE_CLAIMING_POTENCY

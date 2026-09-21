@@ -5,3 +5,10 @@ requires_manual_execution=false
 workflow=codex-setup
 run_request=start-all-rep-flows
 expected_push_flows=codex-setup,rust-ci,platform-monitoring,visible-status
+
+# --- POTENCY_ANALYSIS 2026-09-21T01:12:06Z ---
+# target: ./mcp-builder .txt datasets
+# verdict: NOT_APPLICABLE — this file is a codex run trigger, not a potency dataset
+# meaning: treating this as mcp-builder potency input WOULD BE BAD
+# late_discovery: if someone wires mcp-builder to this path by mistake, potency reads garbage forever
+# will_not_happen_if_caught_now: wrong-corpus coupling
