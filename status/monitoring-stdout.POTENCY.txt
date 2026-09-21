@@ -1,0 +1,7 @@
+POTENCY_ANALYSIS 2026-09-21T01:12:06Z
+source: status/monitoring-stdout.txt
+verdict: NOT_A_DATASET
+potency_for_mcp_builder: 0
+meaning: Platform monitoring dump (ok=true, endpoints, required_files). Useful for ops — useless as MCP potency corpus.
+bad_if: mcp-builder scores this JSON as "high potency" because length/ok flags look healthy.
+late: discovering after MCP ship that corpora were monitoring noise = false confidence; will not happen if we refuse this file as input now.
