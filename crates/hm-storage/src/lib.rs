@@ -27,6 +27,7 @@ fn unique_suffix() -> u64 {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait FileStorage: Send + Sync {
     async fn put(&self, key: &str, bytes: &[u8]) -> anyhow::Result<()>;
