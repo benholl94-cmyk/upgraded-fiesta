@@ -2,10 +2,10 @@
   "autonomyCore": {
     "active": true,
     "pulse_count": 3,
-    "last_pulse": "2026-11-03T00:54:46.201780+00:00",
+    "last_pulse": "2026-11-03T14:03:56.041313+00:00",
     "audit_score": 100.0,
     "security_score": null,
-    "uptime_since": "2026-11-03T00:54:45.932432+00:00",
+    "uptime_since": "2026-11-03T14:03:55.752185+00:00",
     "open_alerts": 0
   }
 }
