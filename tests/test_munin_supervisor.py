@@ -114,11 +114,11 @@ def test_git_identity_accepts_valid_config_and_preserves_checks(
     def git_run(*args, **kwargs):
         commands.append(args)
         if args[:3] == ("git", "config", "user.email"):
-            stdout = "signer@example.test\\n"
+            stdout = "signer@example.test"
         elif args[:3] == ("git", "rev-parse", "--abbrev-ref"):
-            stdout = "origin/main\\n"
+            stdout = "origin/main"
         elif args[:3] == ("git", "log", "-1"):
-            stdout = "owner@example.test\\n"
+            stdout = "owner@example.test"
         else:
             pytest.fail(f"Unerwarteter Git-Aufruf: {args!r}")
         return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
@@ -144,11 +144,11 @@ def test_git_identity_still_checks_author_and_committer_separately(
 
     def git_run(*args, **kwargs):
         if args[:3] == ("git", "config", "user.email"):
-            stdout = "wrong-signer@example.test\\n"
+            stdout = "wrong-signer@example.test"
         elif args[:3] == ("git", "rev-parse", "--abbrev-ref"):
             stdout = "origin/main\\n"
         elif args[:3] == ("git", "log", "-1"):
-            stdout = "wrong-author@example.test\\n"
+            stdout = "wrong-author@example.test"
         else:
             pytest.fail(f"Unerwarteter Git-Aufruf: {args!r}")
         return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
