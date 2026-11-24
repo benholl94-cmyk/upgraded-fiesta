@@ -1,6 +1,6 @@
 {
   "arten": {
-    "begruendung": 283,
+    "begruendung": 284,
     "commit": 400,
     "doku": 148,
     "ledger-entscheidung": 17,
@@ -10,36 +10,36 @@
   },
   "dateien": {
     "beispiele.md": {
-      "bytes": 7289,
-      "sha256": "a0770882394d25843f7bb191829b001b5b0e81e1581036595e33175f5267a92e"
+      "bytes": 7321,
+      "sha256": "6989c814cbf7d04858f83bc56f8b7be526e2c5e2a4fbb8b78c1a71857a0c8733"
     },
     "chat.jsonl": {
-      "bytes": 688819,
-      "sha256": "379c442eb9b4e876e341f3269703de1015e6791b788ef869edac9b219f55e73d"
+      "bytes": 673960,
+      "sha256": "840e76d19b7e6483a3b884607dddff53e23ccb808a2dee508b2bb521e61498dd"
     },
     "faelle.jsonl": {
-      "bytes": 654782,
-      "sha256": "29f57fd1d637ecd61d4ad63992f3946b4564408b7fb998b65def225d3522396d"
+      "bytes": 640698,
+      "sha256": "66b9add08e0dbb9eeb50f183e877260e216cf4439b3f73bfc71a75fb881e5e7c"
     },
     "index.json": {
-      "bytes": 651904,
-      "sha256": "0473d6b3278392376a35b4528bd29d776d29c569b291c02bbdc3177993d747de"
+      "bytes": 638090,
+      "sha256": "ae804380efd03781fce18d395cded3c162272a0c437d903ea9e511ea14af80f5"
     },
     "instruct.jsonl": {
-      "bytes": 678553,
-      "sha256": "75bdd63c73f3ba60eee812754221483201248784d7e20e4a3535f05eb0362518"
+      "bytes": 664086,
+      "sha256": "ee0dcf88872c6a084a215b8282a09460df64ff873d10227fd20fe336dc1dff6e"
     }
   },
-  "erzeugt": "2026-08-03T11:59:16+00:00",
-  "faelle": 971,
+  "erzeugt": "2026-11-24T14:53:58+00:00",
+  "faelle": 972,
   "herkunft": {
     "commits": 400,
-    "docstrings": 283,
+    "docstrings": 284,
     "ledger": 68,
     "markdown": 148,
     "rust": 72
   },
   "schema": "hugin.corpus.v1",
   "stamm": 5,
-  "zeichen": 463937
+  "zeichen": 449718
 }
