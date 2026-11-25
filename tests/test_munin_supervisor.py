@@ -58,6 +58,110 @@ def test_render_reports_clean_state_explicitly():
 
 
 # --------------------------------------------------------------------------
+# Git-Identitaet: Konfiguration muss fail-closed sein
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("contents", [
+    None,                                      # Datei fehlt
+    "{ungueltig",                               # JSON-Syntaxfehler
+    "null",                                     # Falscher Top-Level-Typ
+    "[]",
+    "{}",                                       # gitIdentity fehlt
+    '{"gitIdentity": []}',
+    '{"gitIdentity": {}}',
+    '{"gitIdentity": {"author": [], "committer": {"email": "signer@example.test"}}}',
+    '{"gitIdentity": {"author": {"email": "owner@example.test"}, "committer": {}}}',
+    '{"gitIdentity": {"author": {"email": "owner@example.test"}, "committer": {"email": 42}}}',
+    '{"gitIdentity": {"author": {"email": " "}, "committer": {"email": "signer@example.test"}}}',
+])
+def test_git_identity_fails_closed_on_bad_config(tmp_path, monkeypatch, contents):
+    monkeypatch.setattr(_mod, "PERSONA", tmp_path)
+    if contents is not None:
+        (tmp_path / "munin.json").write_text(contents, encoding="utf-8")
+
+    def unexpected_git(*args, **kwargs):
+        pytest.fail("Ungueltige Konfiguration darf keine Git-Pruefung ausloesen")
+
+    monkeypatch.setattr(_mod, "run", unexpected_git)
+    findings = _mod.check_git_identity()
+    assert len(findings) == 1
+    assert findings[0].rule == "git-identity-config"
+    assert findings[0].severity == VIOLATION
+    assert Report(ts="test", findings=findings).exit_code() == 2
+
+    monkeypatch.setattr(_mod, "CHECKS", (("git-identity", _mod.check_git_identity),))
+    assert _mod.audit(quick=True).exit_code() == 2
+
+
+@pytest.mark.parametrize("legacy_author", [False, True])
+def test_git_identity_accepts_valid_config_and_preserves_checks(
+        tmp_path, monkeypatch, legacy_author):
+    import json
+    import subprocess
+
+    identity = {
+        "committer": {"email": "signer@example.test"},
+        "email": "owner@example.test",
+    }
+    if not legacy_author:
+        identity["author"] = {"email": "owner@example.test"}
+    (tmp_path / "munin.json").write_text(
+        json.dumps({"gitIdentity": identity}), encoding="utf-8"
+    )
+    monkeypatch.setattr(_mod, "PERSONA", tmp_path)
+    commands = []
+
+    def git_run(*args, **kwargs):
+        commands.append(args)
+        if args[:3] == ("git", "config", "user.email"):
+            stdout = "signer@example.test"
+        elif args[:3] == ("git", "rev-parse", "--abbrev-ref"):
+            stdout = "origin/main"
+        elif args[:3] == ("git", "log", "-1"):
+            stdout = "owner@example.test"
+        else:
+            pytest.fail(f"Unerwarteter Git-Aufruf: {args!r}")
+        return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(_mod, "run", git_run)
+    assert _mod.check_git_identity() == []
+    assert len(commands) == 3
+
+
+def test_git_identity_still_checks_author_and_committer_separately(
+        tmp_path, monkeypatch):
+    import json
+    import subprocess
+
+    identity = {
+        "author": {"email": "owner@example.test"},
+        "committer": {"email": "signer@example.test"},
+    }
+    (tmp_path / "munin.json").write_text(
+        json.dumps({"gitIdentity": identity}), encoding="utf-8"
+    )
+    monkeypatch.setattr(_mod, "PERSONA", tmp_path)
+
+    def git_run(*args, **kwargs):
+        if args[:3] == ("git", "config", "user.email"):
+            stdout = "wrong-signer@example.test"
+        elif args[:3] == ("git", "rev-parse", "--abbrev-ref"):
+            stdout = "origin/main\\n"
+        elif args[:3] == ("git", "log", "-1"):
+            stdout = "wrong-author@example.test"
+        else:
+            pytest.fail(f"Unerwarteter Git-Aufruf: {args!r}")
+        return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(_mod, "run", git_run)
+    findings = _mod.check_git_identity()
+    assert {f.rule for f in findings} == {
+        "git-author-identity", "git-committer-identity"
+    }
+    assert Report(ts="test", findings=findings).exit_code() == 2
+
+
+# --------------------------------------------------------------------------
 # Secret-Erkennung -- die Muster müssen echte Key-Formen treffen
 # --------------------------------------------------------------------------
 

@@ -178,11 +178,35 @@ def check_git_identity() -> list[Finding]:
     Konfiguration: was tatsächlich in der Historie steht, ist die einzige
     belastbare Antwort — dieselbe Regel wie überall hier.
     """
-    ident = _load("munin.json").get("gitIdentity") or {}
-    author_want = (ident.get("author") or {}).get("email") or ident.get("email")
-    committer_want = (ident.get("committer") or {}).get("email")
-    if not author_want:
-        return []
+    # Fehlende, unlesbare oder syntaktisch ungueltige munin.json wird von
+    # _load() als {} gemeldet. Fuer eine Pflichtpruefung ist das ein Verstoss,
+    # kein Grund, die gesamte Identitaetspruefung still zu ueberspringen.
+    config = _load("munin.json")
+    ident = config.get("gitIdentity") if isinstance(config, dict) else None
+    if not isinstance(ident, dict):
+        return [Finding(
+            "git-identity-config", VIOLATION,
+            "gitIdentity fehlt oder ist ungueltig",
+            source="munin.json → gitIdentity")]
+
+    author = ident.get("author")
+    committer = ident.get("committer")
+    # Legacy-Konfigurationen mit gitIdentity.email bleiben gueltig.
+    if (author is not None and not isinstance(author, dict)
+            or not isinstance(committer, dict)):
+        return [Finding(
+            "git-identity-config", VIOLATION,
+            "Author- oder Committer-Konfiguration ist ungueltig",
+            source="munin.json → gitIdentity")]
+
+    author_want = (author or {}).get("email") or ident.get("email")
+    committer_want = committer.get("email")
+    if not all(isinstance(value, str) and value.strip()
+               for value in (author_want, committer_want)):
+        return [Finding(
+            "git-identity-config", VIOLATION,
+            "Author- oder Committer-E-Mail fehlt oder ist ungueltig",
+            source="munin.json → gitIdentity")]
 
     out = []
     committer_have = run("git", "config", "user.email").stdout.strip()
